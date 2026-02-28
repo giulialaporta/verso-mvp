@@ -81,6 +81,13 @@ type LearningSuggestion = {
   duration?: string;
 };
 
+type StructuralChange = {
+  action: "removed" | "reordered" | "condensed";
+  section: string;
+  item: string;
+  reason: string;
+};
+
 type TailorResult = {
   match_score: number;
   ats_score: number;
@@ -99,6 +106,9 @@ type TailorResult = {
     detail?: string;
   }[];
   tailored_cv: Record<string, unknown>;
+  tailored_patches?: Array<{ path: string; value: unknown }>;
+  original_cv?: Record<string, unknown>;
+  structural_changes?: StructuralChange[];
   honest_score: {
     confidence: number;
     experiences_added: number;
@@ -115,6 +125,7 @@ type TailorResult = {
     original: string;
     suggested: string;
     reason: string;
+    patch_path?: string;
   }[];
   master_cv_id: string;
   learning_suggestions?: LearningSuggestion[];
@@ -617,7 +628,41 @@ function StepVerifica({
   );
 }
 
-// --- Step 2: AI Analysis (with animated counter & learning suggestions) ---
+// --- Utility: apply patches to original CV (frontend copy) ---
+function applyPatchesFrontend(
+  original: Record<string, unknown>,
+  patches: Array<{ path: string; value: unknown }>
+): Record<string, unknown> {
+  const result = JSON.parse(JSON.stringify(original));
+  for (const patch of patches) {
+    const { path, value } = patch;
+    const segments = path.replace(/\[(\d+)\]/g, ".$1").split(".");
+    let target = result;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const seg = segments[i];
+      const idx = Number(seg);
+      if (!isNaN(idx)) {
+        target = target[idx];
+      } else {
+        if (target[seg] === undefined || target[seg] === null) {
+          const nextSeg = segments[i + 1];
+          target[seg] = !isNaN(Number(nextSeg)) ? [] : {};
+        }
+        target = target[seg];
+      }
+    }
+    const lastSeg = segments[segments.length - 1];
+    const lastIdx = Number(lastSeg);
+    if (!isNaN(lastIdx)) {
+      target[lastIdx] = value;
+    } else {
+      target[lastSeg] = value;
+    }
+  }
+  return result;
+}
+
+// --- Step 2: AI Analysis with interactive approval ---
 function StepAnalisi({
   result,
   loading,
@@ -626,11 +671,80 @@ function StepAnalisi({
 }: {
   result: TailorResult | null;
   loading: boolean;
-  onNext: () => void;
+  onNext: (approvedCv: Record<string, unknown>) => void;
   onBack: () => void;
 }) {
   const animatedScore = useAnimatedCounter(result?.match_score ?? 0);
   const animatedAts = useAnimatedCounter(result?.ats_score ?? 0);
+
+  // Compute total number of approvable items
+  const structCount = result?.structural_changes?.length ?? 0;
+  const diffCount = result?.diff?.length ?? 0;
+  const totalChanges = structCount + diffCount;
+
+  // All approved by default
+  const [decisions, setDecisions] = useState<Record<string, "approved" | "rejected">>({});
+
+  // Initialize decisions when result loads
+  useEffect(() => {
+    if (!result) return;
+    const init: Record<string, "approved" | "rejected"> = {};
+    (result.structural_changes ?? []).forEach((_, i) => { init[`s_${i}`] = "approved"; });
+    (result.diff ?? []).forEach((_, i) => { init[`d_${i}`] = "approved"; });
+    setDecisions(init);
+  }, [result]);
+
+  const approvedCount = Object.values(decisions).filter(v => v === "approved").length;
+
+  const toggleDecision = (key: string) => {
+    setDecisions(prev => ({
+      ...prev,
+      [key]: prev[key] === "approved" ? "rejected" : "approved",
+    }));
+  };
+
+  const setAll = (status: "approved" | "rejected") => {
+    setDecisions(prev => {
+      const next = { ...prev };
+      for (const k of Object.keys(next)) next[k] = status;
+      return next;
+    });
+  };
+
+  const handleNext = () => {
+    if (!result) return;
+
+    // If all approved, just use the full tailored_cv
+    if (approvedCount === totalChanges) {
+      onNext(result.tailored_cv);
+      return;
+    }
+
+    // Selective: filter patches by approved diffs/structural_changes
+    const originalCv = result.original_cv || result.tailored_cv;
+    const allPatches = result.tailored_patches || [];
+
+    // Build set of approved patch_paths
+    const approvedPaths = new Set<string>();
+
+    // Structural changes that are approved — their patches affect full arrays
+    (result.structural_changes ?? []).forEach((sc, i) => {
+      if (decisions[`s_${i}`] === "approved") {
+        approvedPaths.add(sc.section);
+      }
+    });
+
+    // Diff entries that are approved
+    (result.diff ?? []).forEach((d, i) => {
+      if (decisions[`d_${i}`] === "approved" && d.patch_path) {
+        approvedPaths.add(d.patch_path);
+      }
+    });
+
+    const approvedPatches = allPatches.filter(p => approvedPaths.has(p.path));
+    const finalCv = applyPatchesFrontend(originalCv, approvedPatches);
+    onNext(finalCv);
+  };
 
   if (loading) {
     return (
@@ -856,26 +970,167 @@ function StepAnalisi({
         </motion.div>
       )}
 
-      {/* Diff / Suggestions */}
-      {result.diff && result.diff.length > 0 && (
+      {/* Interactive Approval Section */}
+      {totalChanges > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
           <Card className="border-border/50 bg-card/80">
             <CardContent className="pt-5 space-y-4">
-              <p className="text-sm font-medium">Modifiche suggerite</p>
-              {result.diff.slice(0, 6).map((ch, i) => (
-                <div key={i} className="space-y-1 border-l-2 border-primary/30 pl-3">
-                  <p className="text-xs font-mono text-muted-foreground uppercase">{ch.section}</p>
-                  <p className="text-sm line-through text-muted-foreground">{ch.original}</p>
-                  <p className="text-sm text-primary">{ch.suggested}</p>
-                  {ch.reason && <p className="text-xs text-muted-foreground italic">{ch.reason}</p>}
+              {/* Header with counter and batch buttons */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <MagicWand size={18} className="text-primary" />
+                  <span className="text-sm font-medium">Modifiche suggerite</span>
+                  <span className="font-mono text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {approvedCount}/{totalChanges} approvate
+                  </span>
                 </div>
-              ))}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setAll("approved")}
+                    className="text-[11px] font-mono text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded border border-primary/20 hover:bg-primary/5"
+                  >
+                    Approva tutte
+                  </button>
+                  <button
+                    onClick={() => setAll("rejected")}
+                    className="text-[11px] font-mono text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded border border-destructive/20 hover:bg-destructive/5"
+                  >
+                    Rifiuta tutte
+                  </button>
+                </div>
+              </div>
+
+              {/* Structural changes */}
+              {result.structural_changes && result.structural_changes.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-mono text-muted-foreground uppercase">Modifiche strutturali</p>
+                  {result.structural_changes.map((sc, i) => {
+                    const key = `s_${i}`;
+                    const isApproved = decisions[key] === "approved";
+                    const actionLabels: Record<string, string> = {
+                      removed: "Rimossa",
+                      reordered: "Riordinata",
+                      condensed: "Condensata",
+                    };
+                    const actionColors: Record<string, string> = {
+                      removed: "text-destructive",
+                      reordered: "text-secondary",
+                      condensed: "text-warning",
+                    };
+                    return (
+                      <div
+                        key={key}
+                        className={`rounded-lg border p-3 transition-all duration-200 ${
+                          isApproved
+                            ? "border-border/50 bg-card/60"
+                            : "border-destructive/30 bg-destructive/5 opacity-60"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`font-mono text-[10px] uppercase font-medium ${actionColors[sc.action] || "text-muted-foreground"}`}>
+                                {actionLabels[sc.action] || sc.action}
+                              </span>
+                              <span className="font-mono text-[10px] text-muted-foreground uppercase">{sc.section}</span>
+                            </div>
+                            <p className="text-sm font-medium">{sc.item}</p>
+                            <p className="text-xs text-muted-foreground italic mt-1">{sc.reason}</p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <button
+                              onClick={() => toggleDecision(key)}
+                              className={`p-1.5 rounded-md transition-colors ${
+                                isApproved
+                                  ? "text-primary bg-primary/10"
+                                  : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+                              }`}
+                              title="Approva"
+                            >
+                              <CheckCircle size={18} weight={isApproved ? "fill" : "regular"} />
+                            </button>
+                            <button
+                              onClick={() => toggleDecision(key)}
+                              className={`p-1.5 rounded-md transition-colors ${
+                                !isApproved
+                                  ? "text-destructive bg-destructive/10"
+                                  : "text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                              }`}
+                              title="Rifiuta"
+                            >
+                              <XCircle size={18} weight={!isApproved ? "fill" : "regular"} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Content diff changes */}
+              {result.diff && result.diff.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-mono text-muted-foreground uppercase">Modifiche al contenuto</p>
+                  {result.diff.map((ch, i) => {
+                    const key = `d_${i}`;
+                    const isApproved = decisions[key] === "approved";
+                    return (
+                      <div
+                        key={key}
+                        className={`rounded-lg border p-3 transition-all duration-200 ${
+                          isApproved
+                            ? "border-border/50 bg-card/60"
+                            : "border-destructive/30 bg-destructive/5 opacity-60"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <p className="font-mono text-[10px] text-muted-foreground uppercase">{ch.section}</p>
+                            <p className={`text-sm line-through text-muted-foreground ${!isApproved ? "" : ""}`}>
+                              {ch.original}
+                            </p>
+                            <p className={`text-sm ${isApproved ? "text-primary" : "text-muted-foreground line-through"}`}>
+                              {ch.suggested}
+                            </p>
+                            {ch.reason && <p className="text-xs text-muted-foreground italic">{ch.reason}</p>}
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <button
+                              onClick={() => toggleDecision(key)}
+                              className={`p-1.5 rounded-md transition-colors ${
+                                isApproved
+                                  ? "text-primary bg-primary/10"
+                                  : "text-muted-foreground hover:text-primary hover:bg-primary/5"
+                              }`}
+                              title="Approva"
+                            >
+                              <CheckCircle size={18} weight={isApproved ? "fill" : "regular"} />
+                            </button>
+                            <button
+                              onClick={() => toggleDecision(key)}
+                              className={`p-1.5 rounded-md transition-colors ${
+                                !isApproved
+                                  ? "text-destructive bg-destructive/10"
+                                  : "text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                              }`}
+                              title="Rifiuta"
+                            >
+                              <XCircle size={18} weight={!isApproved ? "fill" : "regular"} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
       )}
 
-      <Button onClick={onNext} className="w-full gap-2">
+      <Button onClick={handleNext} className="w-full gap-2">
         Vedi il CV adattato <ArrowRight size={16} />
       </Button>
     </div>
@@ -1618,7 +1873,12 @@ export default function Nuova() {
             <StepAnalisi
               result={tailorResult}
               loading={analyzing}
-              onNext={() => updateStep(3)}
+              onNext={(approvedCv) => {
+                if (tailorResult) {
+                  setTailorResult({ ...tailorResult, tailored_cv: approvedCv });
+                }
+                updateStep(3);
+              }}
               onBack={() => updateStep(1)}
             />
           )}
