@@ -48,28 +48,13 @@ type AppRow = {
   company_name: string;
   role_title: string;
   match_score: number | null;
+  ats_score: number | null;
   status: string;
   created_at: string;
   notes: string | null;
 };
 
-const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  draft: { bg: "bg-muted/40", text: "text-muted-foreground" },
-  inviata: { bg: "bg-secondary/15", text: "text-secondary" },
-  visualizzata: { bg: "bg-warning/15", text: "text-warning" },
-  contattato: { bg: "bg-primary/15", text: "text-primary" },
-  "follow-up": { bg: "bg-warning/20", text: "text-warning" },
-  ko: { bg: "bg-destructive/15", text: "text-destructive" },
-};
-
-function StatusChip({ status }: { status: string }) {
-  const s = STATUS_STYLES[status.toLowerCase()] ?? STATUS_STYLES.draft;
-  return (
-    <span className={`${s.bg} ${s.text} rounded-full px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wider`}>
-      {status}
-    </span>
-  );
-}
+import { StatusChip, STATUS_STYLES } from "@/components/StatusChip";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("it-IT", {
@@ -100,7 +85,7 @@ export default function Candidature() {
     if (!user) return;
     supabase
       .from("applications")
-      .select("id, company_name, role_title, match_score, status, created_at, notes")
+      .select("id, company_name, role_title, match_score, ats_score, status, created_at, notes")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {

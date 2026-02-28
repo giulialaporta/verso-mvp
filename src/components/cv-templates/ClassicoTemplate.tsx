@@ -1,6 +1,5 @@
 import { Document, Page, View, Text, StyleSheet, Font } from "@react-pdf/renderer";
 
-// Register DM Sans from Google Fonts
 Font.register({
   family: "DM Sans",
   fonts: [
@@ -20,6 +19,7 @@ const styles = StyleSheet.create({
   },
   headerName: { fontSize: 22, fontWeight: 700, marginBottom: 4 },
   headerContact: { fontSize: 9, color: "#8B8FA8", flexDirection: "row", gap: 12, flexWrap: "wrap" },
+  headerLinks: { fontSize: 9, color: "#5DBBFF", flexDirection: "row", gap: 12, flexWrap: "wrap", marginTop: 4 },
   body: { paddingHorizontal: 68, paddingTop: 20 },
   sectionTitle: {
     fontSize: 9,
@@ -42,6 +42,13 @@ const styles = StyleSheet.create({
   eduTitle: { fontSize: 10, fontWeight: 500 },
   eduMeta: { fontSize: 9, color: "#555" },
   skillsRow: { fontSize: 9.5, lineHeight: 1.6, flexDirection: "row", flexWrap: "wrap" },
+  certBlock: { marginBottom: 6 },
+  certTitle: { fontSize: 10, fontWeight: 500 },
+  certMeta: { fontSize: 9, color: "#555" },
+  projBlock: { marginBottom: 8 },
+  projName: { fontSize: 10, fontWeight: 500 },
+  projDesc: { fontSize: 9.5, lineHeight: 1.5, marginTop: 1 },
+  projLink: { fontSize: 9, color: "#5DBBFF", marginTop: 1 },
   extraBlock: { marginBottom: 6 },
 });
 
@@ -57,9 +64,11 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
   const experience = cv.experience || [];
   const education = cv.education || [];
   const skills = cv.skills;
+  const certifications = cv.certifications || [];
+  const projects = cv.projects || [];
   const extraSections = cv.extra_sections || [];
 
-  const contactParts = [personal.email, personal.phone, personal.location].filter(Boolean);
+  const contactParts = [personal.email, personal.phone, personal.location, personal.date_of_birth].filter(Boolean);
 
   const allSkills = skills
     ? Array.isArray(skills)
@@ -78,6 +87,12 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
               <Text key={i}>{c}</Text>
             ))}
           </View>
+          {(personal.linkedin || personal.website) && (
+            <View style={styles.headerLinks}>
+              {personal.linkedin && <Text>{personal.linkedin}</Text>}
+              {personal.website && <Text>{personal.website}</Text>}
+            </View>
+          )}
         </View>
 
         <View style={styles.body}>
@@ -156,6 +171,35 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
                     .join("  ·  ")}
                 </Text>
               </View>
+            </>
+          )}
+
+          {/* Certifications */}
+          {certifications.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>Certificazioni</Text>
+              {certifications.map((cert: any, i: number) => (
+                <View key={i} style={styles.certBlock}>
+                  <Text style={styles.certTitle}>
+                    {cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}
+                  </Text>
+                  {cert.year && <Text style={styles.certMeta}>{cert.year}</Text>}
+                </View>
+              ))}
+            </>
+          )}
+
+          {/* Projects */}
+          {projects.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>Progetti</Text>
+              {projects.map((proj: any, i: number) => (
+                <View key={i} style={styles.projBlock}>
+                  <Text style={styles.projName}>{proj.name}</Text>
+                  {proj.description && <Text style={styles.projDesc}>{proj.description}</Text>}
+                  {proj.link && <Text style={styles.projLink}>{proj.link}</Text>}
+                </View>
+              ))}
             </>
           )}
 
