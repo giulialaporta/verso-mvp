@@ -1,42 +1,43 @@
 
 
-# Aggiungi bottone "Annulla" e timeout al caricamento
+# Fix: Skills renderizzate carattere per carattere
 
 ## Problema
-Quando lo scraping di un URL si blocca (siti come Ashby, Lever, ecc.), l'utente resta bloccato su "Analisi in corso..." senza poter fare nulla. Non c'e' modo di interrompere ne' un timeout automatico.
+Nella vista "Adattato" (Step 3), le competenze vengono mostrate un carattere alla volta in una griglia. Questo succede perche' l'AI a volte restituisce `skills.technical` come stringa (es. `"Management, Customer Experience"`) invece che come array `["Management", "Customer Experience"]`.
+
+Il codice in `renderCV` fa:
+```text
+const all = [
+  ...(skills.technical || []),
+  ...(skills.soft || []),
+  ...(skills.tools || []),
+];
+```
+
+Quando si fa spread di una stringa (`[..."abc"]`), JavaScript produce `["a", "b", "c"]` — da qui i singoli caratteri.
 
 ## Soluzione
 
-### 1. Bottone "Annulla" durante il caricamento (`src/pages/Nuova.tsx`)
-- Aggiungere un `AbortController` come ref nel componente `Step1`
-- Quando l'utente clicca "Annulla", il controller viene abortito, il loading si ferma e appare un messaggio che suggerisce di usare il tab Testo
-- Il bottone "Analizza" durante il loading diventa un bottone "Annulla" rosso
+### 1. Sanitizzare gli array di skills in `renderCV` (`src/pages/Nuova.tsx`)
 
-### 2. Timeout automatico di 25 secondi (`src/pages/Nuova.tsx`)
-- Wrappare la chiamata `supabase.functions.invoke` con un `AbortController` e un timeout di 25 secondi
-- Se scade, mostrare un toast: "Il sito non risponde. Copia il testo dell'annuncio e incollalo nel tab Testo."
-- Switchare automaticamente al tab "Testo"
+Aggiungere una funzione helper `ensureArray` che:
+- Se il valore e' gia' un array, lo restituisce
+- Se e' una stringa, la splitta per virgola e trima ogni elemento
+- Altrimenti restituisce `[]`
 
-### 3. Timeout sul fetch nell'edge function (`supabase/functions/scrape-job/index.ts`)
-- Aggiungere `signal: AbortSignal.timeout(10000)` al `fetch()` dell'URL
-- Se il fetch scade, restituire un errore chiaro invece di bloccarsi
+Applicarla a `skills.technical`, `skills.soft`, `skills.tools` prima dello spread.
 
-### 4. Domini problematici (`src/pages/Nuova.tsx`)
-- Estendere `getDomainHint()` per includere `ashbyhq.com`, `lever.co`, `greenhouse.io`
+### 2. Validare l'output nell'edge function (`supabase/functions/ai-tailor/index.ts`)
 
-## Comportamento risultante
-
-1. L'utente incolla un URL e clicca "Analizza"
-2. Il bottone diventa "Annulla" (rosso, con icona X)
-3. Se il sito non risponde entro 25s, o l'utente clicca Annulla:
-   - Toast: "Il sito non risponde. Copia il testo dell'annuncio e usa il tab Testo."
-   - Tab automaticamente switchato su "Testo"
-   - Loading terminato
+Dopo aver applicato le patch al CV, validare che i campi skills siano sempre array. Se l'AI ha restituito una stringa, convertirla in array prima di inviare la risposta al frontend.
 
 ## File coinvolti
 
 | File | Modifica |
 |------|----------|
-| `src/pages/Nuova.tsx` | AbortController, bottone Annulla, timeout 25s, domini extra |
-| `supabase/functions/scrape-job/index.ts` | `AbortSignal.timeout(10000)` sul fetch URL |
+| `src/pages/Nuova.tsx` | Aggiungere `ensureArray()` helper nel `renderCV` per gestire skills stringa |
+| `supabase/functions/ai-tailor/index.ts` | Validare che `tailoredCV.skills.*` siano array dopo `applyPatches` |
+
+## Risultato
+Le competenze verranno sempre renderizzate correttamente come chip, indipendentemente dal formato restituito dall'AI.
 
