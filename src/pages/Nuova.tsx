@@ -481,7 +481,7 @@ function Step2({
               {result.skills_missing.map((s) => (
                 <span key={s.label} className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-mono text-destructive flex items-center gap-1">
                   {s.label}
-                  {s.importance === "essenziale" && <Warning size={12} weight="fill" />}
+                  {(s.importance === "essential" || s.importance === "essenziale") && <Warning size={12} weight="fill" />}
                 </span>
               ))}
             </div>
