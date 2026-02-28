@@ -1,106 +1,58 @@
 
-# Match Score intelligente + eliminazione score_breakdown + lingua domande
+# Regola linguistica chiara: separazione CV vs UI
 
-## Panoramica
+## Problema
 
-Tre interventi:
-1. Aggiungere post-processing deterministico dello score nel backend con una nota sintetica (mai un breakdown tecnico)
-2. Mostrare solo un commento breve sotto il Match Score (es. "Punteggio ridotto per 2 competenze essenziali mancanti")
-3. Assicurarsi che le follow-up questions di ai-prescreen rispettino la lingua dell'annuncio
+La regola attuale dice "Language In = Language Out" -- tutto l'output segue la lingua dell'annuncio. Ma il sito e' in italiano, quindi quando l'annuncio e' in inglese, l'utente vede un mix confuso:
+- ATS check descriptions in inglese (screenshot: "Many relevant keywords such as...")
+- Seniority note in inglese ("The candidate's extensive experience...")
+- Follow-up questions in inglese ("How have you typically approached...")
+- Score note in inglese ("Score adjusted: 3 essential skills missing")
 
----
+## Nuova regola: due livelli linguistici
 
-## 1. Backend: `ai-tailor/index.ts`
+| Livello | Lingua | Campi |
+|---------|--------|-------|
+| **CV content** (il CV adattato) | Lingua dell'annuncio | `tailored_patches` values, `summary`, bullets, skill labels |
+| **Analisi/UI** (tutto il resto) | **Sempre italiano** | `score_note`, `seniority_match.note`, `ats_checks[].label/detail`, `diff[].reason`, `structural_changes[].reason/item`, `suggestions[].message`, `learning_suggestions[].resource_name/duration` |
 
-### 1a. Aggiungere `score_note` al tool schema
+## Modifiche
 
-Aggiungere un campo nel tool schema:
+### 1. `ai-tailor/index.ts` -- System prompt
 
-```json
-"score_note": {
-  "type": "string",
-  "description": "1-2 sentence explanation of the match score IN THE SAME LANGUAGE as the job posting. Explain key factors affecting the score."
-}
-```
-
-Aggiungerlo anche ai `required`.
-
-### 1b. Post-processing deterministico dopo la risposta AI
-
-Dopo aver parsato il risultato AI (linea ~492), aggiungere la funzione `adjustScore`:
+Sostituire la regola linguistica con:
 
 ```text
-Logica:
-1. Contare skills_missing con importance === "essential" -> essentialMissing
-2. Se essentialMissing >= 3: cap = 30
-   Se essentialMissing === 2: cap = 40
-   Se essentialMissing === 1: cap = 55
-   Altrimenti: cap = 100
-3. Se seniority_match.match === false:
-   - Differenza di 2+ livelli: penalty = 15
-   - Altrimenti: penalty = 5
-4. Contare ats_checks con status === "fail": atsFails * 3
-5. finalScore = min(AI_score, cap) - seniorityPenalty - atsPenalty
-6. Clamp: min 5, max 98
-7. Se il score e' stato modificato, generare una score_note sintetica
-   (in italiano o inglese in base a detected_language)
+## CRITICAL RULE -- TWO-LEVEL LANGUAGE POLICY
+1. Detect the language of the JOB POSTING. Report it in detected_language.
+2. CV CONTENT (tailored_patches values, summary, bullets, skill labels, descriptions) 
+   MUST be in the SAME LANGUAGE as the job posting.
+3. ANALYSIS & UI TEXT (score_note, seniority_match.note, ats_checks label/detail, 
+   diff reasons, structural_changes reason/item, suggestions, learning_suggestions) 
+   MUST ALWAYS be in ITALIAN, regardless of the job posting language.
 ```
 
-La `score_note` generata dal backend sovrascrive quella dell'AI solo se il punteggio viene modificato. Se il punteggio resta invariato, usare la nota dell'AI.
+Aggiornare anche le `description` dei campi nello schema che attualmente dicono "IN THE SAME LANGUAGE as the job posting" -- cambiarle in "ALWAYS in Italian".
 
-Esempio di note generate:
-- IT: "Punteggio ridotto: mancano 2 competenze essenziali per questo ruolo."
-- EN: "Score reduced: 2 essential skills are missing for this role."
-- IT: "Buon match complessivo, lieve penalita' per disallineamento seniority."
+Aggiornare la funzione `adjustScore` per generare sempre note in italiano (rimuovere il branch inglese).
 
-### 1c. NON esporre score_breakdown
+### 2. `ai-prescreen/index.ts` -- System prompt
 
-Non aggiungere nessun campo `score_breakdown` alla risposta. Solo `match_score` (numero) e `score_note` (stringa).
-
----
-
-## 2. Frontend: `Nuova.tsx`
-
-### 2a. Aggiornare `TailorResult`
-
-Aggiungere:
-```typescript
-score_note?: string;
-```
-
-### 2b. Mostrare la nota sotto il Match Score
-
-Sotto la barra del Match Score (linea ~840, dopo la chiusura del progress bar), aggiungere:
+Stessa regola: le follow-up questions e tutte le spiegazioni devono essere sempre in italiano. Cambiare:
 
 ```text
-{result.score_note && (
-  <p className="text-sm text-muted-foreground mt-2">{result.score_note}</p>
-)}
+## CRITICAL RULE -- LANGUAGE
+ALL analysis output (explanations, questions, notes, context, messages) MUST be in ITALIAN, 
+regardless of the job posting language.
 ```
 
-Nessun breakdown tecnico, nessun dettaglio numerico. Solo il commento sintetico.
+### 3. `adjustScore` in `ai-tailor` -- rimuovere branch EN
 
----
-
-## 3. Lingua delle follow-up questions
-
-Le domande vengono da `ai-prescreen/index.ts` che ha gia' la regola "Detect the language of the JOB POSTING. ALL output MUST be in that language." Questo copre le domande.
-
-Per le label statiche del frontend ("Aiutaci a conoscerti meglio", "La tua risposta (facoltativa)..."), queste sono in italiano fisso. Dato che il sito e' in italiano, sono gia' corrette. Se in futuro si vuole i18n, si puo' aggiungere, ma per v1 il sito e' italiano.
-
-Le label dei requisiti ("obbligatorio", "preferito", "gradito") nella sezione requirements_analysis sono hardcoded in italiano. Questo e' coerente col sito in italiano.
-
----
+La funzione attualmente genera note in italiano o inglese in base a `detected_language`. Semplificarla per generare sempre in italiano.
 
 ## File coinvolti
 
 | File | Modifica |
 |------|----------|
-| `supabase/functions/ai-tailor/index.ts` | Aggiungere `score_note` al schema, funzione `adjustScore` post-AI, sovrascrivere score e nota se necessario |
-| `src/pages/Nuova.tsx` | Aggiungere `score_note` al tipo, renderizzare sotto il Match Score |
-
-## Ordine
-
-1. Aggiornare il tool schema di ai-tailor con `score_note` + post-processing deterministico
-2. Aggiornare tipo e UI in Nuova.tsx
-3. Deploy edge function
+| `supabase/functions/ai-tailor/index.ts` | Nuovo prompt bilingue, schema descriptions, adjustScore solo italiano |
+| `supabase/functions/ai-prescreen/index.ts` | Prompt: output analisi sempre in italiano |
