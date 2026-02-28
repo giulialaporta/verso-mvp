@@ -1,51 +1,93 @@
 
-# Fix UI: Titolo CV troncato, Mobile layout, Navigazione consistente
 
-## Problemi identificati
+# Analisi barriere portali di lavoro + Guida utente in-app
 
-### 1. Titolo CV troncato
-Il file name nella CV Card usa `truncate` con `max-w-[180px]`, tagliando nomi lunghi come "CV GIulia La Porta_01_2...". Il layout `flex-row` tra titolo e filename comprime lo spazio disponibile.
+## Il problema
 
-### 2. Mobile layout problematico
-Dalla screenshot a 375px:
-- **Nessun padding laterale**: il contenuto tocca i bordi dello schermo. L'`AppShell` mobile non applica padding, e `Home.tsx` usa solo `max-w-xl` senza padding orizzontale.
-- **Stats bar troppo compressa**: le tre card in `grid-cols-3` a 375px sono strettissime.
-- **CV Card header sovraffollato**: titolo e filename forzati sulla stessa riga.
+Lo scraper attuale (`scrape-job/index.ts`) usa un semplice `fetch()` con User-Agent generico. Questo funziona solo con siti che servono HTML statico senza protezioni. La maggior parte dei portali di lavoro moderni blocca questo approccio.
 
-### 3. Navigazione inconsistente: "Nuova" nel menu
-Il tab "Nuova" nella sidebar/bottom bar e il bottone "Nuova candidatura" in Home fanno esattamente la stessa cosa (navigano a `/app/nuova`). Avere due entry point crea confusione e spreca spazio nella navigazione. La sidebar dovrebbe contenere solo destinazioni di contenuto stabile (Home, Candidature), non azioni.
+## Analisi dei principali portali
 
----
+| Portale | URL scraping | Copia-incolla testo | Note |
+|---------|-------------|---------------------|------|
+| **LinkedIn** | NO | SI (con limitazioni) | Richiede login, JS rendering, anti-bot aggressivo. Il testo dell'annuncio e' copiabile dalla pagina una volta loggati. |
+| **Indeed** | NO | SI | Anti-bot (Cloudflare), JS-rendered. Testo copiabile dalla pagina. |
+| **InfoJobs** | PARZIALE | SI | Meno protezioni, ma spesso JS-rendered. Testo facilmente copiabile. |
+| **Monster** | NO | SI | Anti-bot, JS rendering. Testo copiabile. |
+| **Glassdoor** | NO | SI | Login richiesto, anti-bot forte. Testo copiabile. |
+| **Subito Lavoro** | PARZIALE | SI | Protezioni minori, potrebbe funzionare. |
+| **Talent.com** | PARZIALE | SI | Spesso accessibile, ma variabile. |
+| **Siti aziendali** (Workday, Greenhouse, Lever) | VARIABILE | SI | Alcuni accessibili, altri no. Greenhouse e Lever spesso OK. |
 
-## Soluzione
+**Conclusione**: Lo scraping via URL e' inaffidabile per la maggior parte dei portali. Il copia-incolla del testo e' sempre possibile ed e' il metodo piu' affidabile.
 
-### `src/pages/Home.tsx`
+## Soluzione proposta
 
-**CV Card header**: spostare il filename sotto il titolo invece che affiancato. Rimuovere `truncate` e `max-w-[180px]`, usare `break-all` e testo piu piccolo ma visibile per intero.
+### 1. Invertire il default: Tab "Testo" come principale
 
-**Mobile padding**: aggiungere `px-4` al container principale per dare margine laterale su mobile. Usare `sm:px-0` per non influenzare desktop.
+Attualmente il tab URL e' il default. Questo induce l'utente a provare prima l'URL, che fallira' nella maggior parte dei casi. Invertire: **"Testo" diventa il tab di default**, "URL" resta come opzione secondaria.
 
-**Stats bar**: mantenere `grid-cols-3` ma ridurre il padding interno delle card su mobile con classi responsive (`py-3 px-1 sm:py-4 sm:px-2`).
+### 2. Aggiungere una guida contestuale "Come copiare l'annuncio"
 
-### `src/components/AppShell.tsx`
+Un componente espandibile (Collapsible) sotto la textarea con istruzioni rapide per i portali piu' comuni. Mostra icone dei portali e istruzioni specifiche per ciascuno.
 
-**Rimuovere "Nuova" dalla navigazione**: la tab/sidebar item "Nuova" viene eliminata. Restano solo "Home" e "Candidature". L'azione "nuova candidatura" e' gia' prominente nella Home (bottone CTA full-width) e potra' essere accessibile anche dalla pagina Candidature.
+```text
++------------------------------------------+
+| L'annuncio                               |
+| Incolla il testo dell'offerta di lavoro. |
++------------------------------------------+
+| [Nome azienda]                           |
++------------------------------------------+
+| [Testo] [URL]    <- Testo e' il default  |
++------------------------------------------+
+| [                                    ]   |
+| [ Incolla qui il testo completo...   ]   |
+| [                                    ]   |
++------------------------------------------+
+| v Come copiare da LinkedIn, Indeed...    |
+|   +---------------------------------+    |
+|   | LinkedIn:                       |    |
+|   | 1. Apri l'annuncio              |    |
+|   | 2. Seleziona tutto (Ctrl+A)     |    |
+|   | 3. Copia (Ctrl+C)              |    |
+|   | 4. Incolla qui                  |    |
+|   |                                 |    |
+|   | Indeed, InfoJobs, Monster:       |    |
+|   | Stesso metodo.                  |    |
+|   |                                 |    |
+|   | Tip: L'URL funziona solo con    |    |
+|   | alcuni siti (Greenhouse, Lever). |    |
+|   +---------------------------------+    |
++------------------------------------------+
+| [Analizza]                               |
++------------------------------------------+
+```
 
-**Bottom tab bar**: con solo 2 tab + nessun FAB centrale, il layout diventa piu' pulito. Se si vuole mantenere un accesso rapido, il FAB puo' diventare un bottone floating sulla pagina Candidature, ma non serve nella nav globale.
+### 3. Migliorare il fallback URL -> Testo
 
-**Desktop sidebar**: stessa logica, solo Home e Candidature. Il menu diventa piu' leggero e coerente.
+Quando lo scraping via URL fallisce, il messaggio di errore attuale e' generico. Migliorarlo con un suggerimento specifico basato sul dominio dell'URL inserito.
 
-### `src/components/CVSections.tsx`
+## File coinvolti
 
-Nessuna modifica necessaria.
+### `src/pages/Nuova.tsx` — Modifiche a Step1
 
----
+1. **Invertire tab default**: `useState<string>("text")` invece di `"url"`
+2. **Aggiungere componente guida**: Un `Collapsible` sotto la textarea con:
+   - Titolo: "Come copiare da LinkedIn, Indeed..."
+   - Istruzioni per portale con icone (LinkedIn, Indeed, InfoJobs, siti aziendali)
+   - Nota su quali URL funzionano (Greenhouse, Lever, siti semplici)
+3. **Migliorare errore URL**: Quando il fetch fallisce, mostrare un messaggio specifico basato sul dominio (es. "LinkedIn blocca lo scraping. Copia il testo dall'annuncio e incollalo qui.")
+4. **Label tab URL aggiornata**: Aggiungere sottotitolo "(solo alcuni siti)" al tab URL
 
-## Riepilogo modifiche
+### Nessun altro file coinvolto
 
-| File | Cosa cambia |
-|------|-------------|
-| `src/pages/Home.tsx` | Fix header CV Card (filename su riga separata, no truncate). Aggiunta padding mobile `px-4`. Stats card responsive. |
-| `src/components/AppShell.tsx` | Rimosso "Nuova" da `navItems`. Rimosso FAB centrale nella bottom bar. Solo Home + Candidature nella navigazione. |
+La logica backend resta invariata — il fallback text funziona gia'. Le modifiche sono puramente UI/UX nel componente Step1 di `Nuova.tsx`.
 
-Nessuna modifica backend, nessun nuovo file.
+## Dettagli tecnici
+
+- Collapsible: usa `@radix-ui/react-collapsible` gia' installato
+- Icone: `LinkedinLogo`, `Globe`, `Info` da Phosphor
+- Mappa domini bloccati: un semplice oggetto `Record<string, string>` con dominio -> messaggio specifico (es. `"linkedin.com": "LinkedIn blocca lo scraping automatico..."`)
+- Copy istruzioni: stile Verso — diretto, no fluff, con steps numerati
+- Animazione: fade-in del collapsible content con Framer Motion
+
