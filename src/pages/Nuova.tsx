@@ -86,10 +86,15 @@ function Step1({
   const [tab, setTab] = useState<string>("url");
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(false);
   const [jobData, setJobData] = useState<JobData | null>(null);
 
   const handleAnalyze = useCallback(async () => {
+    if (!companyName.trim()) {
+      toast.error("Inserisci il nome dell'azienda");
+      return;
+    }
     setLoading(true);
     setJobData(null);
     try {
@@ -106,7 +111,8 @@ function Step1({
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setJobData(data.job_data);
+      const merged = { ...data.job_data, company_name: companyName.trim() || data.job_data.company_name };
+      setJobData(merged);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Errore durante l'analisi";
       toast.error(msg);
@@ -117,7 +123,7 @@ function Step1({
     } finally {
       setLoading(false);
     }
-  }, [tab, url, text]);
+  }, [tab, url, text, companyName]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -129,6 +135,17 @@ function Step1({
       {!jobData ? (
         <Card className="border-border/50 bg-card/80">
           <CardContent className="pt-6 space-y-4">
+            <div className="relative">
+              <Buildings size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Es. Google, Accenture, Intesa Sanpaolo..."
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                disabled={loading}
+                className="pl-9"
+              />
+            </div>
+
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="w-full">
                 <TabsTrigger value="url" className="flex-1 gap-2">
