@@ -32,6 +32,8 @@ import {
   GraduationCap,
   ShieldWarning,
   ChatTeardropDots,
+  Target,
+  ArrowClockwise,
 } from "@phosphor-icons/react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ExportDrawer } from "@/components/ExportDrawer";
@@ -88,7 +90,8 @@ type StructuralChange = {
   reason: string;
 };
 
-type TailorResult = {
+// --- NEW: AnalyzeResult (mode=analyze) ---
+type AnalyzeResult = {
   match_score: number;
   score_note?: string;
   ats_score: number;
@@ -106,6 +109,14 @@ type TailorResult = {
     status: "pass" | "warning" | "fail";
     detail?: string;
   }[];
+  suggestions?: { type: string; message: string }[];
+  learning_suggestions?: LearningSuggestion[];
+  detected_language: string;
+  master_cv_id: string;
+};
+
+// --- TailorResult (mode=tailor) ---
+type TailorResult = {
   tailored_cv: Record<string, unknown>;
   tailored_patches?: Array<{ path: string; value: unknown }>;
   original_cv?: Record<string, unknown>;
@@ -129,12 +140,11 @@ type TailorResult = {
     patch_path?: string;
   }[];
   master_cv_id: string;
-  learning_suggestions?: LearningSuggestion[];
 };
 
-// --- Step Indicator ---
+// --- Step Indicator (5 steps) ---
 function StepIndicator({ current }: { current: number }) {
-  const steps = ["Annuncio", "Verifica", "Analisi", "CV Adattato"];
+  const steps = ["Annuncio", "Verifica", "Score", "Modifiche", "CV Adattato"];
   return (
     <div className="flex items-center justify-center gap-2 sm:gap-3 mb-8">
       {steps.map((label, i) => (
@@ -183,7 +193,6 @@ function useAnimatedCounter(target: number, duration = 800) {
 
   useEffect(() => {
     if (target <= 0) return;
-    // Reset when target changes (e.g. new analysis result)
     if (prevTargetRef.current === target) return;
     prevTargetRef.current = target;
     setValue(0);
@@ -439,7 +448,7 @@ function StepAnnuncio({
   );
 }
 
-// --- Step 1: Pre-screening (NEW) ---
+// --- Step 1: Pre-screening ---
 function StepVerifica({
   prescreenResult,
   loading,
@@ -667,93 +676,24 @@ function applyPatchesFrontend(
   return result;
 }
 
-// --- Step 2: AI Analysis with interactive approval ---
-function StepAnalisi({
+// ==================== Step 2: Score (NEW) ====================
+function StepScore({
   result,
   loading,
-  onNext,
+  onGenerateCv,
+  onAbandon,
   onBack,
+  tailoring,
 }: {
-  result: TailorResult | null;
+  result: AnalyzeResult | null;
   loading: boolean;
-  onNext: (approvedCv: Record<string, unknown>) => void;
+  onGenerateCv: () => void;
+  onAbandon: () => void;
   onBack: () => void;
+  tailoring: boolean;
 }) {
   const animatedScore = useAnimatedCounter(result?.match_score ?? 0);
   const animatedAts = useAnimatedCounter(result?.ats_score ?? 0);
-
-  // Compute total number of approvable items
-  const structCount = result?.structural_changes?.length ?? 0;
-  const diffCount = result?.diff?.length ?? 0;
-  const totalChanges = structCount + diffCount;
-
-  // All approved by default — initialize once per result identity
-  const decisionsInitRef = useRef<string | null>(null);
-  const [decisions, setDecisions] = useState<Record<string, "approved" | "rejected">>({});
-
-  // Initialize decisions only once when a new result loads (not on inline CV edits)
-  useEffect(() => {
-    if (!result) return;
-    const resultId = `${result.match_score}_${result.ats_score}_${result.diff?.length}_${result.structural_changes?.length}`;
-    if (decisionsInitRef.current === resultId) return;
-    decisionsInitRef.current = resultId;
-    const init: Record<string, "approved" | "rejected"> = {};
-    (result.structural_changes ?? []).forEach((_, i) => { init[`s_${i}`] = "approved"; });
-    (result.diff ?? []).forEach((_, i) => { init[`d_${i}`] = "approved"; });
-    setDecisions(init);
-  }, [result]);
-
-  const approvedCount = Object.values(decisions).filter(v => v === "approved").length;
-
-  const toggleDecision = (key: string) => {
-    setDecisions(prev => ({
-      ...prev,
-      [key]: prev[key] === "approved" ? "rejected" : "approved",
-    }));
-  };
-
-  const setAll = (status: "approved" | "rejected") => {
-    setDecisions(prev => {
-      const next = { ...prev };
-      for (const k of Object.keys(next)) next[k] = status;
-      return next;
-    });
-  };
-
-  const handleNext = () => {
-    if (!result) return;
-
-    // If all approved, just use the full tailored_cv
-    if (approvedCount === totalChanges) {
-      onNext(result.tailored_cv);
-      return;
-    }
-
-    // Selective: filter patches by approved diffs/structural_changes
-    const originalCv = result.original_cv || result.tailored_cv;
-    const allPatches = result.tailored_patches || [];
-
-    // Build set of approved patch_paths
-    const approvedPaths = new Set<string>();
-
-    // Structural changes that are approved — their patches affect full arrays
-    (result.structural_changes ?? []).forEach((sc, i) => {
-      if (decisions[`s_${i}`] === "approved") {
-        approvedPaths.add(sc.section);
-      }
-    });
-
-    // Diff entries that are approved
-    (result.diff ?? []).forEach((d, i) => {
-      if (decisions[`d_${i}`] === "approved" && d.patch_path) {
-        approvedPaths.add(d.patch_path);
-      }
-    });
-
-    const approvedPatches = allPatches.filter(p => approvedPaths.has(p.path));
-    const finalCv = applyPatchesFrontend(originalCv, approvedPatches);
-    onNext(finalCv);
-  };
 
   if (loading) {
     return (
@@ -762,7 +702,7 @@ function StepAnalisi({
           <h2 className="font-display text-2xl font-bold">Analisi in corso</h2>
           <p className="text-muted-foreground mt-1">Verso sta confrontando il tuo CV con l'annuncio...</p>
         </div>
-        {["Confronto competenze...", "Calcolo match score...", "Adattamento CV..."].map((msg, i) => (
+        {["Confronto competenze...", "Calcolo match score...", "Analisi ATS..."].map((msg, i) => (
           <motion.div
             key={msg}
             initial={{ opacity: 0, y: 12 }}
@@ -792,6 +732,8 @@ function StepAnalisi({
   }
 
   if (!result) return null;
+
+  const isLowScore = result.match_score <= 25;
 
   const scoreBadge = result.match_score >= 80
     ? { label: "Ottimo match", className: "bg-primary/20 text-primary" }
@@ -846,7 +788,7 @@ function StepAnalisi({
         </Card>
       </motion.div>
 
-      {/* Dual Score with stagger */}
+      {/* Dual Score */}
       <div className="grid grid-cols-2 gap-3">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="border-border/50 bg-card/80 h-full">
@@ -877,7 +819,7 @@ function StepAnalisi({
         </motion.div>
       </div>
 
-      {/* Skill Match with stagger */}
+      {/* Skill Match */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="border-primary/20 bg-card/80 h-full">
@@ -982,164 +924,283 @@ function StepAnalisi({
         </motion.div>
       )}
 
-      {/* Interactive Approval Section */}
-      {totalChanges > 0 && (
+      {/* Low Score CTA */}
+      {isLowScore && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
-          <Card className="border-border/50 bg-card/80">
-            <CardContent className="pt-5 space-y-4">
-              {/* Header with counter and batch buttons */}
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  <MagicWand size={18} className="text-primary" />
-                  <span className="text-sm font-medium">Modifiche suggerite</span>
-                  <span className="font-mono text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    {approvedCount}/{totalChanges} approvate
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setAll("approved")}
-                    className="text-[11px] font-mono text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded border border-primary/20 hover:bg-primary/5"
-                  >
-                    Approva tutte
-                  </button>
-                  <button
-                    onClick={() => setAll("rejected")}
-                    className="text-[11px] font-mono text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded border border-destructive/20 hover:bg-destructive/5"
-                  >
-                    Rifiuta tutte
-                  </button>
+          <Card className="border-warning/40 bg-card/80">
+            <CardContent className="py-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <Target size={24} className="text-warning shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-display text-lg font-bold">Forse non è la posizione giusta</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Il match con questo ruolo è basso. Non significa che non sei valido — significa che le tue competenze brillano altrove. 
+                    Concentra le energie su posizioni dove puoi fare davvero la differenza.
+                  </p>
                 </div>
               </div>
-
-              {/* Structural changes */}
-              {result.structural_changes && result.structural_changes.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-xs font-mono text-muted-foreground uppercase">Modifiche strutturali</p>
-                  {result.structural_changes.map((sc, i) => {
-                    const key = `s_${i}`;
-                    const isApproved = decisions[key] === "approved";
-                    const actionLabels: Record<string, string> = {
-                      removed: "Rimossa",
-                      reordered: "Riordinata",
-                      condensed: "Condensata",
-                    };
-                    const actionColors: Record<string, string> = {
-                      removed: "text-destructive",
-                      reordered: "text-secondary",
-                      condensed: "text-warning",
-                    };
-                    return (
-                      <div
-                        key={key}
-                        className={`rounded-lg border p-3 transition-all duration-200 ${
-                          isApproved
-                            ? "border-border/50 bg-card/60"
-                            : "border-destructive/30 bg-destructive/5 opacity-60"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`font-mono text-[10px] uppercase font-medium ${actionColors[sc.action] || "text-muted-foreground"}`}>
-                                {actionLabels[sc.action] || sc.action}
-                              </span>
-                              <span className="font-mono text-[10px] text-muted-foreground uppercase">{sc.section}</span>
-                            </div>
-                            <p className="text-sm font-medium">{sc.item}</p>
-                            <p className="text-xs text-muted-foreground italic mt-1">{sc.reason}</p>
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            <button
-                              onClick={() => toggleDecision(key)}
-                              className={`p-1.5 rounded-md transition-colors ${
-                                isApproved
-                                  ? "text-primary bg-primary/10"
-                                  : "text-muted-foreground hover:text-primary hover:bg-primary/5"
-                              }`}
-                              title="Approva"
-                            >
-                              <CheckCircle size={18} weight={isApproved ? "fill" : "regular"} />
-                            </button>
-                            <button
-                              onClick={() => toggleDecision(key)}
-                              className={`p-1.5 rounded-md transition-colors ${
-                                !isApproved
-                                  ? "text-destructive bg-destructive/10"
-                                  : "text-muted-foreground hover:text-destructive hover:bg-destructive/5"
-                              }`}
-                              title="Rifiuta"
-                            >
-                              <XCircle size={18} weight={!isApproved ? "fill" : "regular"} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Content diff changes */}
-              {result.diff && result.diff.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-xs font-mono text-muted-foreground uppercase">Modifiche al contenuto</p>
-                  {result.diff.map((ch, i) => {
-                    const key = `d_${i}`;
-                    const isApproved = decisions[key] === "approved";
-                    return (
-                      <div
-                        key={key}
-                        className={`rounded-lg border p-3 transition-all duration-200 ${
-                          isApproved
-                            ? "border-border/50 bg-card/60"
-                            : "border-destructive/30 bg-destructive/5 opacity-60"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0 space-y-1.5">
-                            <p className="font-mono text-[10px] text-muted-foreground uppercase">{ch.section}</p>
-                            <p className={`text-sm line-through text-muted-foreground ${!isApproved ? "" : ""}`}>
-                              {ch.original}
-                            </p>
-                            <p className={`text-sm ${isApproved ? "text-primary" : "text-muted-foreground line-through"}`}>
-                              {ch.suggested}
-                            </p>
-                            {ch.reason && <p className="text-xs text-muted-foreground italic">{ch.reason}</p>}
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            <button
-                              onClick={() => toggleDecision(key)}
-                              className={`p-1.5 rounded-md transition-colors ${
-                                isApproved
-                                  ? "text-primary bg-primary/10"
-                                  : "text-muted-foreground hover:text-primary hover:bg-primary/5"
-                              }`}
-                              title="Approva"
-                            >
-                              <CheckCircle size={18} weight={isApproved ? "fill" : "regular"} />
-                            </button>
-                            <button
-                              onClick={() => toggleDecision(key)}
-                              className={`p-1.5 rounded-md transition-colors ${
-                                !isApproved
-                                  ? "text-destructive bg-destructive/10"
-                                  : "text-muted-foreground hover:text-destructive hover:bg-destructive/5"
-                              }`}
-                              title="Rifiuta"
-                            >
-                              <XCircle size={18} weight={!isApproved ? "fill" : "regular"} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <div className="flex gap-3">
+                <Button onClick={onAbandon} className="flex-1 gap-2">
+                  <ArrowClockwise size={16} /> Cerca un'altra posizione
+                </Button>
+                <Button variant="outline" onClick={onGenerateCv} disabled={tailoring} className="gap-2">
+                  {tailoring ? <SpinnerGap size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+                  Procedi comunque
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
+      )}
+
+      {/* Normal Score: Generate CV button */}
+      {!isLowScore && (
+        <Button onClick={onGenerateCv} disabled={tailoring} className="w-full gap-2">
+          {tailoring ? (
+            <><SpinnerGap size={16} className="animate-spin" /> Generazione in corso...</>
+          ) : (
+            <><MagicWand size={16} /> Genera il CV adattato</>
+          )}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// ==================== Step 3: Modifications (interactive approval) ====================
+function StepModifiche({
+  result,
+  analyzeResult,
+  loading,
+  onNext,
+  onBack,
+}: {
+  result: TailorResult | null;
+  analyzeResult: AnalyzeResult | null;
+  loading: boolean;
+  onNext: (approvedCv: Record<string, unknown>) => void;
+  onBack: () => void;
+}) {
+  const structCount = result?.structural_changes?.length ?? 0;
+  const diffCount = result?.diff?.length ?? 0;
+  const totalChanges = structCount + diffCount;
+
+  const decisionsInitRef = useRef<string | null>(null);
+  const [decisions, setDecisions] = useState<Record<string, "approved" | "rejected">>({});
+
+  useEffect(() => {
+    if (!result) return;
+    const resultId = `${result.diff?.length}_${result.structural_changes?.length}`;
+    if (decisionsInitRef.current === resultId) return;
+    decisionsInitRef.current = resultId;
+    const init: Record<string, "approved" | "rejected"> = {};
+    (result.structural_changes ?? []).forEach((_, i) => { init[`s_${i}`] = "approved"; });
+    (result.diff ?? []).forEach((_, i) => { init[`d_${i}`] = "approved"; });
+    setDecisions(init);
+  }, [result]);
+
+  const approvedCount = Object.values(decisions).filter(v => v === "approved").length;
+
+  const toggleDecision = (key: string) => {
+    setDecisions(prev => ({ ...prev, [key]: prev[key] === "approved" ? "rejected" : "approved" }));
+  };
+
+  const setAll = (status: "approved" | "rejected") => {
+    setDecisions(prev => {
+      const next = { ...prev };
+      for (const k of Object.keys(next)) next[k] = status;
+      return next;
+    });
+  };
+
+  const handleNext = () => {
+    if (!result) return;
+
+    if (approvedCount === totalChanges) {
+      onNext(result.tailored_cv);
+      return;
+    }
+
+    const originalCv = result.original_cv || result.tailored_cv;
+    const allPatches = result.tailored_patches || [];
+    const approvedPaths = new Set<string>();
+
+    (result.structural_changes ?? []).forEach((sc, i) => {
+      if (decisions[`s_${i}`] === "approved") approvedPaths.add(sc.section);
+    });
+    (result.diff ?? []).forEach((d, i) => {
+      if (decisions[`d_${i}`] === "approved" && d.patch_path) approvedPaths.add(d.patch_path);
+    });
+
+    const approvedPatches = allPatches.filter(p => approvedPaths.has(p.path));
+    const finalCv = applyPatchesFrontend(originalCv, approvedPatches);
+    onNext(finalCv);
+  };
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 px-4">
+        <div>
+          <h2 className="font-display text-2xl font-bold">Generazione modifiche</h2>
+          <p className="text-muted-foreground mt-1">Verso sta adattando il tuo CV...</p>
+        </div>
+        {["Adattamento contenuti...", "Ottimizzazione ATS...", "Verifica onestà..."].map((msg, i) => (
+          <motion.div
+            key={msg}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 1.2, duration: 0.4 }}
+          >
+            <Card className="border-border/30 bg-card/60">
+              <CardContent className="py-6">
+                <div className="flex items-center gap-3">
+                  <SpinnerGap size={20} className="text-primary animate-spin" />
+                  <span className="text-sm text-muted-foreground">{msg}</span>
+                </div>
+                <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary"
+                    initial={{ width: "0%" }}
+                    animate={{ width: "100%" }}
+                    transition={{ delay: i * 1.2, duration: 2, ease: "easeOut" }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!result) return null;
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-6 px-4">
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft size={20} />
+        </button>
+        <div>
+          <h2 className="font-display text-2xl font-bold">Modifiche suggerite</h2>
+          <p className="text-muted-foreground mt-1">Approva o rifiuta ogni modifica prima di procedere.</p>
+        </div>
+      </div>
+
+      {/* Score recap */}
+      {analyzeResult && (
+        <div className="flex gap-2">
+          <span className="rounded-full bg-primary/20 px-3 py-1 font-mono text-sm font-bold text-primary">
+            Match {analyzeResult.match_score}%
+          </span>
+          <span className="rounded-full bg-secondary/20 px-3 py-1 font-mono text-sm font-bold text-secondary">
+            ATS {analyzeResult.ats_score}%
+          </span>
+        </div>
+      )}
+
+      {totalChanges > 0 && (
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="pt-5 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <MagicWand size={18} className="text-primary" />
+                <span className="text-sm font-medium">Modifiche</span>
+                <span className="font-mono text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                  {approvedCount}/{totalChanges} approvate
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setAll("approved")}
+                  className="text-[11px] font-mono text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded border border-primary/20 hover:bg-primary/5"
+                >
+                  Approva tutte
+                </button>
+                <button
+                  onClick={() => setAll("rejected")}
+                  className="text-[11px] font-mono text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded border border-destructive/20 hover:bg-destructive/5"
+                >
+                  Rifiuta tutte
+                </button>
+              </div>
+            </div>
+
+            {/* Structural changes */}
+            {result.structural_changes && result.structural_changes.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-mono text-muted-foreground uppercase">Modifiche strutturali</p>
+                {result.structural_changes.map((sc, i) => {
+                  const key = `s_${i}`;
+                  const isApproved = decisions[key] === "approved";
+                  const actionLabels: Record<string, string> = { removed: "Rimossa", reordered: "Riordinata", condensed: "Condensata" };
+                  const actionColors: Record<string, string> = { removed: "text-destructive", reordered: "text-secondary", condensed: "text-warning" };
+                  return (
+                    <div
+                      key={key}
+                      className={`rounded-lg border p-3 transition-all duration-200 ${isApproved ? "border-border/50 bg-card/60" : "border-destructive/30 bg-destructive/5 opacity-60"}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`font-mono text-[10px] uppercase font-medium ${actionColors[sc.action] || "text-muted-foreground"}`}>
+                              {actionLabels[sc.action] || sc.action}
+                            </span>
+                            <span className="font-mono text-[10px] text-muted-foreground uppercase">{sc.section}</span>
+                          </div>
+                          <p className="text-sm font-medium">{sc.item}</p>
+                          <p className="text-xs text-muted-foreground italic mt-1">{sc.reason}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <button onClick={() => toggleDecision(key)} className={`p-1.5 rounded-md transition-colors ${isApproved ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary hover:bg-primary/5"}`} title="Approva">
+                            <CheckCircle size={18} weight={isApproved ? "fill" : "regular"} />
+                          </button>
+                          <button onClick={() => toggleDecision(key)} className={`p-1.5 rounded-md transition-colors ${!isApproved ? "text-destructive bg-destructive/10" : "text-muted-foreground hover:text-destructive hover:bg-destructive/5"}`} title="Rifiuta">
+                            <XCircle size={18} weight={!isApproved ? "fill" : "regular"} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Content diff */}
+            {result.diff && result.diff.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-mono text-muted-foreground uppercase">Modifiche al contenuto</p>
+                {result.diff.map((ch, i) => {
+                  const key = `d_${i}`;
+                  const isApproved = decisions[key] === "approved";
+                  return (
+                    <div
+                      key={key}
+                      className={`rounded-lg border p-3 transition-all duration-200 ${isApproved ? "border-border/50 bg-card/60" : "border-destructive/30 bg-destructive/5 opacity-60"}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <p className="font-mono text-[10px] text-muted-foreground uppercase">{ch.section}</p>
+                          <p className="text-sm line-through text-muted-foreground">{ch.original}</p>
+                          <p className={`text-sm ${isApproved ? "text-primary" : "text-muted-foreground line-through"}`}>{ch.suggested}</p>
+                          {ch.reason && <p className="text-xs text-muted-foreground italic">{ch.reason}</p>}
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <button onClick={() => toggleDecision(key)} className={`p-1.5 rounded-md transition-colors ${isApproved ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary hover:bg-primary/5"}`} title="Approva">
+                            <CheckCircle size={18} weight={isApproved ? "fill" : "regular"} />
+                          </button>
+                          <button onClick={() => toggleDecision(key)} className={`p-1.5 rounded-md transition-colors ${!isApproved ? "text-destructive bg-destructive/10" : "text-muted-foreground hover:text-destructive hover:bg-destructive/5"}`} title="Rifiuta">
+                            <XCircle size={18} weight={!isApproved ? "fill" : "regular"} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <Button onClick={handleNext} className="w-full gap-2">
@@ -1149,15 +1210,17 @@ function StepAnalisi({
   );
 }
 
-// --- Step 3: Diff View with Inline Editing ---
+// ==================== Step 4: CV Preview + Export ====================
 function StepCVAdattato({
-  result,
+  tailorResult,
+  analyzeResult,
   jobData,
   applicationId,
   onBack,
   onTailoredCvChange,
 }: {
-  result: TailorResult;
+  tailorResult: TailorResult;
+  analyzeResult: AnalyzeResult | null;
   jobData: JobData;
   applicationId: string;
   onBack: () => void;
@@ -1169,9 +1232,11 @@ function StepCVAdattato({
   const [diffTab, setDiffTab] = useState<string>("adattato");
   const [exportOpen, setExportOpen] = useState(false);
 
-  const cv = result.tailored_cv;
+  const cv = tailorResult.tailored_cv;
+  const matchScore = analyzeResult?.match_score ?? 0;
+  const atsScore = analyzeResult?.ats_score ?? 0;
+  const atsChecks = analyzeResult?.ats_checks ?? [];
 
-  // Helper to update nested path in CV
   const updateCvField = (path: string, value: unknown) => {
     const updated = JSON.parse(JSON.stringify(cv));
     const segments = path.replace(/\[(\d+)\]/g, ".$1").split(".");
@@ -1183,15 +1248,11 @@ function StepCVAdattato({
     }
     const lastSeg = segments[segments.length - 1];
     const lastIdx = Number(lastSeg);
-    if (!isNaN(lastIdx)) {
-      target[lastIdx] = value;
-    } else {
-      target[lastSeg] = value;
-    }
+    if (!isNaN(lastIdx)) target[lastIdx] = value;
+    else target[lastSeg] = value;
     onTailoredCvChange(updated);
   };
 
-  // Render editable CV sections
   const renderEditableCV = () => {
     const personal = cv.personal as Record<string, string> | undefined;
     const summary = cv.summary as string | undefined;
@@ -1218,12 +1279,7 @@ function StepCVAdattato({
         {summary !== undefined && (
           <div>
             <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Profilo</p>
-            <InlineEdit
-              value={summary || ""}
-              onChange={(v) => updateCvField("summary", v)}
-              multiline
-              placeholder="Aggiungi un profilo..."
-            />
+            <InlineEdit value={summary || ""} onChange={(v) => updateCvField("summary", v)} multiline placeholder="Aggiungi un profilo..." />
           </div>
         )}
         {Array.isArray(experience) && experience.length > 0 && (
@@ -1233,19 +1289,10 @@ function StepCVAdattato({
               <div key={i} className="mb-3">
                 <p className="font-medium">{exp.role || exp.title} — {exp.company}</p>
                 <p className="text-muted-foreground text-xs">
-                  {exp.start || exp.period}
-                  {exp.end && ` – ${exp.end}`}
-                  {exp.current && " – Attuale"}
-                  {exp.location && ` · ${exp.location}`}
+                  {exp.start || exp.period}{exp.end && ` – ${exp.end}`}{exp.current && " – Attuale"}{exp.location && ` · ${exp.location}`}
                 </p>
                 {exp.description !== undefined && (
-                  <InlineEdit
-                    value={exp.description || ""}
-                    onChange={(v) => updateCvField(`experience[${i}].description`, v)}
-                    multiline
-                    placeholder="Aggiungi descrizione..."
-                    className="mt-1"
-                  />
+                  <InlineEdit value={exp.description || ""} onChange={(v) => updateCvField(`experience[${i}].description`, v)} multiline placeholder="Aggiungi descrizione..." className="mt-1" />
                 )}
                 {Array.isArray(exp.bullets) && exp.bullets.length > 0 && (
                   <ul className="mt-1 space-y-1">
@@ -1274,60 +1321,35 @@ function StepCVAdattato({
           <div>
             <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Formazione</p>
             {education.map((ed, i) => (
-              <div key={i} className="mb-1">
-                <p className="font-medium">
-                  {ed.degree}{ed.field && ` in ${ed.field}`} — {ed.institution}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  {ed.start || ed.period}
-                  {ed.end && ` – ${ed.end}`}
-                </p>
+              <div key={i} className="mb-2">
+                <p className="font-medium">{ed.degree}{ed.field && ` in ${ed.field}`} — {ed.institution}</p>
+                <p className="text-muted-foreground text-xs">{ed.start || ed.period}{ed.end && ` – ${ed.end}`}</p>
                 {ed.grade && <p className="text-xs text-primary">{ed.grade}</p>}
               </div>
             ))}
           </div>
         )}
-        {/* Editable Skills */}
         {skills && (
           <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-2">Competenze</p>
-            {typeof skills === "object" && !Array.isArray(skills) ? (
-              <div className="space-y-3">
-                {skills.technical && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Tecniche</p>
-                    <EditableSkillChips
-                      items={ensureArray(skills.technical)}
-                      onChange={(items) => updateCvField("skills.technical", items)}
-                    />
-                  </div>
-                )}
-                {skills.soft && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Soft</p>
-                    <EditableSkillChips
-                      items={ensureArray(skills.soft)}
-                      onChange={(items) => updateCvField("skills.soft", items)}
-                      variant="outline"
-                    />
-                  </div>
-                )}
-                {skills.tools && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Strumenti</p>
-                    <EditableSkillChips
-                      items={ensureArray(skills.tools)}
-                      onChange={(items) => updateCvField("skills.tools", items)}
-                    />
-                  </div>
-                )}
+            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Competenze</p>
+            {skills.technical && (
+              <div className="mb-2">
+                <p className="text-xs text-muted-foreground mb-1">Tecniche</p>
+                <EditableSkillChips items={ensureArray(skills.technical)} onChange={(v) => updateCvField("skills.technical", v)} variant="primary" />
               </div>
-            ) : Array.isArray(skills) ? (
-              <EditableSkillChips
-                items={skills}
-                onChange={(items) => updateCvField("skills", items)}
-              />
-            ) : null}
+            )}
+            {skills.soft && (
+              <div className="mb-2">
+                <p className="text-xs text-muted-foreground mb-1">Soft</p>
+                <EditableSkillChips items={ensureArray(skills.soft)} onChange={(v) => updateCvField("skills.soft", v)} variant="outline" />
+              </div>
+            )}
+            {skills.tools && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Strumenti</p>
+                <EditableSkillChips items={ensureArray(skills.tools)} onChange={(v) => updateCvField("skills.tools", v)} variant="outline" />
+              </div>
+            )}
           </div>
         )}
         {Array.isArray(extraSections) && extraSections.length > 0 && extraSections.map((sec, i) => (
@@ -1342,14 +1364,13 @@ function StepCVAdattato({
     );
   };
 
-  // Render read-only CV (for "Originale" tab)
-  const renderCV = (cvData: Record<string, unknown>) => {
-    const personal = cvData.personal as Record<string, string> | undefined;
-    const summary = cvData.summary as string | undefined;
-    const experience = cvData.experience as Array<Record<string, any>> | undefined;
-    const education = cvData.education as Array<Record<string, any>> | undefined;
-    const skills = cvData.skills as any;
-    const extraSections = cvData.extra_sections as Array<{ title: string; items: string[] }> | undefined;
+  const renderCV = (data: Record<string, unknown>) => {
+    const personal = data.personal as Record<string, string> | undefined;
+    const summary = data.summary as string | undefined;
+    const experience = data.experience as Array<Record<string, any>> | undefined;
+    const education = data.education as Array<Record<string, any>> | undefined;
+    const skills = data.skills as any;
+    const extraSections = data.extra_sections as Array<{ title: string; items: string[] }> | undefined;
 
     const ensureArray = (val: unknown): string[] => {
       if (Array.isArray(val)) return val;
@@ -1359,42 +1380,22 @@ function StepCVAdattato({
 
     const renderSkills = () => {
       if (!skills) return null;
-      if (Array.isArray(skills)) {
-        return (
-          <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Competenze</p>
-            <div className="flex flex-wrap gap-1.5">
-              {skills.map((s: string) => (
-                <span key={s} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-mono text-primary">{s}</span>
-              ))}
-            </div>
-          </div>
-        );
-      }
-      const all = [
-        ...ensureArray(skills.technical),
-        ...ensureArray(skills.soft),
-        ...ensureArray(skills.tools),
-      ];
-      return all.length > 0 ? (
+      const sections: { label: string; items: string[] }[] = [];
+      if (skills.technical) sections.push({ label: "Tecniche", items: ensureArray(skills.technical) });
+      if (skills.soft) sections.push({ label: "Soft", items: ensureArray(skills.soft) });
+      if (skills.tools) sections.push({ label: "Strumenti", items: ensureArray(skills.tools) });
+      if (sections.length === 0) return null;
+      return (
         <div>
           <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Competenze</p>
-          <div className="flex flex-wrap gap-1.5">
-            {all.map((s: string) => (
-              <span key={s} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-mono text-primary">{s}</span>
-            ))}
-          </div>
-          {skills.languages && skills.languages.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {skills.languages.map((l: any, i: number) => (
-                <span key={i} className="rounded-full border border-border px-2 py-0.5 text-xs text-foreground">
-                  {l.language}{l.level && ` — ${l.level}`}
-                </span>
-              ))}
+          {sections.map((sec) => (
+            <div key={sec.label} className="mb-1">
+              <span className="text-xs text-muted-foreground">{sec.label}: </span>
+              <span className="text-xs">{sec.items.join(", ")}</span>
             </div>
-          )}
+          ))}
         </div>
-      ) : null;
+      );
     };
 
     return (
@@ -1419,10 +1420,7 @@ function StepCVAdattato({
               <div key={i} className="mb-2">
                 <p className="font-medium">{exp.role || exp.title} — {exp.company}</p>
                 <p className="text-muted-foreground text-xs">
-                  {exp.start || exp.period}
-                  {exp.end && ` – ${exp.end}`}
-                  {exp.current && " – Attuale"}
-                  {exp.location && ` · ${exp.location}`}
+                  {exp.start || exp.period}{exp.end && ` – ${exp.end}`}{exp.current && " – Attuale"}{exp.location && ` · ${exp.location}`}
                 </p>
                 {exp.description && <p className="mt-1">{exp.description}</p>}
                 {Array.isArray(exp.bullets) && exp.bullets.length > 0 && (
@@ -1439,13 +1437,8 @@ function StepCVAdattato({
             <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Formazione</p>
             {education.map((ed, i) => (
               <div key={i} className="mb-1">
-                <p className="font-medium">
-                  {ed.degree}{ed.field && ` in ${ed.field}`} — {ed.institution}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  {ed.start || ed.period}
-                  {ed.end && ` – ${ed.end}`}
-                </p>
+                <p className="font-medium">{ed.degree}{ed.field && ` in ${ed.field}`} — {ed.institution}</p>
+                <p className="text-muted-foreground text-xs">{ed.start || ed.period}{ed.end && ` – ${ed.end}`}</p>
                 {ed.grade && <p className="text-xs text-primary">{ed.grade}</p>}
               </div>
             ))}
@@ -1472,11 +1465,11 @@ function StepCVAdattato({
         .from("applications")
         .update({
           status: "inviata",
-          ats_score: result.ats_score,
+          match_score: matchScore,
+          ats_score: atsScore,
           template_id: "classico",
         } as any)
         .eq("id", applicationId);
-
       if (appErr) throw appErr;
 
       const { data: existingTc } = await supabase
@@ -1488,24 +1481,23 @@ function StepCVAdattato({
       const tcPayload = {
         user_id: user.id,
         application_id: applicationId,
-        master_cv_id: result.master_cv_id,
+        master_cv_id: tailorResult.master_cv_id,
         tailored_data: cv as unknown as import("@/integrations/supabase/types").Json,
         skills_match: {
-          present: result.skills_present,
-          missing: result.skills_missing,
+          present: analyzeResult?.skills_present || [],
+          missing: analyzeResult?.skills_missing || [],
         } as unknown as import("@/integrations/supabase/types").Json,
-        suggestions: result.diff as unknown as import("@/integrations/supabase/types").Json,
-        ats_score: result.ats_score,
-        ats_checks: result.ats_checks as unknown as import("@/integrations/supabase/types").Json,
-        seniority_match: result.seniority_match as unknown as import("@/integrations/supabase/types").Json,
-        honest_score: result.honest_score as unknown as import("@/integrations/supabase/types").Json,
-        diff: result.diff as unknown as import("@/integrations/supabase/types").Json,
+        suggestions: tailorResult.diff as unknown as import("@/integrations/supabase/types").Json,
+        ats_score: atsScore,
+        ats_checks: atsChecks as unknown as import("@/integrations/supabase/types").Json,
+        seniority_match: analyzeResult?.seniority_match as unknown as import("@/integrations/supabase/types").Json,
+        honest_score: tailorResult.honest_score as unknown as import("@/integrations/supabase/types").Json,
+        diff: tailorResult.diff as unknown as import("@/integrations/supabase/types").Json,
       };
 
       const { error: cvErr } = existingTc
         ? await supabase.from("tailored_cvs").update(tcPayload as any).eq("id", existingTc.id)
         : await supabase.from("tailored_cvs").insert([tcPayload as any]);
-
       if (cvErr) throw cvErr;
 
       toast.success("Candidatura salvata!");
@@ -1518,22 +1510,19 @@ function StepCVAdattato({
     }
   };
 
-  // Use original_cv from result if available (avoids redundant fetch)
-  const [originalCV, setOriginalCV] = useState<Record<string, unknown> | null>(
-    result.original_cv ?? null
-  );
+  const [originalCV, setOriginalCV] = useState<Record<string, unknown> | null>(tailorResult.original_cv ?? null);
 
   useEffect(() => {
-    if (originalCV) return; // Already have it
+    if (originalCV) return;
     supabase
       .from("master_cvs")
       .select("parsed_data")
-      .eq("id", result.master_cv_id)
+      .eq("id", tailorResult.master_cv_id)
       .single()
       .then(({ data }) => {
         if (data?.parsed_data) setOriginalCV(data.parsed_data as Record<string, unknown>);
       });
-  }, [result.master_cv_id, originalCV]);
+  }, [tailorResult.master_cv_id, originalCV]);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-24 px-4">
@@ -1548,10 +1537,10 @@ function StepCVAdattato({
         </div>
         <div className="flex gap-2 shrink-0">
           <span className="rounded-full bg-primary/20 px-3 py-1 font-mono text-sm font-bold text-primary">
-            {result.match_score}%
+            {matchScore}%
           </span>
           <span className="rounded-full bg-secondary/20 px-3 py-1 font-mono text-sm font-bold text-secondary">
-            ATS {result.ats_score}%
+            ATS {atsScore}%
           </span>
         </div>
       </div>
@@ -1617,9 +1606,9 @@ function StepCVAdattato({
         open={exportOpen}
         onOpenChange={setExportOpen}
         tailoredCv={cv}
-        atsScore={result.ats_score}
-        atsChecks={result.ats_checks}
-        honestScore={result.honest_score}
+        atsScore={atsScore}
+        atsChecks={atsChecks}
+        honestScore={tailorResult.honest_score}
         companyName={jobData.company_name}
         applicationId={applicationId}
         userId={user?.id}
@@ -1628,7 +1617,7 @@ function StepCVAdattato({
   );
 }
 
-// --- Main Wizard ---
+// ==================== Main Wizard ====================
 export default function Nuova() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -1641,12 +1630,12 @@ export default function Nuova() {
   const [jobUrl, setJobUrl] = useState<string | undefined>();
   const [prescreenResult, setPrescreenResult] = useState<PrescreenResult | null>(null);
   const [prescreening, setPrescreening] = useState(false);
-  const [tailorResult, setTailorResult] = useState<TailorResult | null>(null);
+  const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [tailorResult, setTailorResult] = useState<TailorResult | null>(null);
+  const [tailoring, setTailoring] = useState(false);
   const [cvCheck, setCvCheck] = useState<"loading" | "ok" | "missing">("loading");
-  const [applicationId, setApplicationId] = useState<string | null>(
-    searchParams.get("draft")
-  );
+  const [applicationId, setApplicationId] = useState<string | null>(searchParams.get("draft"));
   const [userAnswers, setUserAnswers] = useState<{ question: string; answer: string }[]>([]);
   const draftLoadedId = useRef<string | null>(null);
 
@@ -1700,11 +1689,7 @@ export default function Nuova() {
         required_skills: [],
       });
       if (app.job_url) setJobUrl(app.job_url);
-
-      // Restore user_answers if available
-      if ((app as any).user_answers) {
-        setUserAnswers((app as any).user_answers);
-      }
+      if ((app as any).user_answers) setUserAnswers((app as any).user_answers);
 
       const { data: tc } = await supabase
         .from("tailored_cvs")
@@ -1713,22 +1698,26 @@ export default function Nuova() {
         .maybeSingle();
 
       if (tc?.tailored_data) {
-        setTailorResult({
+        // Restore both analyze and tailor results from saved data
+        setAnalyzeResult({
           match_score: app.match_score ?? 0,
           ats_score: tc.ats_score ?? 0,
           skills_present: (tc.skills_match as any)?.present || [],
           skills_missing: (tc.skills_match as any)?.missing || [],
           seniority_match: tc.seniority_match as any || { candidate_level: "", role_level: "", match: true, note: "" },
           ats_checks: (tc.ats_checks as any) || [],
+          detected_language: "it",
+          master_cv_id: tc.master_cv_id,
+        });
+        setTailorResult({
           tailored_cv: tc.tailored_data as Record<string, unknown>,
           honest_score: (tc.honest_score as any) || { confidence: 100, experiences_added: 0, skills_invented: 0, dates_modified: 0, bullets_repositioned: 0, bullets_rewritten: 0, sections_removed: 0, flags: [] },
           diff: (tc.diff as any) || [],
           master_cv_id: tc.master_cv_id,
         });
-        const urlStep = parseInt(searchParams.get("step") || "3", 10);
-        updateStep(urlStep >= 2 ? urlStep : 3);
+        const urlStep = parseInt(searchParams.get("step") || "4", 10);
+        updateStep(urlStep >= 2 ? urlStep : 4);
       } else if (app.job_description) {
-        // Has job data but no tailored CV — go to step 1 for prescreen
         updateStep(1);
       }
     })();
@@ -1744,7 +1733,6 @@ export default function Nuova() {
     setPrescreenResult(null);
 
     try {
-      // Save draft application
       let appId = applicationId;
       if (!appId) {
         const { data: draftApp, error: draftErr } = await supabase
@@ -1771,7 +1759,6 @@ export default function Nuova() {
         }, { replace: true });
       }
 
-      // Run pre-screening
       const { data: result, error } = await supabase.functions.invoke("ai-prescreen", {
         body: { job_data: data },
       });
@@ -1788,16 +1775,15 @@ export default function Nuova() {
     }
   };
 
-  // Step 1 → Step 2: Run full analysis with user answers
+  // Step 1 → Step 2: Run ANALYZE only
   const handleVerificaProceed = async (answers: { question: string; answer: string }[]) => {
     if (!user || !jobData) return;
     setUserAnswers(answers);
     updateStep(2);
     setAnalyzing(true);
-    setTailorResult(null);
+    setAnalyzeResult(null);
 
     try {
-      // Save user_answers to application
       if (applicationId && answers.length > 0) {
         await supabase
           .from("applications")
@@ -1805,17 +1791,17 @@ export default function Nuova() {
           .eq("id", applicationId);
       }
 
-      // Run AI analysis with answers
       const { data: result, error } = await supabase.functions.invoke("ai-tailor", {
         body: {
           job_data: jobData,
           user_answers: answers.length > 0 ? answers : undefined,
+          mode: "analyze",
         },
       });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
 
-      // Update draft with scores
+      // Save scores to application
       if (applicationId) {
         await supabase
           .from("applications")
@@ -1823,7 +1809,7 @@ export default function Nuova() {
           .eq("id", applicationId);
       }
 
-      setTailorResult(result);
+      setAnalyzeResult(result);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Errore durante l'analisi AI";
       toast.error(msg);
@@ -1833,7 +1819,52 @@ export default function Nuova() {
     }
   };
 
-  // Handle inline CV edits in Step 3
+  // Step 2 → Step 3: Run TAILOR
+  const handleGenerateCv = async () => {
+    if (!user || !jobData || !analyzeResult) return;
+    setTailoring(true);
+    setTailorResult(null);
+
+    try {
+      const { data: result, error } = await supabase.functions.invoke("ai-tailor", {
+        body: {
+          job_data: jobData,
+          user_answers: userAnswers.length > 0 ? userAnswers : undefined,
+          mode: "tailor",
+          analyze_context: {
+            match_score: analyzeResult.match_score,
+            skills_missing: analyzeResult.skills_missing,
+            detected_language: analyzeResult.detected_language,
+          },
+        },
+      });
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+
+      setTailorResult(result);
+      updateStep(3);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Errore durante la generazione del CV";
+      toast.error(msg);
+    } finally {
+      setTailoring(false);
+    }
+  };
+
+  // Abandon: reset and go to new application
+  const handleAbandon = () => {
+    setStep(0);
+    setJobData(null);
+    setJobUrl(undefined);
+    setPrescreenResult(null);
+    setAnalyzeResult(null);
+    setTailorResult(null);
+    setApplicationId(null);
+    setUserAnswers([]);
+    setSearchParams({}, { replace: true });
+  };
+
+  // Handle inline CV edits in Step 4
   const handleTailoredCvChange = (updatedCv: Record<string, unknown>) => {
     if (tailorResult) {
       setTailorResult({ ...tailorResult, tailored_cv: updatedCv });
@@ -1886,24 +1917,36 @@ export default function Nuova() {
             />
           )}
           {step === 2 && (
-            <StepAnalisi
-              result={tailorResult}
+            <StepScore
+              result={analyzeResult}
               loading={analyzing}
+              onGenerateCv={handleGenerateCv}
+              onAbandon={handleAbandon}
+              onBack={() => updateStep(1)}
+              tailoring={tailoring}
+            />
+          )}
+          {step === 3 && (
+            <StepModifiche
+              result={tailorResult}
+              analyzeResult={analyzeResult}
+              loading={tailoring && !tailorResult}
               onNext={(approvedCv) => {
                 if (tailorResult) {
                   setTailorResult({ ...tailorResult, tailored_cv: approvedCv });
                 }
-                updateStep(3);
+                updateStep(4);
               }}
-              onBack={() => updateStep(1)}
+              onBack={() => updateStep(2)}
             />
           )}
-          {step === 3 && tailorResult && jobData && applicationId && (
+          {step === 4 && tailorResult && jobData && applicationId && (
             <StepCVAdattato
-              result={tailorResult}
+              tailorResult={tailorResult}
+              analyzeResult={analyzeResult}
               jobData={jobData}
               applicationId={applicationId}
-              onBack={() => updateStep(2)}
+              onBack={() => updateStep(3)}
               onTailoredCvChange={handleTailoredCvChange}
             />
           )}
