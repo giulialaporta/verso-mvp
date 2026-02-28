@@ -156,6 +156,7 @@ export type Database = {
           honest_score: Json | null
           id: string
           master_cv_id: string
+          pdf_url: string | null
           seniority_match: Json | null
           skills_match: Json | null
           suggestions: Json | null
@@ -172,6 +173,7 @@ export type Database = {
           honest_score?: Json | null
           id?: string
           master_cv_id: string
+          pdf_url?: string | null
           seniority_match?: Json | null
           skills_match?: Json | null
           suggestions?: Json | null
@@ -188,6 +190,7 @@ export type Database = {
           honest_score?: Json | null
           id?: string
           master_cv_id?: string
+          pdf_url?: string | null
           seniority_match?: Json | null
           skills_match?: Json | null
           suggestions?: Json | null
