@@ -1,93 +1,88 @@
 
 
-# Analisi barriere portali di lavoro + Guida utente in-app
+# Stato "Draft" per le candidature + Verifica flusso di salvataggio
 
-## Il problema
+## Situazione attuale
 
-Lo scraper attuale (`scrape-job/index.ts`) usa un semplice `fetch()` con User-Agent generico. Questo funziona solo con siti che servono HTML statico senza protezioni. La maggior parte dei portali di lavoro moderni blocca questo approccio.
+Il salvataggio avviene **solo** nello Step 3, con `status: "inviata"`. Se l'utente chiude il browser o torna indietro durante l'analisi AI, perde tutto. Non esiste uno stato draft.
 
-## Analisi dei principali portali
+Il flusso attuale:
+1. Step 1: inserisci annuncio --> nessun salvataggio
+2. Step 2: analisi AI --> nessun salvataggio
+3. Step 3: visualizza CV adattato --> unico punto di salvataggio (status: "inviata")
 
-| Portale | URL scraping | Copia-incolla testo | Note |
-|---------|-------------|---------------------|------|
-| **LinkedIn** | NO | SI (con limitazioni) | Richiede login, JS rendering, anti-bot aggressivo. Il testo dell'annuncio e' copiabile dalla pagina una volta loggati. |
-| **Indeed** | NO | SI | Anti-bot (Cloudflare), JS-rendered. Testo copiabile dalla pagina. |
-| **InfoJobs** | PARZIALE | SI | Meno protezioni, ma spesso JS-rendered. Testo facilmente copiabile. |
-| **Monster** | NO | SI | Anti-bot, JS rendering. Testo copiabile. |
-| **Glassdoor** | NO | SI | Login richiesto, anti-bot forte. Testo copiabile. |
-| **Subito Lavoro** | PARZIALE | SI | Protezioni minori, potrebbe funzionare. |
-| **Talent.com** | PARZIALE | SI | Spesso accessibile, ma variabile. |
-| **Siti aziendali** (Workday, Greenhouse, Lever) | VARIABILE | SI | Alcuni accessibili, altri no. Greenhouse e Lever spesso OK. |
+## Soluzione
 
-**Conclusione**: Lo scraping via URL e' inaffidabile per la maggior parte dei portali. Il copia-incolla del testo e' sempre possibile ed e' il metodo piu' affidabile.
+### 1. Salvataggio draft automatico dopo Step 1
 
-## Soluzione proposta
+Quando l'utente conferma l'annuncio (Step 1 -> Step 2), creiamo subito una `application` con `status: "draft"`. Questo garantisce che i dati dell'annuncio non vadano persi.
 
-### 1. Invertire il default: Tab "Testo" come principale
+Flusso nuovo:
+1. Step 1: conferma annuncio --> **salva application come draft** (company, role, job_description, job_url)
+2. Step 2: analisi AI completata --> **aggiorna application** con match_score
+3. Step 3: "Salva candidatura" --> **aggiorna status a "inviata"** + salva tailored_cv
 
-Attualmente il tab URL e' il default. Questo induce l'utente a provare prima l'URL, che fallira' nella maggior parte dei casi. Invertire: **"Testo" diventa il tab di default**, "URL" resta come opzione secondaria.
+### 2. Aggiornare Step3 per usare update invece di insert
 
-### 2. Aggiungere una guida contestuale "Come copiare l'annuncio"
+Invece di creare una nuova application in Step3, aggiorniamo quella draft esistente. Il `tailored_cv` viene creato come prima, ma linkato all'application gia' esistente.
 
-Un componente espandibile (Collapsible) sotto la textarea con istruzioni rapide per i portali piu' comuni. Mostra icone dei portali e istruzioni specifiche per ciascuno.
+### 3. Dashboard Home: escludere i draft dal conteggio "attive"
 
-```text
-+------------------------------------------+
-| L'annuncio                               |
-| Incolla il testo dell'offerta di lavoro. |
-+------------------------------------------+
-| [Nome azienda]                           |
-+------------------------------------------+
-| [Testo] [URL]    <- Testo e' il default  |
-+------------------------------------------+
-| [                                    ]   |
-| [ Incolla qui il testo completo...   ]   |
-| [                                    ]   |
-+------------------------------------------+
-| v Come copiare da LinkedIn, Indeed...    |
-|   +---------------------------------+    |
-|   | LinkedIn:                       |    |
-|   | 1. Apri l'annuncio              |    |
-|   | 2. Seleziona tutto (Ctrl+A)     |    |
-|   | 3. Copia (Ctrl+C)              |    |
-|   | 4. Incolla qui                  |    |
-|   |                                 |    |
-|   | Indeed, InfoJobs, Monster:       |    |
-|   | Stesso metodo.                  |    |
-|   |                                 |    |
-|   | Tip: L'URL funziona solo con    |    |
-|   | alcuni siti (Greenhouse, Lever). |    |
-|   +---------------------------------+    |
-+------------------------------------------+
-| [Analizza]                               |
-+------------------------------------------+
-```
+I draft non vanno contati nelle candidature attive. Il filtro attuale esclude solo "ko" -- aggiungiamo anche "draft".
 
-### 3. Migliorare il fallback URL -> Testo
+### 4. Pagina Candidature: mostrare i draft separatamente
 
-Quando lo scraping via URL fallisce, il messaggio di errore attuale e' generico. Migliorarlo con un suggerimento specifico basato sul dominio dell'URL inserito.
+La pagina Candidature (attualmente vuota/placeholder) deve:
+- Caricare le application dal database
+- Mostrare i draft in una sezione separata "Bozze" con possibilita' di riprendere o eliminare
+- Mostrare le candidature attive nella lista principale
+
+---
 
 ## File coinvolti
 
-### `src/pages/Nuova.tsx` — Modifiche a Step1
+### `src/pages/Nuova.tsx`
 
-1. **Invertire tab default**: `useState<string>("text")` invece di `"url"`
-2. **Aggiungere componente guida**: Un `Collapsible` sotto la textarea con:
-   - Titolo: "Come copiare da LinkedIn, Indeed..."
-   - Istruzioni per portale con icone (LinkedIn, Indeed, InfoJobs, siti aziendali)
-   - Nota su quali URL funzionano (Greenhouse, Lever, siti semplici)
-3. **Migliorare errore URL**: Quando il fetch fallisce, mostrare un messaggio specifico basato sul dominio (es. "LinkedIn blocca lo scraping. Copia il testo dall'annuncio e incollalo qui.")
-4. **Label tab URL aggiornata**: Aggiungere sottotitolo "(solo alcuni siti)" al tab URL
+**handleStep1Confirm** (riga ~695):
+- Dopo aver chiamato `scrape-job`, prima di invocare `ai-tailor`, inserisce una riga in `applications` con status `"draft"`
+- Salva l'`applicationId` nello state del wizard
+- Quando l'AI completa (Step 2), aggiorna la riga con `match_score`
 
-### Nessun altro file coinvolto
+**Step3 handleSave** (riga ~535):
+- Cambia da `insert` a `update` sulla application esistente (draft -> inviata)
+- Inserisce il `tailored_cv` come prima, ma con l'`application_id` gia' noto
 
-La logica backend resta invariata — il fallback text funziona gia'. Le modifiche sono puramente UI/UX nel componente Step1 di `Nuova.tsx`.
+Nuovo state nel wizard:
+```
+const [applicationId, setApplicationId] = useState<string | null>(null);
+```
 
-## Dettagli tecnici
+### `src/pages/Home.tsx`
 
-- Collapsible: usa `@radix-ui/react-collapsible` gia' installato
-- Icone: `LinkedinLogo`, `Globe`, `Info` da Phosphor
-- Mappa domini bloccati: un semplice oggetto `Record<string, string>` con dominio -> messaggio specifico (es. `"linkedin.com": "LinkedIn blocca lo scraping automatico..."`)
-- Copy istruzioni: stile Verso — diretto, no fluff, con steps numerati
-- Animazione: fade-in del collapsible content con Framer Motion
+**activeApps filter** (riga ~284 circa):
+- Aggiungere `"draft"` alla lista degli stati esclusi dal conteggio attive
+- Da: `a.status.toLowerCase() !== "ko"`
+- A: `!["ko", "draft"].includes(a.status.toLowerCase())`
+
+### `src/pages/Candidature.tsx`
+
+Riscrittura completa della pagina placeholder:
+- Fetch delle application dal database (tutte)
+- Sezione "Bozze" in alto se ci sono draft, con bottoni "Riprendi" e "Elimina"
+- Lista principale con le candidature non-draft
+- Ogni card mostra: company, role, score, status chip, data
+- "Riprendi" su un draft naviga a `/app/nuova` (per ora senza pre-fill, feature futura)
+- "Elimina" cancella la riga con conferma AlertDialog
+
+---
+
+## Riepilogo
+
+| File | Modifica |
+|------|----------|
+| `src/pages/Nuova.tsx` | Salvataggio draft in Step 1, update in Step 3 invece di insert |
+| `src/pages/Home.tsx` | Escludere draft dal conteggio attive |
+| `src/pages/Candidature.tsx` | Riscrittura: lista candidature + sezione bozze |
+
+Nessuna modifica al database (lo status e' gia' un campo text, "draft" e' gia' il default nella tabella `applications`).
 
