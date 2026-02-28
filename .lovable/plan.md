@@ -1,61 +1,131 @@
 
 
-# Verifica complessiva del codice — Bug trovati
+# Piano completo: Recruiter onesto + Effetto WOW
 
-## Bug identificati
+## Panoramica
 
-### 1. CRITICO: `handleSave` in Step3 crea duplicati di `tailored_cvs` alla ripresa bozza
-Quando l'utente riprende una bozza che ha gia' un `tailored_cvs` (step 2/3), e poi clicca "Salva candidatura", il codice fa sempre un `INSERT` in `tailored_cvs` (riga 726). Se il record esiste gia' (caricato dalla ripresa bozza), viene creato un duplicato, oppure l'insert fallisce silenziosamente.
+Implementazione combinata di due macro-feature:
+- **Recruiter onesto**: pre-screening AI con dealbreaker, domande interattive, penalizzazione score
+- **Effetto WOW**: animazione score con counter, editing inline del CV, suggerimenti risorse per skill gap
 
-**Fix:** Prima di inserire, controllare se esiste gia' un `tailored_cvs` per quell'`application_id`. Se si', fare un `UPDATE` invece che un `INSERT`.
+Il wizard passa da 3 a 4 step:
 
-### 2. CRITICO: Step 2 "Indietro" resetta tutto senza recupero
-Cliccando "Indietro" da Step 2 (`onBack={() => updateStep(0)}`), l'utente torna allo Step 1 ma `Step1` e' un componente separato con stato interno vuoto. Tutti i dati dell'analisi AI vengono persi. L'utente deve reinserire l'annuncio e rieseguire l'analisi AI.
+```text
+Step 0: Annuncio (invariato)
+Step 1: Verifica (NUOVO - dealbreaker + domande)
+Step 2: Analisi (arricchita con risposte utente)
+Step 3: CV Adattato (con editing inline)
+```
 
-**Fix:** Passare `jobData` iniziale a `Step1` come prop opzionale, cosi' da pre-compilare i campi quando l'utente torna indietro.
+---
 
-### 3. MEDIO: Drawer candidature non carica le `notes` dal DB
-In `Candidature.tsx`, `handleOpenDetail` imposta `setDrawerNotes("")` (riga 129). Il campo `notes` della tabella `applications` non viene mai letto ne' scritto. L'utente scrive note ma non vengono salvate.
+## 1. Migrazione DB
 
-**Fix:** 
-- Aggiungere `notes` alla query SELECT e al tipo `AppRow`
-- Caricare `drawerNotes` dal record esistente in `handleOpenDetail`
-- Salvare `notes` nell'`update` di `handleStatusSave`
+Aggiungere colonna `user_answers jsonb` alla tabella `applications` per persistere le risposte alle domande del pre-screening.
 
-### 4. MEDIO: `cv-uploads` bucket non e' pubblico ma `getPublicUrl` viene usato
-In `parse-cv/index.ts` (riga 116), `supabase.storage.from("cv-uploads").getPublicUrl(photoPath)` genera un URL pubblico, ma il bucket `cv-uploads` e' privato (`Is Public: No`). La foto del profilo non sara' mai accessibile tramite quell'URL.
+---
 
-**Fix:** O rendere il bucket `cv-uploads` pubblico, oppure usare `createSignedUrl` per generare URL temporanei, oppure spostare le foto in un bucket pubblico separato.
+## 2. Nuova edge function: `ai-prescreen`
 
-### 5. BASSO: `draftLoaded` ref non si resetta quando cambia il draft ID
-Se l'utente naviga a `/app/nuova?draft=abc`, poi torna a `/app/candidature`, e poi clicca "Riprendi" su un'altra bozza (`/app/nuova?draft=xyz`), il `useRef` `draftLoaded` resta `true` dal primo caricamento e il secondo draft non viene mai caricato.
+`supabase/functions/ai-prescreen/index.ts`
 
-**Fix:** Resettare `draftLoaded.current = false` quando il `draft` param cambia. Usare l'ID del draft come dipendenza e tracciare quale draft e' stato caricato.
+- Modello: `google/gemini-2.5-flash` (veloce, economico)
+- Input: `job_data` (dal job parsing) + CV dell'utente (caricato dal DB via auth)
+- Output via tool calling:
+  - `requirements_analysis`: array di requisiti classificati come `mandatory` / `preferred` / `nice_to_have`, con flag `candidate_has` e `gap_type` (`bridgeable` / `unbridgeable`)
+  - `dealbreakers`: array di gap critici incolmabili (es. "5+ anni richiesti, 1 anno nel CV")
+  - `follow_up_questions`: 3-5 domande mirate per scoprire competenze implicite
+  - `overall_feasibility`: `low` / `medium` / `high`
+  - `feasibility_note`: spiegazione breve
 
-### 6. BASSO: `handleSave` in Step3 non aggiorna `job_description` nel draft
-Quando l'utente crea una nuova candidatura, il `job_description` viene salvato nel draft iniziale. Ma se l'utente riprende una bozza senza `job_description` e l'AI viene rieseguita, il `job_description` non viene mai aggiornato.
+Il system prompt istruisce l'AI a:
+- Riconoscere parole chiave mandatory ("must have", "required", "X+ years", "obbligatorio")
+- Riconoscere parole chiave preferred ("nice to have", "preferred", "gradito")
+- Generare domande solo per gap colmabili (non chiedere dell'esperienza se mancano 4 anni)
+- Comportarsi come recruiter esperto e onesto
 
-### 7. BASSO: Bottom bar in Step3 si sovrappone alla mobile tab bar
-La barra fissa in basso di Step3 (`fixed bottom-0`, riga 832) si sovrappone alla `MobileTabBar` di `AppShell.tsx`. Su mobile, i bottoni "Scarica PDF" e "Salva candidatura" sono parzialmente coperti.
+---
 
-**Fix:** Aggiungere `bottom-[calc(3.5rem+env(safe-area-inset-bottom))]` su mobile per la barra di Step3, o usare la classe `md:bottom-0` con un offset su mobile.
+## 3. Modifiche a `ai-tailor`
 
-### 8. BASSO: Tipo `as any` eccessivo
-Molti cast `as any` nelle query Supabase (`update({ ... } as any)`, `insert({ ... } as any)`). Questo nasconde errori di tipo e potrebbe causare problemi runtime se i nomi delle colonne non corrispondono.
+- Nuovo campo nel body: `user_answers?: Array<{question: string, answer: string}>`
+- Il prompt viene arricchito con una sezione "ADDITIONAL CONTEXT FROM CANDIDATE" contenente le risposte
+- Il `match_score` viene penalizzato: se ci sono requisiti mandatory mancanti, il massimo possibile e' 40%
+- Nuovo campo nel tool schema: `learning_suggestions` (array di `{skill, resource_name, url, type, duration}`) per suggerire risorse per skill mancanti essenziali
 
-## Ordine di implementazione
+---
 
-1. Fix duplicati `tailored_cvs` (bug 1) — critico per integrita' dati
-2. Fix `draftLoaded` ref (bug 5) — blocca la ripresa di bozze diverse
-3. Fix note non salvate (bug 3) — funzionalita' visibile rotta
-4. Fix bottom bar overlap su mobile (bug 7) — UX
-5. Fix Step1 back navigation (bug 2) — UX
-6. Fix foto profilo URL privato (bug 4) — richiede migrazione
+## 4. UI Step 1: Pre-screening (NUOVO)
+
+Dopo Step 0 (annuncio confermato), il wizard chiama `ai-prescreen` e mostra:
+
+**Se ci sono dealbreaker:**
+- Card con bordo rosso, icona Warning
+- Lista dei dealbreaker con spiegazione
+- Indicatore feasibility (basso/medio/alto) colorato
+- Tono: "Verso non ti impedisce di candidarti, ma vuole che tu sia consapevole."
+
+**Domande interattive:**
+- Card con le domande generate dall'AI
+- Ogni domanda ha un campo Textarea per la risposta
+- Le domande sono facoltative (l'utente puo' lasciare vuoto)
+- Bottone "Prosegui con queste informazioni"
+
+Le risposte vengono salvate in `applications.user_answers` e passate ad `ai-tailor`.
+
+---
+
+## 5. Animazione score con counter (Step 2)
+
+- Il match score "conta" da 0 al valore finale con `requestAnimationFrame`
+- La barra di progresso si riempie con timing `ease-out` su 800ms
+- Ogni card dei risultati appare con stagger animation (Framer Motion, delay incrementale)
+- Se score >= 80%: badge verde "Ottimo match"
+- Se score <= 40%: badge rosso "Gap significativi"
+
+---
+
+## 6. Editing inline del CV (Step 3)
+
+- Nella vista "Adattato", ogni sezione diventa cliccabile:
+  - Summary: click per editare in textarea
+  - Bullet points: click per editare singoli bullet
+  - Skills: click per aggiungere/rimuovere tag
+- Le modifiche aggiornano lo state `tailored_cv` in memoria
+- Il PDF scaricato riflette le modifiche dell'utente
+- Usa il componente `InlineEdit` gia' presente nel progetto
+
+---
+
+## 7. Suggerimenti risorse per skill gap (Step 2)
+
+- Sotto le skill mancanti con importanza "essential", mostrare card cliccabili con:
+  - Icona GraduationCap
+  - Nome risorsa (es. "Python for Data Science - Coursera")
+  - Tipo (corso/certificazione)
+  - Durata stimata
+  - Link diretto
+- I dati vengono dall'AI (campo `learning_suggestions` in `ai-tailor`)
+
+---
 
 ## File coinvolti
 
-| File | Bug | Modifica |
-|------|-----|----------|
-| `src/pages/Nuova.tsx` | 1, 2, 5, 7 | Upsert tailored_cvs, passare jobData a Step1, fix ref, fix bottom bar |
-| `src/pages/Candidature.tsx` | 3 | Leggere/salvare notes, aggiungere al tipo AppRow |
+| File | Modifica |
+|------|----------|
+| `supabase/functions/ai-prescreen/index.ts` | **Nuovo** -- edge function pre-screening |
+| `supabase/functions/ai-tailor/index.ts` | Accettare `user_answers`, `learning_suggestions`, penalizzazione score |
+| `supabase/config.toml` | Aggiungere `[functions.ai-prescreen]` |
+| `src/pages/Nuova.tsx` | Wizard a 4 step, nuovo Step "Verifica", animazione score, editing inline |
+| Migrazione DB | Aggiungere `user_answers jsonb` a `applications` |
+
+## Ordine di implementazione
+
+1. Migrazione DB (`user_answers`)
+2. Edge function `ai-prescreen`
+3. Modifiche a `ai-tailor` (user_answers + learning_suggestions + penalizzazione)
+4. UI Step "Verifica" (dealbreaker + domande)
+5. Animazione score counter + stagger
+6. Editing inline CV in Step 3
+7. Suggerimenti risorse per skill gap
 
