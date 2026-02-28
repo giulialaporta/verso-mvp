@@ -6,6 +6,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function md5Hash(text: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest("MD5", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -38,15 +46,39 @@ Deno.serve(async (req) => {
 
     const { url, text } = await req.json();
 
-    let jobText = text || "";
+    // --- Cache lookup (URL only) ---
+    if (url && !text) {
+      const urlHash = await md5Hash(url.trim().toLowerCase());
 
-    // If URL provided, try to fetch the page content
-    if (url && !jobText) {
+      // Service role client for cache operations
+      const serviceClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: cached } = await serviceClient
+        .from("job_cache")
+        .select("job_data")
+        .eq("url_hash", urlHash)
+        .gte("created_at", sevenDaysAgo)
+        .limit(1)
+        .maybeSingle();
+
+      if (cached?.job_data) {
+        console.log("Cache hit for URL:", url);
+        return new Response(JSON.stringify({ job_data: cached.job_data }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fetch page content
+      let jobText = "";
       try {
         const pageResponse = await fetch(url, {
           headers: {
             "User-Agent": "Mozilla/5.0 (compatible; VersoBot/1.0)",
-            "Accept": "text/html,application/xhtml+xml",
+            Accept: "text/html,application/xhtml+xml",
           },
         });
 
@@ -58,7 +90,6 @@ Deno.serve(async (req) => {
         }
 
         const html = await pageResponse.text();
-        // Strip HTML tags, keep text
         jobText = html
           .replace(/<script[\s\S]*?<\/script>/gi, "")
           .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -70,7 +101,6 @@ Deno.serve(async (req) => {
           .replace(/\s+/g, " ")
           .trim();
 
-        // Limit to reasonable size
         if (jobText.length > 15000) jobText = jobText.substring(0, 15000);
       } catch (fetchErr) {
         console.error("Fetch error:", fetchErr);
@@ -79,7 +109,33 @@ Deno.serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      if (!jobText || jobText.length < 20) {
+        return new Response(
+          JSON.stringify({ error: "Testo dell'annuncio troppo corto o non trovato." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // AI call
+      const jobData = await callAI(jobText);
+
+      // Cache insert (fire-and-forget)
+      serviceClient
+        .from("job_cache")
+        .insert({ url_hash: urlHash, job_data: jobData })
+        .then(({ error }) => {
+          if (error) console.error("Cache insert error:", error.message);
+          else console.log("Cached result for URL:", url);
+        });
+
+      return new Response(JSON.stringify({ job_data: jobData }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    // --- Text-based (no cache) ---
+    let jobText = text || "";
 
     if (!jobText || jobText.length < 20) {
       return new Response(
@@ -88,99 +144,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Send to Lovable AI for structured extraction
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `Estrai i dati chiave da un annuncio di lavoro. Rispondi SOLO con JSON valido, senza markdown.`,
-          },
-          {
-            role: "user",
-            content: `Ecco il testo dell'annuncio:\n\n${jobText}`,
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_job_data",
-              description: "Extract structured job posting data",
-              parameters: {
-                type: "object",
-                properties: {
-                  company_name: { type: "string", description: "Nome dell'azienda" },
-                  role_title: { type: "string", description: "Titolo del ruolo" },
-                  location: { type: "string", description: "Sede di lavoro" },
-                  job_type: { type: "string", description: "Tipo contratto (full-time, part-time, stage, ecc.)" },
-                  description: { type: "string", description: "Descrizione completa del ruolo (max 500 parole)" },
-                  key_requirements: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "3-7 requisiti chiave del candidato ideale",
-                  },
-                  required_skills: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Competenze tecniche e soft skills richieste",
-                  },
-                  nice_to_have: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Competenze opzionali o preferenziali",
-                  },
-                },
-                required: ["company_name", "role_title", "description", "key_requirements", "required_skills"],
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "extract_job_data" } },
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI error:", aiResponse.status, errText);
-      return new Response(
-        JSON.stringify({ error: "Errore durante l'analisi dell'annuncio." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const aiData = await aiResponse.json();
-    let jobData;
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall?.function?.arguments) {
-      jobData =
-        typeof toolCall.function.arguments === "string"
-          ? JSON.parse(toolCall.function.arguments)
-          : toolCall.function.arguments;
-    } else {
-      const content = aiData.choices?.[0]?.message?.content || "";
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        jobData = JSON.parse(jsonMatch[0]);
-      } else {
-        return new Response(
-          JSON.stringify({ error: "Impossibile analizzare l'annuncio. Riprova." }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-
+    const jobData = await callAI(jobText);
     return new Response(JSON.stringify({ job_data: jobData }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -192,3 +156,89 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+async function callAI(jobText: string) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY not configured");
+  }
+
+  const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash-lite",
+      messages: [
+        {
+          role: "system",
+          content: `Estrai i dati chiave da un annuncio di lavoro. Rispondi SOLO con JSON valido, senza markdown.`,
+        },
+        {
+          role: "user",
+          content: `Ecco il testo dell'annuncio:\n\n${jobText}`,
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "extract_job_data",
+            description: "Extract structured job posting data",
+            parameters: {
+              type: "object",
+              properties: {
+                company_name: { type: "string", description: "Nome dell'azienda" },
+                role_title: { type: "string", description: "Titolo del ruolo" },
+                location: { type: "string", description: "Sede di lavoro" },
+                job_type: { type: "string", description: "Tipo contratto (full-time, part-time, stage, ecc.)" },
+                description: { type: "string", description: "Descrizione completa del ruolo (max 500 parole)" },
+                key_requirements: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "3-7 requisiti chiave del candidato ideale",
+                },
+                required_skills: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Competenze tecniche e soft skills richieste",
+                },
+                nice_to_have: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Competenze opzionali o preferenziali",
+                },
+              },
+              required: ["company_name", "role_title", "description", "key_requirements", "required_skills"],
+            },
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "extract_job_data" } },
+    }),
+  });
+
+  if (!aiResponse.ok) {
+    const errText = await aiResponse.text();
+    console.error("AI error:", aiResponse.status, errText);
+    throw new Error("Errore durante l'analisi dell'annuncio.");
+  }
+
+  const aiData = await aiResponse.json();
+  const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+  if (toolCall?.function?.arguments) {
+    return typeof toolCall.function.arguments === "string"
+      ? JSON.parse(toolCall.function.arguments)
+      : toolCall.function.arguments;
+  }
+
+  const content = aiData.choices?.[0]?.message?.content || "";
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    return JSON.parse(jsonMatch[0]);
+  }
+
+  throw new Error("Impossibile analizzare l'annuncio. Riprova.");
+}

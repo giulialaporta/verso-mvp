@@ -6,6 +6,70 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// --- Utility: compact CV by removing nulls, empty strings, empty arrays, photo_base64 ---
+function compactCV(data: Record<string, unknown>): Record<string, unknown> {
+  if (Array.isArray(data)) {
+    const filtered = data
+      .map((item) => (typeof item === "object" && item !== null ? compactCV(item as Record<string, unknown>) : item))
+      .filter((item) => item !== null && item !== undefined && item !== "");
+    return filtered.length > 0 ? (filtered as unknown as Record<string, unknown>) : (undefined as unknown as Record<string, unknown>);
+  }
+  if (typeof data === "object" && data !== null) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (key === "photo_base64") continue; // strip photo
+      if (value === null || value === undefined || value === "") continue;
+      if (Array.isArray(value) && value.length === 0) continue;
+      const compacted = typeof value === "object" && value !== null
+        ? compactCV(value as Record<string, unknown>)
+        : value;
+      if (compacted !== undefined && compacted !== null) {
+        result[key] = compacted;
+      }
+    }
+    return Object.keys(result).length > 0 ? result : (undefined as unknown as Record<string, unknown>);
+  }
+  return data;
+}
+
+// --- Utility: apply patches to original CV ---
+function applyPatches(
+  original: Record<string, unknown>,
+  patches: Array<{ path: string; value: unknown }>
+): Record<string, unknown> {
+  const result = JSON.parse(JSON.stringify(original));
+
+  for (const patch of patches) {
+    const { path, value } = patch;
+    // Parse path like "experience[0].bullets" or "skills.technical" or "summary"
+    const segments = path.replace(/\[(\d+)\]/g, ".$1").split(".");
+    let target = result;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const seg = segments[i];
+      const idx = Number(seg);
+      if (!isNaN(idx)) {
+        target = target[idx];
+      } else {
+        if (target[seg] === undefined || target[seg] === null) {
+          // Auto-create intermediate objects
+          const nextSeg = segments[i + 1];
+          target[seg] = !isNaN(Number(nextSeg)) ? [] : {};
+        }
+        target = target[seg];
+      }
+    }
+    const lastSeg = segments[segments.length - 1];
+    const lastIdx = Number(lastSeg);
+    if (!isNaN(lastIdx)) {
+      target[lastIdx] = value;
+    } else {
+      target[lastSeg] = value;
+    }
+  }
+
+  return result;
+}
+
 const SYSTEM_PROMPT = `Sei un esperto career coach e specialista ATS per il mercato italiano ed europeo.
 
 Confronta il CV del candidato con l'annuncio di lavoro e produci un'analisi completa.
@@ -31,13 +95,15 @@ Punteggio di compatibilità con sistemi ATS. Valuta 7 check specifici:
 
 ### 4. SENIORITY MATCH
 Confronta il livello di seniority del candidato con quello richiesto dal ruolo.
-- candidate_level: junior/mid/senior/lead/executive
-- role_level: junior/mid/senior/lead/executive
-- match: true/false
-- note: breve spiegazione
 
-### 5. CV ADATTATO
-CV riformulato con la STESSA STRUTTURA dell'originale (inclusi tutti i campi: personal, summary, experience con role/company/location/start/end/current/description/bullets, education con tutti i campi, skills come oggetto con technical/soft/tools/languages, certifications, projects, extra_sections).
+### 5. TAILORED PATCHES
+Restituisci SOLO le sezioni del CV che hai modificato, come array di patch.
+Ogni patch ha:
+- path: percorso nel JSON del CV (es. "summary", "experience[0].bullets", "skills.technical")
+- value: il nuovo valore per quel campo
+
+NON restituire l'intero CV. Restituisci SOLO i campi che hai effettivamente cambiato.
+Percorsi validi: "summary", "experience[N].description", "experience[N].bullets", "skills.technical", "skills.soft", "skills.tools"
 
 ### 6. HONEST SCORE
 Verifica di onestà delle modifiche apportate.
@@ -50,8 +116,7 @@ Lista delle modifiche apportate.
 - MAI modificare date, nomi aziende, titoli di studio, gradi, foto
 - MAI toccare extra_sections, dati personali, photo_base64
 - Puoi SOLO modificare: summary, description/bullets delle esperienze, ordine delle skill
-- Il tailored_cv DEVE contenere TUTTE le sezioni dell'originale, incluse extra_sections
-- Se l'originale ha photo_base64, passarlo invariato nel tailored_cv
+- Ogni patch path DEVE corrispondere a un campo esistente nel CV originale (eccetto nuove skill)
 
 ## CALIBRAZIONE MERCATO ITALIANO
 - Laurea triennale = Bachelor, Laurea magistrale = Master
@@ -64,7 +129,7 @@ const TOOL_SCHEMA = {
   type: "function",
   function: {
     name: "analyze_and_tailor",
-    description: "Analyze CV-job match and produce tailored CV with ATS and honesty checks",
+    description: "Analyze CV-job match and produce tailored patches with ATS and honesty checks",
     parameters: {
       type: "object",
       properties: {
@@ -121,77 +186,21 @@ const TOOL_SCHEMA = {
             required: ["check", "label", "status"],
           },
         },
-        tailored_cv: {
-          type: "object",
-          description: "CV adattato con stessa struttura arricchita dell'originale",
-          properties: {
-            personal: { type: "object" },
-            photo_base64: { type: "string" },
-            summary: { type: "string" },
-            experience: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  role: { type: "string" },
-                  company: { type: "string" },
-                  location: { type: "string" },
-                  start: { type: "string" },
-                  end: { type: "string" },
-                  current: { type: "boolean" },
-                  description: { type: "string" },
-                  bullets: { type: "array", items: { type: "string" } },
-                },
+        tailored_patches: {
+          type: "array",
+          description: "Array di modifiche da applicare al CV originale. Solo i campi effettivamente cambiati.",
+          items: {
+            type: "object",
+            properties: {
+              path: {
+                type: "string",
+                description: "Percorso nel JSON del CV (es. 'summary', 'experience[0].bullets', 'skills.technical')",
+              },
+              value: {
+                description: "Nuovo valore per il campo (stringa, array, oggetto)",
               },
             },
-            education: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  institution: { type: "string" },
-                  degree: { type: "string" },
-                  field: { type: "string" },
-                  start: { type: "string" },
-                  end: { type: "string" },
-                  grade: { type: "string" },
-                  honors: { type: "string" },
-                  program: { type: "string" },
-                  publication: { type: "string" },
-                },
-              },
-            },
-            skills: {
-              type: "object",
-              properties: {
-                technical: { type: "array", items: { type: "string" } },
-                soft: { type: "array", items: { type: "string" } },
-                tools: { type: "array", items: { type: "string" } },
-                languages: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      language: { type: "string" },
-                      level: { type: "string" },
-                      descriptor: { type: "string" },
-                    },
-                  },
-                },
-              },
-            },
-            certifications: { type: "array", items: { type: "object" } },
-            projects: { type: "array", items: { type: "object" } },
-            extra_sections: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  items: { type: "array", items: { type: "string" } },
-                },
-              },
-            },
+            required: ["path", "value"],
           },
         },
         honest_score: {
@@ -240,7 +249,7 @@ const TOOL_SCHEMA = {
         "skills_missing",
         "seniority_match",
         "ats_checks",
-        "tailored_cv",
+        "tailored_patches",
         "honest_score",
         "diff",
       ],
@@ -303,6 +312,14 @@ Deno.serve(async (req) => {
       );
     }
 
+    const originalCV = masterCV.parsed_data as Record<string, unknown>;
+
+    // Save photo_base64 before compacting (will be reinserted after patches)
+    const photoBase64 = (originalCV as any)?.photo_base64 || null;
+
+    // Compact CV for AI input (removes nulls, empties, photo_base64)
+    const compactedCV = compactCV(originalCV);
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY not configured");
@@ -320,7 +337,7 @@ Deno.serve(async (req) => {
           { role: "system", content: SYSTEM_PROMPT },
           {
             role: "user",
-            content: `CV ORIGINALE:\n${JSON.stringify(masterCV.parsed_data)}\n\nANNUNCIO DI LAVORO:\n${JSON.stringify(job_data)}`,
+            content: `CV ORIGINALE:\n${JSON.stringify(compactedCV)}\n\nANNUNCIO DI LAVORO:\n${JSON.stringify(job_data)}`,
           },
         ],
         tools: [TOOL_SCHEMA],
@@ -352,7 +369,7 @@ Deno.serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    let result;
+    let result: Record<string, unknown>;
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
       result =
@@ -372,6 +389,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Apply patches to original CV to produce tailored_cv
+    const patches = (result.tailored_patches as Array<{ path: string; value: unknown }>) || [];
+    const tailoredCV = applyPatches(originalCV, patches);
+
+    // Reinsert photo_base64 if it existed
+    if (photoBase64) {
+      (tailoredCV as any).photo_base64 = photoBase64;
+    }
+
+    // Replace tailored_patches with tailored_cv for frontend compatibility
+    delete result.tailored_patches;
+    result.tailored_cv = tailoredCV;
     result.master_cv_id = masterCV.id;
 
     return new Response(JSON.stringify(result), {
