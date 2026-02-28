@@ -312,6 +312,10 @@ const TOOL_SCHEMA = {
             required: ["section", "original", "suggested", "reason", "patch_path"],
           },
         },
+        score_note: {
+          type: "string",
+          description: "1-2 sentence explanation of the match score IN THE SAME LANGUAGE as the job posting. Explain key factors affecting the score.",
+        },
         suggestions: {
           type: "array",
           items: {
@@ -342,6 +346,7 @@ const TOOL_SCHEMA = {
         "detected_language",
         "match_score",
         "ats_score",
+        "score_note",
         "skills_present",
         "skills_missing",
         "seniority_match",
@@ -490,6 +495,57 @@ Deno.serve(async (req) => {
         );
       }
     }
+
+    // --- Deterministic score adjustment ---
+    function adjustScore(r: Record<string, unknown>): void {
+      const skillsMissing = Array.isArray(r.skills_missing) ? r.skills_missing as Array<{ label: string; importance: string }> : [];
+      const essentialMissing = skillsMissing.filter(s => s.importance === "essential").length;
+
+      const caps: Record<number, number> = { 0: 100, 1: 55, 2: 40 };
+      const cap = caps[Math.min(essentialMissing, 2)] ?? 30;
+
+      const seniority = r.seniority_match as { candidate_level?: string; role_level?: string; match?: boolean } | undefined;
+      const levels = ["junior", "mid", "senior", "lead", "executive"];
+      let seniorityPenalty = 0;
+      if (seniority && seniority.match === false) {
+        const cIdx = levels.indexOf(seniority.candidate_level || "");
+        const rIdx = levels.indexOf(seniority.role_level || "");
+        seniorityPenalty = (cIdx >= 0 && rIdx >= 0 && Math.abs(cIdx - rIdx) >= 2) ? 15 : 5;
+      }
+
+      const atsChecks = Array.isArray(r.ats_checks) ? r.ats_checks as Array<{ status: string }> : [];
+      const atsFails = atsChecks.filter(c => c.status === "fail").length;
+      const atsPenalty = atsFails * 3;
+
+      const aiScore = typeof r.match_score === "number" ? r.match_score : 50;
+      const finalScore = Math.max(5, Math.min(98, Math.min(aiScore, cap) - seniorityPenalty - atsPenalty));
+
+      const lang = (r.detected_language as string || "it").toLowerCase();
+      const isIt = lang.startsWith("it");
+
+      if (finalScore !== aiScore) {
+        // Generate synthetic note
+        const parts: string[] = [];
+        if (essentialMissing > 0) {
+          parts.push(isIt
+            ? `${essentialMissing} competenz${essentialMissing === 1 ? "a essenziale mancante" : "e essenziali mancanti"}`
+            : `${essentialMissing} essential skill${essentialMissing === 1 ? "" : "s"} missing`);
+        }
+        if (seniorityPenalty > 0) {
+          parts.push(isIt ? "disallineamento seniority" : "seniority mismatch");
+        }
+        if (atsPenalty > 0) {
+          parts.push(isIt ? `${atsFails} check ATS non superati` : `${atsFails} ATS check${atsFails === 1 ? "" : "s"} failed`);
+        }
+        r.score_note = isIt
+          ? `Punteggio adeguato: ${parts.join(", ")}.`
+          : `Score adjusted: ${parts.join(", ")}.`;
+        r.match_score = finalScore;
+      }
+      // If score unchanged, keep AI's score_note as-is
+    }
+
+    adjustScore(result);
 
     // Apply patches to original CV to produce tailored_cv
     const patches = (result.tailored_patches as Array<{ path: string; value: unknown }>) || [];
