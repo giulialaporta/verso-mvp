@@ -1,125 +1,51 @@
 
+# Fix UI: Titolo CV troncato, Mobile layout, Navigazione consistente
 
-# Home Page Redesign — Virgin State + Dashboard + Customer Journey
+## Problemi identificati
 
-## Customer Journey Analysis
+### 1. Titolo CV troncato
+Il file name nella CV Card usa `truncate` con `max-w-[180px]`, tagliando nomi lunghi come "CV GIulia La Porta_01_2...". Il layout `flex-row` tra titolo e filename comprime lo spazio disponibile.
 
-The flow is sequential and mandatory:
+### 2. Mobile layout problematico
+Dalla screenshot a 375px:
+- **Nessun padding laterale**: il contenuto tocca i bordi dello schermo. L'`AppShell` mobile non applica padding, e `Home.tsx` usa solo `max-w-xl` senza padding orizzontale.
+- **Stats bar troppo compressa**: le tre card in `grid-cols-3` a 375px sono strettissime.
+- **CV Card header sovraffollato**: titolo e filename forzati sulla stessa riga.
 
-```text
-1. Registrazione/Login
-2. Carica CV (obbligatorio)
-3. Nuova candidatura (richiede CV)
-4. Gestisci candidature
-```
+### 3. Navigazione inconsistente: "Nuova" nel menu
+Il tab "Nuova" nella sidebar/bottom bar e il bottone "Nuova candidatura" in Home fanno esattamente la stessa cosa (navigano a `/app/nuova`). Avere due entry point crea confusione e spreca spazio nella navigazione. La sidebar dovrebbe contenere solo destinazioni di contenuto stabile (Home, Candidature), non azioni.
 
-Il CV e' un prerequisito: la funzione `ai-tailor` confronta il CV master con l'annuncio. Senza CV, non si puo' creare nessuna candidatura. Questo deve essere chiaro fin dal primo accesso.
+---
 
-## Tre stati della Home
+## Soluzione
 
-### Stato 1: "Virgin" (nessun CV, nessuna candidatura)
-Visibile solo al primo accesso o se l'utente elimina tutto. Scopo: orientare, spiegare il flusso, far caricare il CV.
+### `src/pages/Home.tsx`
 
-```text
-+------------------------------------------+
-| VERSO                                    |
-| Benvenuto! Ecco come funziona.           |
-+------------------------------------------+
-|  1. Carica il tuo CV                     |
-|     [=====] in evidenza, accent          |
-|                                          |
-|  2. Incolla un annuncio       (locked)   |
-|     Verso adatta il tuo CV              |
-|                                          |
-|  3. Monitora le candidature   (locked)   |
-|     Tieni traccia di tutto              |
-+------------------------------------------+
-|  [ Carica il tuo CV -> ]  CTA grande    |
-+------------------------------------------+
-```
+**CV Card header**: spostare il filename sotto il titolo invece che affiancato. Rimuovere `truncate` e `max-w-[180px]`, usare `break-all` e testo piu piccolo ma visibile per intero.
 
-- I passaggi 2 e 3 sono visibili ma "locked" (opacita' ridotta, icona lucchetto) per far capire che servono il CV prima
-- Un solo bottone CTA: "Carica il tuo CV"
-- Copy diretto e breve, in stile Verso
+**Mobile padding**: aggiungere `px-4` al container principale per dare margine laterale su mobile. Usare `sm:px-0` per non influenzare desktop.
 
-### Stato 2: CV caricato, nessuna candidatura
-L'utente ha il CV ma non ha ancora fatto niente. Enfasi sulla prossima azione.
+**Stats bar**: mantenere `grid-cols-3` ma ridurre il padding interno delle card su mobile con classi responsive (`py-3 px-1 sm:py-4 sm:px-2`).
 
-```text
-+------------------------------------------+
-| Ciao, Marco                              |
-| Il tuo CV e' pronto. Crea la tua prima  |
-| candidatura.                             |
-+------------------------------------------+
-|  [3]  [0]  [check]                       |
-|  ---   ---   CV OK                       |
-| (stats vuote ma struttura gia' visibile) |
-+------------------------------------------+
-|  [  Nuova candidatura  ->  ]  grande     |
-+------------------------------------------+
-|  Il tuo CV               [v] collapsible |
-|  > Dati personali                        |
-|  > Esperienza                            |
-|  [Elimina]  [Carica nuovo]               |
-+------------------------------------------+
-```
+### `src/components/AppShell.tsx`
 
-### Stato 3: CV + candidature esistenti (dashboard completa)
-L'utente e' attivo. Mostra stats, ultime candidature, CV collassato.
+**Rimuovere "Nuova" dalla navigazione**: la tab/sidebar item "Nuova" viene eliminata. Restano solo "Home" e "Candidature". L'azione "nuova candidatura" e' gia' prominente nella Home (bottone CTA full-width) e potra' essere accessibile anche dalla pagina Candidature.
 
-```text
-+------------------------------------------+
-| Ciao, Marco                              |
-| Hai 3 candidature attive.               |
-+------------------------------------------+
-|  [3]     [74%]    [check]                |
-|  Attive   Score    CV                    |
-+------------------------------------------+
-|  [  Nuova candidatura  ->  ]             |
-+------------------------------------------+
-|  Ultime candidature                      |
-|  Google - SWE - 82% - INVIATA           |
-|  Accenture - PM - 61% - CONTATTATO      |
-|  [Vedi tutte ->]                         |
-+------------------------------------------+
-|  Il tuo CV               [v] collapsible |
-|  [Elimina]  [Carica nuovo]               |
-+------------------------------------------+
-```
+**Bottom tab bar**: con solo 2 tab + nessun FAB centrale, il layout diventa piu' pulito. Se si vuole mantenere un accesso rapido, il FAB puo' diventare un bottone floating sulla pagina Candidature, ma non serve nella nav globale.
 
-## Blocco navigazione "Nuova" senza CV
+**Desktop sidebar**: stessa logica, solo Home e Candidature. Il menu diventa piu' leggero e coerente.
 
-Oltre alla Home, il bottone "Nuova" nella sidebar/tab bar portera' a `/app/nuova` ma il wizard stesso verifichera' se esiste un CV. Se non c'e', mostra un messaggio con redirect a onboarding. Questo e' un fallback — la Home dovrebbe gia' rendere chiaro il percorso.
+### `src/components/CVSections.tsx`
 
-## File coinvolti
+Nessuna modifica necessaria.
 
-### `src/pages/Home.tsx` — Riscrittura completa
-- Fetch: `master_cvs` + `applications` (count, score medio, ultime 3)
-- Tre rendering condizionali basati su `hasCV` e `hasApplications`
-- **Virgin state**: stepper visuale con 3 passaggi, CTA unica
-- **CV-only state**: stats skeleton + CTA nuova candidatura prominente
-- **Full state**: stats reali + mini-lista candidature + CV collassabile
-- Skeleton loading per tutti gli stati
+---
 
-### `src/components/CVSections.tsx` — Aggiunta modalita' collassabile
-- Nuova prop `collapsible?: boolean`
-- Quando true, ogni sezione e' wrappata in `Collapsible` di Radix con sommario inline (es. "Esperienza — 3 posizioni")
-- Default: tutto chiuso, l'utente espande a piacere
+## Riepilogo modifiche
 
-### `src/pages/Nuova.tsx` — Guard CV
-- All'inizio del componente, verificare se esiste un `master_cvs` per l'utente
-- Se non esiste, mostrare un messaggio "Devi prima caricare il tuo CV" con bottone redirect a `/onboarding`
-- Nessun accesso al wizard senza CV
+| File | Cosa cambia |
+|------|-------------|
+| `src/pages/Home.tsx` | Fix header CV Card (filename su riga separata, no truncate). Aggiunta padding mobile `px-4`. Stats card responsive. |
+| `src/components/AppShell.tsx` | Rimosso "Nuova" da `navItems`. Rimosso FAB centrale nella bottom bar. Solo Home + Candidature nella navigazione. |
 
-### Nessuna modifica backend
-Tutti i dati necessari sono gia' nel DB. Le query usano le tabelle `master_cvs`, `applications` e `profiles` esistenti.
-
-## Dettagli tecnici
-
-- Stats bar: `grid grid-cols-3`, numeri in JetBrains Mono, icone Phosphor
-- Virgin stepper: 3 card verticali con numerazione, icone `FileArrowUp`, `MagicWand`, `Funnel`, stato locked con `Lock` icon e opacity-50
-- Ultime candidature: query `applications` order by `created_at desc` limit 3, con status chip colorati come da brand system
-- Collapsible: usa `@radix-ui/react-collapsible` gia' installato, con `CollapsibleTrigger` che mostra icona chevron e sommario
-- Animazioni: Framer Motion stagger per entrata virgin steps, fade per transizioni stato
-- Mobile: tutto single-column, stats piu' compatte, CTA full-width
-
+Nessuna modifica backend, nessun nuovo file.
