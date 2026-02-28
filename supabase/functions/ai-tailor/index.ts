@@ -83,13 +83,14 @@ function applyPatches(
 
 const SYSTEM_PROMPT = `You are an expert career coach and ATS specialist for the European job market.
 
-## CRITICAL RULE — LANGUAGE IN = LANGUAGE OUT
-Before generating ANY content, detect the language of the JOB POSTING.
-ALL CV modifications (summary, bullets, descriptions, skill labels, suggestions, notes, diff reasons) MUST be written in the SAME LANGUAGE as the job posting.
-- English job posting → English CV output
-- Italian job posting → Italian CV output
-- German job posting → German CV output
-This rule is ABSOLUTE. No exceptions. Report the detected language in the detected_language field.
+## CRITICAL RULE — TWO-LEVEL LANGUAGE POLICY
+1. Detect the language of the JOB POSTING. Report it in detected_language.
+2. CV CONTENT (tailored_patches values, summary, bullets, skill labels, descriptions) 
+   MUST be in the SAME LANGUAGE as the job posting.
+3. ANALYSIS & UI TEXT (score_note, seniority_match.note, ats_checks label/detail, 
+   diff reasons, structural_changes reason/item, suggestions messages, learning_suggestions resource_name/duration) 
+   MUST ALWAYS be in ITALIAN, regardless of the job posting language.
+This rule is ABSOLUTE. No exceptions.
 
 Compare the candidate's CV with the job posting and produce a comprehensive analysis.
 
@@ -235,7 +236,7 @@ const TOOL_SCHEMA = {
             candidate_level: { type: "string", enum: ["junior", "mid", "senior", "lead", "executive"] },
             role_level: { type: "string", enum: ["junior", "mid", "senior", "lead", "executive"] },
             match: { type: "boolean" },
-            note: { type: "string" },
+            note: { type: "string", description: "ALWAYS in Italian" },
           },
           required: ["candidate_level", "role_level", "match", "note"],
         },
@@ -245,9 +246,9 @@ const TOOL_SCHEMA = {
             type: "object",
             properties: {
               check: { type: "string", enum: ["keywords", "format", "dates", "measurable", "cliches", "sections", "action_verbs"] },
-              label: { type: "string" },
+              label: { type: "string", description: "ALWAYS in Italian" },
               status: { type: "string", enum: ["pass", "warning", "fail"] },
-              detail: { type: "string" },
+              detail: { type: "string", description: "ALWAYS in Italian" },
             },
             required: ["check", "label", "status"],
           },
@@ -260,8 +261,8 @@ const TOOL_SCHEMA = {
             properties: {
               action: { type: "string", enum: ["removed", "reordered", "condensed"] },
               section: { type: "string" },
-              item: { type: "string", description: "What was affected" },
-              reason: { type: "string" },
+              item: { type: "string", description: "What was affected, ALWAYS in Italian" },
+              reason: { type: "string", description: "ALWAYS in Italian" },
             },
             required: ["action", "section", "item", "reason"],
           },
@@ -306,7 +307,7 @@ const TOOL_SCHEMA = {
               index: { type: "number" },
               original: { type: "string" },
               suggested: { type: "string" },
-              reason: { type: "string" },
+              reason: { type: "string", description: "ALWAYS in Italian" },
               patch_path: { type: "string", description: "Corresponding path in tailored_patches for this change" },
             },
             required: ["section", "original", "suggested", "reason", "patch_path"],
@@ -314,7 +315,7 @@ const TOOL_SCHEMA = {
         },
         score_note: {
           type: "string",
-          description: "1-2 sentence explanation of the match score IN THE SAME LANGUAGE as the job posting. Explain key factors affecting the score.",
+          description: "1-2 sentence explanation of the match score ALWAYS in ITALIAN. Explain key factors affecting the score.",
         },
         suggestions: {
           type: "array",
@@ -322,7 +323,7 @@ const TOOL_SCHEMA = {
             type: "object",
             properties: {
               type: { type: "string" },
-              message: { type: "string" },
+              message: { type: "string", description: "ALWAYS in Italian" },
             },
           },
         },
@@ -333,10 +334,10 @@ const TOOL_SCHEMA = {
             type: "object",
             properties: {
               skill: { type: "string" },
-              resource_name: { type: "string" },
+              resource_name: { type: "string", description: "ALWAYS in Italian" },
               url: { type: "string" },
               type: { type: "string", enum: ["course", "certification", "tutorial"] },
-              duration: { type: "string", description: "Estimated duration (e.g. '4 weeks', '2 hours')" },
+              duration: { type: "string", description: "Estimated duration ALWAYS in Italian (e.g. '4 settimane', '2 ore')" },
             },
             required: ["skill", "resource_name", "url", "type"],
           },
@@ -520,29 +521,20 @@ Deno.serve(async (req) => {
       const aiScore = typeof r.match_score === "number" ? r.match_score : 50;
       const finalScore = Math.max(5, Math.min(98, Math.min(aiScore, cap) - seniorityPenalty - atsPenalty));
 
-      const lang = (r.detected_language as string || "it").toLowerCase();
-      const isIt = lang.startsWith("it");
-
       if (finalScore !== aiScore) {
-        // Generate synthetic note
         const parts: string[] = [];
         if (essentialMissing > 0) {
-          parts.push(isIt
-            ? `${essentialMissing} competenz${essentialMissing === 1 ? "a essenziale mancante" : "e essenziali mancanti"}`
-            : `${essentialMissing} essential skill${essentialMissing === 1 ? "" : "s"} missing`);
+          parts.push(`${essentialMissing} competenz${essentialMissing === 1 ? "a essenziale mancante" : "e essenziali mancanti"}`);
         }
         if (seniorityPenalty > 0) {
-          parts.push(isIt ? "disallineamento seniority" : "seniority mismatch");
+          parts.push("disallineamento seniority");
         }
         if (atsPenalty > 0) {
-          parts.push(isIt ? `${atsFails} check ATS non superati` : `${atsFails} ATS check${atsFails === 1 ? "" : "s"} failed`);
+          parts.push(`${atsFails} check ATS non superat${atsFails === 1 ? "o" : "i"}`);
         }
-        r.score_note = isIt
-          ? `Punteggio adeguato: ${parts.join(", ")}.`
-          : `Score adjusted: ${parts.join(", ")}.`;
+        r.score_note = `Punteggio adeguato: ${parts.join(", ")}.`;
         r.match_score = finalScore;
       }
-      // If score unchanged, keep AI's score_note as-is
     }
 
     adjustScore(result);
