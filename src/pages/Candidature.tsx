@@ -36,9 +36,11 @@ import {
   FloppyDisk,
   CalendarBlank,
   ChartLineUp,
+  DownloadSimple,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { ExportDrawer } from "@/components/ExportDrawer";
 
 
 type AppRow = {
@@ -85,6 +87,13 @@ export default function Candidature() {
   const [selectedApp, setSelectedApp] = useState<AppRow | null>(null);
   const [drawerStatus, setDrawerStatus] = useState("");
   const [drawerNotes, setDrawerNotes] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportCv, setExportCv] = useState<Record<string, any> | null>(null);
+  const [exportAtsScore, setExportAtsScore] = useState<number | undefined>();
+  const [exportAtsChecks, setExportAtsChecks] = useState<any>(undefined);
+  const [exportHonestScore, setExportHonestScore] = useState<any>(undefined);
+  const [exportCompany, setExportCompany] = useState("");
+  const [exportAppId, setExportAppId] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -228,7 +237,7 @@ export default function Candidature() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigate("/app/nuova")}
+                    onClick={() => navigate(`/app/nuova?draft=${draft.id}`)}
                     className="gap-1 text-xs"
                   >
                     Riprendi <ArrowRight size={12} />
@@ -361,13 +370,84 @@ export default function Candidature() {
             </ScrollArea>
           )}
 
-          <DrawerFooter>
+          <DrawerFooter className="space-y-2">
             <Button onClick={handleStatusSave} className="w-full gap-2">
               <FloppyDisk size={16} /> Salva
             </Button>
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={async () => {
+                if (!selectedApp) return;
+                const { data: tcData } = await supabase
+                  .from("tailored_cvs")
+                  .select("tailored_data, ats_score, ats_checks, honest_score")
+                  .eq("application_id", selectedApp.id)
+                  .maybeSingle();
+                if (tcData?.tailored_data) {
+                  setExportCv(tcData.tailored_data as Record<string, any>);
+                  setExportAtsScore(tcData.ats_score ?? undefined);
+                  setExportAtsChecks((tcData.ats_checks as any) ?? undefined);
+                  setExportHonestScore((tcData.honest_score as any) ?? undefined);
+                  setExportCompany(selectedApp.company_name);
+                  setExportAppId(selectedApp.id);
+                  setExportOpen(true);
+                } else {
+                  toast.error("Nessun CV adattato trovato per questa candidatura.");
+                }
+              }}
+            >
+              <DownloadSimple size={16} /> Scarica PDF
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash size={16} /> Elimina candidatura
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Eliminare la candidatura?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    La candidatura per {selectedApp?.role_title} — {selectedApp?.company_name} verrà eliminata permanentemente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annulla</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={async () => {
+                      if (!selectedApp) return;
+                      await handleDelete(selectedApp.id);
+                      setSelectedApp(null);
+                    }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Elimina
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      {/* Export Drawer */}
+      {exportCv && (
+        <ExportDrawer
+          open={exportOpen}
+          onOpenChange={setExportOpen}
+          tailoredCv={exportCv}
+          atsScore={exportAtsScore}
+          atsChecks={exportAtsChecks}
+          honestScore={exportHonestScore}
+          companyName={exportCompany}
+          applicationId={exportAppId}
+          userId={user?.id}
+        />
+      )}
     </div>
   );
 }

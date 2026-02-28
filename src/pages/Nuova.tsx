@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ import {
   CaretDown,
 } from "@phosphor-icons/react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { ExportDrawer } from "@/components/ExportDrawer";
 
 type JobData = {
   company_name: string;
@@ -581,6 +582,7 @@ function Step3({
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [diffTab, setDiffTab] = useState<string>("adattato");
+  const [exportOpen, setExportOpen] = useState(false);
 
   // Render sections from a CV object
   const renderCV = (cv: Record<string, unknown>) => {
@@ -829,7 +831,7 @@ function Step3({
       {/* Fixed bottom bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-md p-4 md:pl-64">
         <div className="mx-auto max-w-4xl flex gap-3">
-          <Button variant="outline" className="flex-1 gap-2" disabled>
+          <Button variant="outline" className="flex-1 gap-2" onClick={() => setExportOpen(true)}>
             <DownloadSimple size={16} /> Scarica PDF
           </Button>
           <Button className="flex-1 gap-2" onClick={handleSave} disabled={saving}>
@@ -841,6 +843,18 @@ function Step3({
           </Button>
         </div>
       </div>
+
+      <ExportDrawer
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        tailoredCv={result.tailored_cv}
+        atsScore={result.ats_score}
+        atsChecks={result.ats_checks}
+        honestScore={result.honest_score}
+        companyName={jobData.company_name}
+        applicationId={applicationId}
+        userId={user?.id}
+      />
     </div>
   );
 }
@@ -849,13 +863,30 @@ function Step3({
 export default function Nuova() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [step, setStep] = useState(() => {
+    const s = parseInt(searchParams.get("step") || "0", 10);
+    return isNaN(s) ? 0 : s;
+  });
   const [jobData, setJobData] = useState<JobData | null>(null);
   const [jobUrl, setJobUrl] = useState<string | undefined>();
   const [tailorResult, setTailorResult] = useState<TailorResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [cvCheck, setCvCheck] = useState<"loading" | "ok" | "missing">("loading");
-  const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [applicationId, setApplicationId] = useState<string | null>(
+    searchParams.get("draft")
+  );
+  const draftLoaded = useRef(false);
+
+  // Sync step to URL for persistence across desktop/mobile remounts
+  const updateStep = useCallback((newStep: number) => {
+    setStep(newStep);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("step", String(newStep));
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // CV Guard
   useEffect(() => {
@@ -870,31 +901,130 @@ export default function Nuova() {
       });
   }, [user]);
 
+  // Draft resumption: load application + tailored_cv from DB
+  useEffect(() => {
+    const draftId = searchParams.get("draft");
+    if (!draftId || !user || draftLoaded.current) return;
+    draftLoaded.current = true;
+
+    (async () => {
+      // Load the application
+      const { data: app } = await supabase
+        .from("applications")
+        .select("*")
+        .eq("id", draftId)
+        .single();
+
+      if (!app) {
+        toast.error("Bozza non trovata.");
+        return;
+      }
+
+      setApplicationId(app.id);
+      setJobData({
+        company_name: app.company_name,
+        role_title: app.role_title,
+        description: app.job_description || "",
+        location: "",
+        key_requirements: [],
+        required_skills: [],
+      });
+      if (app.job_url) setJobUrl(app.job_url);
+
+      // Check if tailored_cv exists
+      const { data: tc } = await supabase
+        .from("tailored_cvs")
+        .select("*")
+        .eq("application_id", draftId)
+        .maybeSingle();
+
+      if (tc?.tailored_data) {
+        // Restore full result from saved data
+        setTailorResult({
+          match_score: app.match_score ?? 0,
+          ats_score: tc.ats_score ?? 0,
+          skills_present: (tc.skills_match as any)?.present || [],
+          skills_missing: (tc.skills_match as any)?.missing || [],
+          seniority_match: tc.seniority_match as any || { candidate_level: "", role_level: "", match: true, note: "" },
+          ats_checks: (tc.ats_checks as any) || [],
+          tailored_cv: tc.tailored_data as Record<string, unknown>,
+          honest_score: (tc.honest_score as any) || { confidence: 100, experiences_added: 0, skills_invented: 0, dates_modified: 0, bullets_repositioned: 0, bullets_rewritten: 0, sections_removed: 0, flags: [] },
+          diff: (tc.diff as any) || [],
+          master_cv_id: tc.master_cv_id,
+        });
+        // Jump to step from URL or default to step 2 (results)
+        const urlStep = parseInt(searchParams.get("step") || "2", 10);
+        updateStep(urlStep >= 1 ? urlStep : 2);
+      } else if (app.job_description) {
+        // Has job data but no tailored CV — rerun AI
+        updateStep(1);
+        setAnalyzing(true);
+        try {
+          const jobDataForAI: JobData = {
+            company_name: app.company_name,
+            role_title: app.role_title,
+            description: app.job_description,
+            key_requirements: [],
+            required_skills: [],
+          };
+          const { data: result, error } = await supabase.functions.invoke("ai-tailor", {
+            body: { job_data: jobDataForAI },
+          });
+          if (error) throw error;
+          if (result?.error) throw new Error(result.error);
+
+          await supabase
+            .from("applications")
+            .update({ match_score: result.match_score, ats_score: result.ats_score } as any)
+            .eq("id", app.id);
+
+          setTailorResult(result);
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Errore durante l'analisi AI");
+          updateStep(0);
+        } finally {
+          setAnalyzing(false);
+        }
+      }
+      // else: no job_description — stay on step 0
+    })();
+  }, [searchParams, user, updateStep]);
+
   const handleStep1Confirm = async (data: JobData, url?: string, _text?: string) => {
     if (!user) return;
     setJobData(data);
     setJobUrl(url);
-    setStep(1);
+    updateStep(1);
     setAnalyzing(true);
     setTailorResult(null);
 
     try {
-      // 1. Save draft application immediately
-      const { data: draftApp, error: draftErr } = await supabase
-        .from("applications")
-        .insert({
-          user_id: user.id,
-          company_name: data.company_name,
-          role_title: data.role_title,
-          job_url: url || null,
-          job_description: data.description,
-          status: "draft",
-        })
-        .select("id")
-        .single();
+      // 1. Save draft application immediately (only if no existing draft)
+      let appId = applicationId;
+      if (!appId) {
+        const { data: draftApp, error: draftErr } = await supabase
+          .from("applications")
+          .insert({
+            user_id: user.id,
+            company_name: data.company_name,
+            role_title: data.role_title,
+            job_url: url || null,
+            job_description: data.description,
+            status: "draft",
+          })
+          .select("id")
+          .single();
 
-      if (draftErr) throw draftErr;
-      setApplicationId(draftApp.id);
+        if (draftErr) throw draftErr;
+        appId = draftApp.id;
+        setApplicationId(appId);
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("draft", appId!);
+          next.set("step", "1");
+          return next;
+        }, { replace: true });
+      }
 
       // 2. Run AI analysis
       const { data: result, error } = await supabase.functions.invoke("ai-tailor", {
@@ -907,13 +1037,13 @@ export default function Nuova() {
       await supabase
         .from("applications")
         .update({ match_score: result.match_score, ats_score: result.ats_score } as any)
-        .eq("id", draftApp.id);
+        .eq("id", appId);
 
       setTailorResult(result);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Errore durante l'analisi AI";
       toast.error(msg);
-      setStep(0);
+      updateStep(0);
     } finally {
       setAnalyzing(false);
     }
@@ -960,8 +1090,8 @@ export default function Nuova() {
             <Step2
               result={tailorResult}
               loading={analyzing}
-              onNext={() => setStep(2)}
-              onBack={() => setStep(0)}
+              onNext={() => updateStep(2)}
+              onBack={() => updateStep(0)}
             />
           )}
           {step === 2 && tailorResult && jobData && applicationId && (
@@ -969,7 +1099,7 @@ export default function Nuova() {
               result={tailorResult}
               jobData={jobData}
               applicationId={applicationId}
-              onBack={() => setStep(1)}
+              onBack={() => updateStep(1)}
             />
           )}
         </motion.div>
