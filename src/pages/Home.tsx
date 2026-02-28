@@ -104,11 +104,13 @@ export default function Home() {
           >
             {/* CV Data Card */}
             <Card className="border-border/50 bg-card/80">
-              <CardHeader className="flex flex-row items-center gap-3 pb-2">
-                <FileText size={20} className="text-primary" />
-                <CardTitle className="text-lg">Il tuo CV</CardTitle>
+              <CardHeader className="flex flex-col items-center gap-1 pb-4">
+                <div className="flex items-center gap-2">
+                  <FileText size={20} className="text-primary" />
+                  <CardTitle className="text-lg">Il tuo CV</CardTitle>
+                </div>
                 {cv.file_name && (
-                  <span className="ml-auto font-mono text-xs text-muted-foreground truncate max-w-[160px]">
+                  <span className="font-mono text-sm text-muted-foreground text-center break-all">
                     {cv.file_name}
                   </span>
                 )}
