@@ -1,14 +1,242 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Briefcase } from "@phosphor-icons/react";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Briefcase,
+  ArrowRight,
+  Trash,
+  ArrowClockwise,
+  Plus,
+} from "@phosphor-icons/react";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+
+type AppRow = {
+  id: string;
+  company_name: string;
+  role_title: string;
+  match_score: number | null;
+  status: string;
+  created_at: string;
+};
+
+const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
+  draft: { bg: "bg-muted/40", text: "text-muted-foreground" },
+  inviata: { bg: "bg-secondary/15", text: "text-secondary" },
+  visualizzata: { bg: "bg-warning/15", text: "text-warning" },
+  contattato: { bg: "bg-primary/15", text: "text-primary" },
+  "follow-up": { bg: "bg-warning/20", text: "text-warning" },
+  ko: { bg: "bg-destructive/15", text: "text-destructive" },
+};
+
+function StatusChip({ status }: { status: string }) {
+  const s = STATUS_STYLES[status.toLowerCase()] ?? STATUS_STYLES.draft;
+  return (
+    <span className={`${s.bg} ${s.text} rounded-full px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wider`}>
+      {status}
+    </span>
+  );
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("it-IT", {
+    day: "numeric",
+    month: "short",
+  });
+}
 
 export default function Candidature() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [apps, setApps] = useState<AppRow[] | undefined>(undefined);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("applications")
+      .select("id, company_name, role_title, match_score, status, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setApps((data as unknown as AppRow[]) ?? []);
+      });
+  }, [user]);
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      // Delete related tailored_cvs first
+      await supabase.from("tailored_cvs").delete().eq("application_id", id);
+      const { error } = await supabase.from("applications").delete().eq("id", id);
+      if (error) throw error;
+      setApps((prev) => prev?.filter((a) => a.id !== id));
+      toast.success("Candidatura eliminata.");
+    } catch (e: any) {
+      toast.error(e.message || "Errore durante l'eliminazione.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const drafts = useMemo(() => (apps ?? []).filter((a) => a.status.toLowerCase() === "draft"), [apps]);
+  const active = useMemo(() => (apps ?? []).filter((a) => a.status.toLowerCase() !== "draft"), [apps]);
+
+  if (apps === undefined) {
+    return (
+      <div className="mx-auto max-w-xl space-y-4 px-4 sm:px-0">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
+
+  if (apps.length === 0) {
+    return (
+      <div className="mx-auto flex max-w-md flex-col items-center justify-center gap-4 py-20">
+        <Briefcase size={48} className="text-muted-foreground" />
+        <h1 className="font-display text-2xl font-bold">Candidature</h1>
+        <p className="text-center text-muted-foreground">
+          Le tue candidature appariranno qui una volta create.
+        </p>
+        <Button onClick={() => navigate("/app/nuova")} className="gap-2">
+          <Plus size={16} /> Nuova candidatura
+        </Button>
+      </div>
+    );
+  }
+
+  const AppCard = ({ app }: { app: AppRow }) => (
+    <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/60 px-3 py-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
+        {app.company_name.charAt(0)}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium truncate">{app.role_title}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          {app.company_name} · {formatDate(app.created_at)}
+        </p>
+      </div>
+      {app.match_score !== null && (
+        <span className="font-mono text-sm font-bold text-primary">
+          {app.match_score}%
+        </span>
+      )}
+      <StatusChip status={app.status} />
+    </div>
+  );
+
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center justify-center gap-4 py-20">
-      <Briefcase size={48} className="text-muted-foreground" />
-      <h1 className="font-display text-2xl font-bold">Candidature</h1>
-      <p className="text-center text-muted-foreground">
-        Le tue candidature appariranno qui una volta create.
-      </p>
+    <div className="mx-auto max-w-xl space-y-5 px-4 sm:px-0">
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-2xl font-bold">Candidature</h1>
+        <Button onClick={() => navigate("/app/nuova")} size="sm" className="gap-2">
+          <Plus size={14} /> Nuova
+        </Button>
+      </div>
+
+      {/* Drafts section */}
+      {drafts.length > 0 && (
+        <Card className="border-warning/30 bg-card/80">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-warning flex items-center gap-2">
+              <ArrowClockwise size={16} /> Bozze ({drafts.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {drafts.map((draft, i) => (
+              <motion.div
+                key={draft.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/60 px-3 py-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
+                    {draft.company_name.charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{draft.role_title}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {draft.company_name} · {formatDate(draft.created_at)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate("/app/nuova")}
+                    className="gap-1 text-xs"
+                  >
+                    Riprendi <ArrowRight size={12} />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash size={14} />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Eliminare la bozza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          La bozza per {draft.role_title} — {draft.company_name} verrà eliminata permanentemente.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(draft.id)}
+                          disabled={deletingId === draft.id}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {deletingId === draft.id ? "Eliminazione..." : "Elimina"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </motion.div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Active applications */}
+      {active.length > 0 && (
+        <div className="space-y-2">
+          {active.map((app, i) => (
+            <motion.div
+              key={app.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+            >
+              <AppCard app={app} />
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

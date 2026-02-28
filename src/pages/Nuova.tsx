@@ -459,12 +459,12 @@ function Step2({
 function Step3({
   result,
   jobData,
-  jobUrl,
+  applicationId,
   onBack,
 }: {
   result: TailorResult;
   jobData: JobData;
-  jobUrl?: string;
+  applicationId: string;
   onBack: () => void;
 }) {
   const { user } = useAuth();
@@ -536,27 +536,18 @@ function Step3({
     if (!user) return;
     setSaving(true);
     try {
-      // Create application
-      const { data: app, error: appErr } = await supabase
+      // Update draft application to "inviata"
+      const { error: appErr } = await supabase
         .from("applications")
-        .insert({
-          user_id: user.id,
-          company_name: jobData.company_name,
-          role_title: jobData.role_title,
-          job_url: jobUrl || null,
-          job_description: jobData.description,
-          match_score: result.match_score,
-          status: "inviata",
-        })
-        .select("id")
-        .single();
+        .update({ status: "inviata" })
+        .eq("id", applicationId);
 
       if (appErr) throw appErr;
 
       // Create tailored CV
       const { error: cvErr } = await supabase.from("tailored_cvs").insert([{
         user_id: user.id,
-        application_id: app.id,
+        application_id: applicationId,
         master_cv_id: result.master_cv_id,
         tailored_data: result.tailored_cv as unknown as import("@/integrations/supabase/types").Json,
         skills_match: {
@@ -678,6 +669,7 @@ export default function Nuova() {
   const [tailorResult, setTailorResult] = useState<TailorResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [cvCheck, setCvCheck] = useState<"loading" | "ok" | "missing">("loading");
+  const [applicationId, setApplicationId] = useState<string | null>(null);
 
   // CV Guard
   useEffect(() => {
@@ -693,6 +685,7 @@ export default function Nuova() {
   }, [user]);
 
   const handleStep1Confirm = async (data: JobData, url?: string, _text?: string) => {
+    if (!user) return;
     setJobData(data);
     setJobUrl(url);
     setStep(1);
@@ -700,11 +693,36 @@ export default function Nuova() {
     setTailorResult(null);
 
     try {
+      // 1. Save draft application immediately
+      const { data: draftApp, error: draftErr } = await supabase
+        .from("applications")
+        .insert({
+          user_id: user.id,
+          company_name: data.company_name,
+          role_title: data.role_title,
+          job_url: url || null,
+          job_description: data.description,
+          status: "draft",
+        })
+        .select("id")
+        .single();
+
+      if (draftErr) throw draftErr;
+      setApplicationId(draftApp.id);
+
+      // 2. Run AI analysis
       const { data: result, error } = await supabase.functions.invoke("ai-tailor", {
         body: { job_data: data },
       });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
+
+      // 3. Update draft with match_score
+      await supabase
+        .from("applications")
+        .update({ match_score: result.match_score })
+        .eq("id", draftApp.id);
+
       setTailorResult(result);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Errore durante l'analisi AI";
@@ -760,11 +778,11 @@ export default function Nuova() {
               onBack={() => setStep(0)}
             />
           )}
-          {step === 2 && tailorResult && jobData && (
+          {step === 2 && tailorResult && jobData && applicationId && (
             <Step3
               result={tailorResult}
               jobData={jobData}
-              jobUrl={jobUrl}
+              applicationId={applicationId}
               onBack={() => setStep(1)}
             />
           )}

@@ -418,7 +418,7 @@ export default function Home() {
   const isLoading = cv === undefined || apps === undefined;
   const hasCV = cv !== null && cv !== undefined;
   const activeApps = useMemo(
-    () => (apps ?? []).filter((a) => a.status.toLowerCase() !== "ko"),
+    () => (apps ?? []).filter((a) => !["ko", "draft"].includes(a.status.toLowerCase())),
     [apps]
   );
   const hasApplications = activeApps.length > 0;
