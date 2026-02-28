@@ -25,7 +25,12 @@ import {
   FloppyDisk,
   SpinnerGap,
   FileArrowUp,
+  LinkedinLogo,
+  Globe,
+  Info,
+  CaretDown,
 } from "@phosphor-icons/react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 type JobData = {
   company_name: string;
@@ -78,13 +83,32 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
+const BLOCKED_DOMAINS: Record<string, string> = {
+  "linkedin.com": "LinkedIn blocca lo scraping automatico. Copia il testo dall'annuncio e incollalo qui.",
+  "indeed.com": "Indeed usa protezioni anti-bot. Copia il testo dall'annuncio e incollalo qui.",
+  "glassdoor.com": "Glassdoor richiede login e blocca lo scraping. Copia il testo e incollalo qui.",
+  "monster.com": "Monster blocca lo scraping. Copia il testo dall'annuncio e incollalo qui.",
+  "infojobs.it": "InfoJobs potrebbe bloccare lo scraping. Prova a copiare il testo direttamente.",
+};
+
+function getDomainHint(url: string): string | null {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    for (const [domain, msg] of Object.entries(BLOCKED_DOMAINS)) {
+      if (hostname.includes(domain)) return msg;
+    }
+  } catch { /* invalid URL */ }
+  return null;
+}
+
 // --- Step 1: Job Input ---
 function Step1({
   onConfirm,
 }: {
   onConfirm: (data: JobData, jobUrl?: string, jobText?: string) => void;
 }) {
-  const [tab, setTab] = useState<string>("url");
+  const [tab, setTab] = useState<string>("text");
+  const [guideOpen, setGuideOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -116,10 +140,13 @@ function Step1({
       setJobData(merged);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Errore durante l'analisi";
-      toast.error(msg);
       if (tab === "url") {
+        const domainHint = getDomainHint(url);
+        toast.error(domainHint || msg);
         setTab("text");
         toast.info("Prova a incollare il testo dell'annuncio direttamente.");
+      } else {
+        toast.error(msg);
       }
     } finally {
       setLoading(false);
@@ -149,23 +176,16 @@ function Step1({
 
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="w-full">
-                <TabsTrigger value="url" className="flex-1 gap-2">
-                  <LinkIcon size={16} /> URL
-                </TabsTrigger>
                 <TabsTrigger value="text" className="flex-1 gap-2">
                   <TextAa size={16} /> Testo
                 </TabsTrigger>
+                <TabsTrigger value="url" className="flex-1 gap-2 text-xs">
+                  <LinkIcon size={16} /> URL
+                  <span className="text-[10px] text-muted-foreground hidden sm:inline">(solo alcuni siti)</span>
+                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="url" className="mt-4">
-                <Input
-                  placeholder="https://www.linkedin.com/jobs/view/..."
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  disabled={loading}
-                />
-              </TabsContent>
-              <TabsContent value="text" className="mt-4">
+              <TabsContent value="text" className="mt-4 space-y-3">
                 <Textarea
                   placeholder="Incolla qui il testo completo dell'annuncio..."
                   value={text}
@@ -174,6 +194,59 @@ function Step1({
                   rows={10}
                   className="resize-none"
                 />
+                <Collapsible open={guideOpen} onOpenChange={setGuideOpen}>
+                  <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+                    <Info size={14} />
+                    <span>Come copiare da LinkedIn, Indeed...</span>
+                    <CaretDown size={12} className={`ml-auto transition-transform duration-200 ${guideOpen ? "rotate-180" : ""}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-3 rounded-lg border border-border/50 bg-surface p-4 space-y-3 text-xs text-muted-foreground"
+                    >
+                      <div className="flex items-start gap-2">
+                        <LinkedinLogo size={16} className="text-secondary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-foreground font-medium mb-1">LinkedIn</p>
+                          <ol className="list-decimal list-inside space-y-0.5">
+                            <li>Apri l'annuncio su LinkedIn</li>
+                            <li>Seleziona tutto il testo (Ctrl+A / ⌘+A)</li>
+                            <li>Copia (Ctrl+C / ⌘+C)</li>
+                            <li>Incolla qui</li>
+                          </ol>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Globe size={16} className="text-secondary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-foreground font-medium mb-1">Indeed, InfoJobs, Monster, Glassdoor</p>
+                          <p>Stesso metodo. Apri l'annuncio, seleziona il testo e incollalo qui.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 border-t border-border/30 pt-2">
+                        <Info size={14} className="text-warning shrink-0 mt-0.5" />
+                        <p>
+                          <span className="text-foreground font-medium">Tip:</span> Il tab URL funziona solo con siti senza protezioni anti-bot (es. Greenhouse, Lever, alcuni siti aziendali).
+                        </p>
+                      </div>
+                    </motion.div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </TabsContent>
+
+              <TabsContent value="url" className="mt-4">
+                <Input
+                  placeholder="https://boards.greenhouse.io/company/jobs/..."
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  disabled={loading}
+                />
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  Funziona con: Greenhouse, Lever, siti aziendali semplici. Non funziona con LinkedIn, Indeed, Glassdoor.
+                </p>
               </TabsContent>
             </Tabs>
 
