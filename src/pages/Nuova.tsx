@@ -632,7 +632,7 @@ function Step3({
                   {exp.location && ` · ${exp.location}`}
                 </p>
                 {exp.description && <p className="mt-1">{exp.description}</p>}
-                {exp.bullets && exp.bullets.length > 0 && (
+                {Array.isArray(exp.bullets) && exp.bullets.length > 0 && (
                   <ul className="mt-1 list-disc list-inside text-xs">
                     {exp.bullets.map((b: string, j: number) => <li key={j}>{b}</li>)}
                   </ul>
