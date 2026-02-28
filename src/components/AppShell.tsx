@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { House, Briefcase, SignOut, List } from "@phosphor-icons/react";
+import { House, Briefcase, SignOut, List, Plus } from "@phosphor-icons/react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -20,6 +20,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const navItems = [
   { title: "Home", url: "/app/home", icon: House },
   { title: "Candidature", url: "/app/candidature", icon: Briefcase },
+];
+
+const sidebarItems = [
+  ...navItems,
+  { title: "Nuova candidatura", url: "/app/nuova", icon: Plus },
 ];
 
 function DesktopSidebar() {
@@ -46,7 +51,7 @@ function DesktopSidebar() {
         <SidebarGroup className="flex-1">
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {sidebarItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -87,29 +92,50 @@ function MobileTabBar() {
   const navigate = useNavigate();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-14 items-center justify-center gap-16 border-t border-border bg-background/80 backdrop-blur-xl">
-      {navItems.map((item) => {
-        const isActive = location.pathname === item.url;
-        return (
-          <button
-            key={item.title}
-            onClick={() => navigate(item.url)}
-            className="relative flex flex-col items-center gap-0.5 text-xs"
-          >
-            <item.icon
-              size={22}
-              weight={isActive ? "fill" : "regular"}
-              className={isActive ? "text-primary" : "text-muted-foreground"}
-            />
-            <span className={isActive ? "text-primary" : "text-muted-foreground"}>
-              {item.title}
-            </span>
-            {isActive && (
-              <span className="absolute -bottom-1 h-1 w-1 rounded-full bg-primary" />
-            )}
-          </button>
-        );
-      })}
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-14 items-center justify-center gap-8 border-t border-border bg-background/80 backdrop-blur-xl">
+      {/* Home tab */}
+      <button
+        onClick={() => navigate("/app/home")}
+        className="relative flex flex-col items-center gap-0.5 text-xs"
+      >
+        <House
+          size={22}
+          weight={location.pathname === "/app/home" ? "fill" : "regular"}
+          className={location.pathname === "/app/home" ? "text-primary" : "text-muted-foreground"}
+        />
+        <span className={location.pathname === "/app/home" ? "text-primary" : "text-muted-foreground"}>
+          Home
+        </span>
+        {location.pathname === "/app/home" && (
+          <span className="absolute -bottom-1 h-1 w-1 rounded-full bg-primary" />
+        )}
+      </button>
+
+      {/* FAB + */}
+      <button
+        onClick={() => navigate("/app/nuova")}
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg -mt-4 transition-transform hover:scale-105 active:scale-95"
+      >
+        <Plus size={24} weight="bold" />
+      </button>
+
+      {/* Candidature tab */}
+      <button
+        onClick={() => navigate("/app/candidature")}
+        className="relative flex flex-col items-center gap-0.5 text-xs"
+      >
+        <Briefcase
+          size={22}
+          weight={location.pathname === "/app/candidature" ? "fill" : "regular"}
+          className={location.pathname === "/app/candidature" ? "text-primary" : "text-muted-foreground"}
+        />
+        <span className={location.pathname === "/app/candidature" ? "text-primary" : "text-muted-foreground"}>
+          Candidature
+        </span>
+        {location.pathname === "/app/candidature" && (
+          <span className="absolute -bottom-1 h-1 w-1 rounded-full bg-primary" />
+        )}
+      </button>
     </nav>
   );
 }

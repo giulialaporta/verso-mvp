@@ -43,15 +43,41 @@ type JobData = {
   nice_to_have?: string[];
 };
 
-type MissingSkill = { skill: string; importance: string };
-
 type TailorResult = {
   match_score: number;
-  matching_skills: string[];
-  missing_skills: MissingSkill[];
+  ats_score: number;
+  skills_present: { label: string; has: boolean }[];
+  skills_missing: { label: string; importance: string }[];
+  seniority_match: {
+    candidate_level: string;
+    role_level: string;
+    match: boolean;
+    note: string;
+  };
+  ats_checks: {
+    check: string;
+    label: string;
+    status: "pass" | "warning" | "fail";
+    detail?: string;
+  }[];
   tailored_cv: Record<string, unknown>;
-  changes: { section: string; original: string; suggested: string; reason: string }[];
-  summary_note?: string;
+  honest_score: {
+    confidence: number;
+    experiences_added: number;
+    skills_invented: number;
+    dates_modified: number;
+    bullets_repositioned: number;
+    bullets_rewritten: number;
+    sections_removed: number;
+    flags: string[];
+  };
+  diff: {
+    section: string;
+    index?: number;
+    original: string;
+    suggested: string;
+    reason: string;
+  }[];
   master_cv_id: string;
 };
 
@@ -365,7 +391,7 @@ function Step2({
         </button>
         <div>
           <h2 className="font-display text-2xl font-bold">Risultato analisi</h2>
-          <p className="text-muted-foreground mt-1">{result.summary_note || "Ecco come il tuo CV si allinea con l'offerta."}</p>
+          <p className="text-muted-foreground mt-1">Ecco come il tuo CV si allinea con l'offerta.</p>
         </div>
       </div>
 
@@ -397,6 +423,38 @@ function Step2({
         </CardContent>
       </Card>
 
+      {/* Dual Score */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-4 text-center">
+            <p className="text-xs font-mono text-muted-foreground uppercase mb-1">ATS Score</p>
+            <motion.span
+              className="font-mono text-2xl font-bold text-secondary"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+            >
+              {result.ats_score}%
+            </motion.span>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-4 text-center">
+            <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Seniority</p>
+            <p className="text-sm font-medium">
+              {result.seniority_match?.match ? (
+                <span className="text-primary">✓ Match</span>
+              ) : (
+                <span className="text-warning">≠ {result.seniority_match?.candidate_level} → {result.seniority_match?.role_level}</span>
+              )}
+            </p>
+            {result.seniority_match?.note && (
+              <p className="text-xs text-muted-foreground mt-1">{result.seniority_match.note}</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Skill Match */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card className="border-primary/20 bg-card/80">
@@ -405,9 +463,9 @@ function Step2({
               <CheckCircle size={16} weight="fill" /> Hai già
             </div>
             <div className="flex flex-wrap gap-2">
-              {result.matching_skills.map((s) => (
-                <span key={s} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-mono text-primary">
-                  {s}
+              {result.skills_present.filter(s => s.has).map((s) => (
+                <span key={s.label} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-mono text-primary">
+                  {s.label}
                 </span>
               ))}
             </div>
@@ -420,10 +478,10 @@ function Step2({
               <XCircle size={16} weight="fill" /> Ti mancano
             </div>
             <div className="flex flex-wrap gap-2">
-              {result.missing_skills.map((s) => (
-                <span key={s.skill} className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-mono text-destructive flex items-center gap-1">
-                  {s.skill}
-                  {s.importance === "alta" && <Warning size={12} weight="fill" />}
+              {result.skills_missing.map((s) => (
+                <span key={s.label} className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-mono text-destructive flex items-center gap-1">
+                  {s.label}
+                  {s.importance === "essenziale" && <Warning size={12} weight="fill" />}
                 </span>
               ))}
             </div>
@@ -431,12 +489,36 @@ function Step2({
         </Card>
       </div>
 
-      {/* Changes / Suggestions */}
-      {result.changes.length > 0 && (
+      {/* ATS Checks */}
+      {result.ats_checks && result.ats_checks.length > 0 && (
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="pt-5 space-y-3">
+            <p className="text-sm font-medium">Check ATS</p>
+            <div className="space-y-2">
+              {result.ats_checks.map((ch) => (
+                <div key={ch.check} className="flex items-center gap-2 text-sm">
+                  {ch.status === "pass" ? (
+                    <CheckCircle size={16} className="text-primary" weight="fill" />
+                  ) : ch.status === "warning" ? (
+                    <Warning size={16} className="text-warning" weight="fill" />
+                  ) : (
+                    <XCircle size={16} className="text-destructive" weight="fill" />
+                  )}
+                  <span className="flex-1">{ch.label}</span>
+                  {ch.detail && <span className="text-xs text-muted-foreground">{ch.detail}</span>}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Diff / Suggestions */}
+      {result.diff && result.diff.length > 0 && (
         <Card className="border-border/50 bg-card/80">
           <CardContent className="pt-5 space-y-4">
             <p className="text-sm font-medium">Modifiche suggerite</p>
-            {result.changes.slice(0, 6).map((ch, i) => (
+            {result.diff.slice(0, 6).map((ch, i) => (
               <div key={i} className="space-y-1 border-l-2 border-primary/30 pl-3">
                 <p className="text-xs font-mono text-muted-foreground uppercase">{ch.section}</p>
                 <p className="text-sm line-through text-muted-foreground">{ch.original}</p>
@@ -536,26 +618,35 @@ function Step3({
     if (!user) return;
     setSaving(true);
     try {
-      // Update draft application to "inviata"
+      // Update draft application to "inviata" with ats_score
       const { error: appErr } = await supabase
         .from("applications")
-        .update({ status: "inviata" })
+        .update({
+          status: "inviata",
+          ats_score: result.ats_score,
+          template_id: "classico",
+        } as any)
         .eq("id", applicationId);
 
       if (appErr) throw appErr;
 
-      // Create tailored CV
+      // Create tailored CV with all new fields
       const { error: cvErr } = await supabase.from("tailored_cvs").insert([{
         user_id: user.id,
         application_id: applicationId,
         master_cv_id: result.master_cv_id,
         tailored_data: result.tailored_cv as unknown as import("@/integrations/supabase/types").Json,
         skills_match: {
-          matching: result.matching_skills,
-          missing: result.missing_skills,
+          present: result.skills_present,
+          missing: result.skills_missing,
         } as unknown as import("@/integrations/supabase/types").Json,
-        suggestions: result.changes as unknown as import("@/integrations/supabase/types").Json,
-      }]);
+        suggestions: result.diff as unknown as import("@/integrations/supabase/types").Json,
+        ats_score: result.ats_score,
+        ats_checks: result.ats_checks as unknown as import("@/integrations/supabase/types").Json,
+        seniority_match: result.seniority_match as unknown as import("@/integrations/supabase/types").Json,
+        honest_score: result.honest_score as unknown as import("@/integrations/supabase/types").Json,
+        diff: result.diff as unknown as import("@/integrations/supabase/types").Json,
+      } as any]);
 
       if (cvErr) throw cvErr;
 
@@ -596,9 +687,14 @@ function Step3({
             {jobData.role_title} — {jobData.company_name}
           </h2>
         </div>
-        <span className="rounded-full bg-primary/20 px-3 py-1 font-mono text-sm font-bold text-primary shrink-0">
-          {result.match_score}%
-        </span>
+        <div className="flex gap-2 shrink-0">
+          <span className="rounded-full bg-primary/20 px-3 py-1 font-mono text-sm font-bold text-primary">
+            {result.match_score}%
+          </span>
+          <span className="rounded-full bg-secondary/20 px-3 py-1 font-mono text-sm font-bold text-secondary">
+            ATS {result.ats_score}%
+          </span>
+        </div>
       </div>
 
       {/* Desktop: side-by-side, Mobile: tabs */}
@@ -717,10 +813,10 @@ export default function Nuova() {
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
 
-      // 3. Update draft with match_score
+      // 3. Update draft with match_score and ats_score
       await supabase
         .from("applications")
-        .update({ match_score: result.match_score })
+        .update({ match_score: result.match_score, ats_score: result.ats_score } as any)
         .eq("id", draftApp.id);
 
       setTailorResult(result);

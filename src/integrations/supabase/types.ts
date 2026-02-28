@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       applications: {
         Row: {
+          ats_score: number | null
           company_name: string
           created_at: string
           id: string
@@ -24,10 +25,12 @@ export type Database = {
           match_score: number | null
           role_title: string
           status: string
+          template_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          ats_score?: number | null
           company_name: string
           created_at?: string
           id?: string
@@ -36,10 +39,12 @@ export type Database = {
           match_score?: number | null
           role_title: string
           status?: string
+          template_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          ats_score?: number | null
           company_name?: string
           created_at?: string
           id?: string
@@ -48,6 +53,7 @@ export type Database = {
           match_score?: number | null
           role_title?: string
           status?: string
+          template_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -113,32 +119,50 @@ export type Database = {
       tailored_cvs: {
         Row: {
           application_id: string
+          ats_checks: Json | null
+          ats_score: number | null
           created_at: string
+          diff: Json | null
+          honest_score: Json | null
           id: string
           master_cv_id: string
+          seniority_match: Json | null
           skills_match: Json | null
           suggestions: Json | null
           tailored_data: Json | null
+          template_id: string | null
           user_id: string
         }
         Insert: {
           application_id: string
+          ats_checks?: Json | null
+          ats_score?: number | null
           created_at?: string
+          diff?: Json | null
+          honest_score?: Json | null
           id?: string
           master_cv_id: string
+          seniority_match?: Json | null
           skills_match?: Json | null
           suggestions?: Json | null
           tailored_data?: Json | null
+          template_id?: string | null
           user_id: string
         }
         Update: {
           application_id?: string
+          ats_checks?: Json | null
+          ats_score?: number | null
           created_at?: string
+          diff?: Json | null
+          honest_score?: Json | null
           id?: string
           master_cv_id?: string
+          seniority_match?: Json | null
           skills_match?: Json | null
           suggestions?: Json | null
           tailored_data?: Json | null
+          template_id?: string | null
           user_id?: string
         }
         Relationships: [

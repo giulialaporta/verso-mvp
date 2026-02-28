@@ -6,6 +6,194 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SYSTEM_PROMPT = `Sei un esperto career coach e specialista ATS per il mercato italiano ed europeo.
+
+Confronta il CV del candidato con l'annuncio di lavoro e produci un'analisi completa.
+
+## OUTPUT RICHIESTO
+
+### 1. MATCH SCORE (0-100)
+Percentuale di compatibilità complessiva tra CV e annuncio.
+
+### 2. ATS SCORE (0-100)
+Punteggio di compatibilità con sistemi ATS. Valuta 7 check specifici:
+- **keywords**: Le keyword dell'annuncio sono presenti nel CV?
+- **format**: Il formato è ATS-friendly (no tabelle, colonne, header/footer)?
+- **dates**: Le date sono in formato standard e consistente?
+- **measurable**: I risultati sono quantificati con numeri/percentuali?
+- **cliches**: Assenza di frasi vuote ("team player", "problem solver" senza contesto)?
+- **sections**: Tutte le sezioni standard sono presenti (summary, experience, education, skills)?
+- **action_verbs**: I bullet point iniziano con verbi d'azione forti?
+
+### 3. SKILLS ANALYSIS
+- skills_present: lista di competenze richieste dall'annuncio con indicazione se il candidato le ha
+- skills_missing: competenze mancanti con livello di importanza (essenziale/importante/utile)
+
+### 4. SENIORITY MATCH
+Confronta il livello di seniority del candidato con quello richiesto dal ruolo.
+- candidate_level: junior/mid/senior/lead/executive
+- role_level: junior/mid/senior/lead/executive
+- match: true/false
+- note: breve spiegazione
+
+### 5. CV ADATTATO
+CV riformulato che enfatizza le esperienze rilevanti, riformula le descrizioni per allinearsi ai requisiti, e riordina le sezioni per massimizzare l'impatto.
+
+### 6. HONEST SCORE
+Verifica di onestà delle modifiche apportate. Per ogni categoria, conta le occorrenze:
+- experiences_added: esperienze inventate (DEVE essere 0)
+- skills_invented: competenze inventate (DEVE essere 0)
+- dates_modified: date modificate (DEVE essere 0)
+- bullets_repositioned: bullet riordinati per priorità
+- bullets_rewritten: bullet riformulati (non inventati)
+- sections_removed: sezioni rimosse
+- confidence: 0-100, quanto sei sicuro che il CV adattato sia onesto
+- flags: lista di eventuali problemi riscontrati
+
+### 7. DIFF
+Lista delle modifiche apportate con testo originale, testo suggerito e motivazione.
+
+## REGOLE FONDAMENTALI DI ONESTÀ
+- MAI inventare esperienze, competenze o certificazioni che non esistono nel CV originale
+- MAI modificare date di inizio/fine di esperienze o formazione
+- MAI cambiare nomi di aziende, istituzioni o titoli di studio
+- MAI aggiungere certificazioni o qualifiche non presenti
+- Puoi riformulare, enfatizzare, riordinare e rimuovere — mai aggiungere informazioni false
+- Il CV adattato deve contenere SOLO informazioni presenti nell'originale
+
+## CALIBRAZIONE MERCATO ITALIANO
+- Laurea triennale = Bachelor, Laurea magistrale = Master
+- Considera albi professionali (ingegneri, avvocati, commercialisti)
+- Riconosci certificazioni italiane ed europee (ECDL, Cambridge, DELF, ecc.)
+- Il formato europeo (Europass) è diffuso ma non sempre ottimale per ATS
+
+Rispondi SOLO con il tool function call richiesto.`;
+
+const TOOL_SCHEMA = {
+  type: "function",
+  function: {
+    name: "analyze_and_tailor",
+    description: "Analyze CV-job match and produce tailored CV with ATS and honesty checks",
+    parameters: {
+      type: "object",
+      properties: {
+        match_score: {
+          type: "number",
+          description: "Punteggio di match 0-100",
+        },
+        ats_score: {
+          type: "number",
+          description: "Punteggio ATS 0-100",
+        },
+        skills_present: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string" },
+              has: { type: "boolean" },
+            },
+            required: ["label", "has"],
+          },
+          description: "Competenze richieste con indicazione se il candidato le ha",
+        },
+        skills_missing: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string" },
+              importance: { type: "string", enum: ["essenziale", "importante", "utile"] },
+            },
+            required: ["label", "importance"],
+          },
+          description: "Competenze mancanti con importanza",
+        },
+        seniority_match: {
+          type: "object",
+          properties: {
+            candidate_level: { type: "string", enum: ["junior", "mid", "senior", "lead", "executive"] },
+            role_level: { type: "string", enum: ["junior", "mid", "senior", "lead", "executive"] },
+            match: { type: "boolean" },
+            note: { type: "string" },
+          },
+          required: ["candidate_level", "role_level", "match", "note"],
+          description: "Confronto seniority candidato vs ruolo",
+        },
+        ats_checks: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              check: { type: "string", enum: ["keywords", "format", "dates", "measurable", "cliches", "sections", "action_verbs"] },
+              label: { type: "string" },
+              status: { type: "string", enum: ["pass", "warning", "fail"] },
+              detail: { type: "string" },
+            },
+            required: ["check", "label", "status"],
+          },
+          description: "7 check ATS specifici",
+        },
+        tailored_cv: {
+          type: "object",
+          description: "CV adattato con stessa struttura dell'originale ma contenuto ottimizzato",
+          properties: {
+            personal: { type: "object" },
+            summary: { type: "string" },
+            experience: { type: "array", items: { type: "object" } },
+            education: { type: "array", items: { type: "object" } },
+            skills: { type: "array", items: { type: "string" } },
+            certifications: { type: "array", items: { type: "object" } },
+            projects: { type: "array", items: { type: "object" } },
+            languages: { type: "array", items: { type: "object" } },
+          },
+        },
+        honest_score: {
+          type: "object",
+          properties: {
+            confidence: { type: "number" },
+            experiences_added: { type: "number" },
+            skills_invented: { type: "number" },
+            dates_modified: { type: "number" },
+            bullets_repositioned: { type: "number" },
+            bullets_rewritten: { type: "number" },
+            sections_removed: { type: "number" },
+            flags: { type: "array", items: { type: "string" } },
+          },
+          required: ["confidence", "experiences_added", "skills_invented", "dates_modified", "bullets_repositioned", "bullets_rewritten", "sections_removed", "flags"],
+          description: "Verifica di onestà delle modifiche",
+        },
+        diff: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              section: { type: "string" },
+              index: { type: "number" },
+              original: { type: "string" },
+              suggested: { type: "string" },
+              reason: { type: "string" },
+            },
+            required: ["section", "original", "suggested", "reason"],
+          },
+          description: "Lista delle modifiche apportate",
+        },
+      },
+      required: [
+        "match_score",
+        "ats_score",
+        "skills_present",
+        "skills_missing",
+        "seniority_match",
+        "ats_checks",
+        "tailored_cv",
+        "honest_score",
+        "diff",
+      ],
+    },
+  },
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -75,93 +263,13 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          {
-            role: "system",
-            content: `Sei un esperto career coach. Confronta il CV del candidato con l'annuncio di lavoro e produci:
-1. Un punteggio di match (0-100)
-2. Lista delle skill che il candidato ha e che matchano
-3. Lista delle skill mancanti con livello di importanza (alta/media/bassa)
-4. Un CV adattato che enfatizza le esperienze rilevanti, riformula le descrizioni per allinearsi ai requisiti, e riordina le sezioni per massimizzare l'impatto
-5. Lista delle modifiche apportate con testo originale e testo suggerito
-
-REGOLE FONDAMENTALI:
-- NON inventare esperienze, competenze o certificazioni che non esistono nel CV originale
-- Puoi riformulare, enfatizzare e riordinare, mai aggiungere informazioni false
-- Il CV adattato deve contenere SOLO informazioni presenti nell'originale, presentate in modo ottimale per questa posizione
-
-Rispondi SOLO con JSON valido.`,
-          },
+          { role: "system", content: SYSTEM_PROMPT },
           {
             role: "user",
             content: `CV ORIGINALE:\n${JSON.stringify(masterCV.parsed_data)}\n\nANNUNCIO DI LAVORO:\n${JSON.stringify(job_data)}`,
           },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "analyze_and_tailor",
-              description: "Analyze CV-job match and produce tailored CV",
-              parameters: {
-                type: "object",
-                properties: {
-                  match_score: {
-                    type: "number",
-                    description: "Punteggio di match 0-100",
-                  },
-                  matching_skills: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Competenze che il candidato ha e che matchano",
-                  },
-                  missing_skills: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        skill: { type: "string" },
-                        importance: { type: "string", enum: ["alta", "media", "bassa"] },
-                      },
-                    },
-                    description: "Competenze mancanti con importanza",
-                  },
-                  tailored_cv: {
-                    type: "object",
-                    description: "CV adattato con stessa struttura dell'originale ma contenuto ottimizzato",
-                    properties: {
-                      personal: { type: "object" },
-                      summary: { type: "string" },
-                      experience: { type: "array", items: { type: "object" } },
-                      education: { type: "array", items: { type: "object" } },
-                      skills: { type: "array", items: { type: "string" } },
-                      certifications: { type: "array", items: { type: "object" } },
-                      projects: { type: "array", items: { type: "object" } },
-                      languages: { type: "array", items: { type: "object" } },
-                    },
-                  },
-                  changes: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        section: { type: "string" },
-                        original: { type: "string" },
-                        suggested: { type: "string" },
-                        reason: { type: "string" },
-                      },
-                    },
-                    description: "Lista delle modifiche apportate",
-                  },
-                  summary_note: {
-                    type: "string",
-                    description: "Breve nota riassuntiva (max 2 frasi) sulle modifiche principali",
-                  },
-                },
-                required: ["match_score", "matching_skills", "missing_skills", "tailored_cv", "changes"],
-              },
-            },
-          },
-        ],
+        tools: [TOOL_SCHEMA],
         tool_choice: { type: "function", function: { name: "analyze_and_tailor" } },
       }),
     });
