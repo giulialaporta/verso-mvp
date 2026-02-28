@@ -1222,7 +1222,7 @@ function StepCVAdattato({
             />
           </div>
         )}
-        {experience && experience.length > 0 && (
+        {Array.isArray(experience) && experience.length > 0 && (
           <div>
             <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Esperienza</p>
             {experience.map((exp, i) => (
@@ -1266,7 +1266,7 @@ function StepCVAdattato({
             ))}
           </div>
         )}
-        {education && education.length > 0 && (
+        {Array.isArray(education) && education.length > 0 && (
           <div>
             <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Formazione</p>
             {education.map((ed, i) => (
@@ -1326,11 +1326,11 @@ function StepCVAdattato({
             ) : null}
           </div>
         )}
-        {extraSections && extraSections.length > 0 && extraSections.map((sec, i) => (
+        {Array.isArray(extraSections) && extraSections.length > 0 && extraSections.map((sec, i) => (
           <div key={i}>
             <p className="font-mono text-xs text-muted-foreground uppercase mb-1">{sec.title}</p>
             <ul className="list-disc list-inside text-xs">
-              {sec.items.map((item, j) => <li key={j}>{item}</li>)}
+              {(Array.isArray(sec.items) ? sec.items : []).map((item, j) => <li key={j}>{item}</li>)}
             </ul>
           </div>
         ))}
@@ -1408,7 +1408,7 @@ function StepCVAdattato({
             <p>{summary}</p>
           </div>
         )}
-        {experience && experience.length > 0 && (
+        {Array.isArray(experience) && experience.length > 0 && (
           <div>
             <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Esperienza</p>
             {experience.map((exp, i) => (
@@ -1430,7 +1430,7 @@ function StepCVAdattato({
             ))}
           </div>
         )}
-        {education && education.length > 0 && (
+        {Array.isArray(education) && education.length > 0 && (
           <div>
             <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Formazione</p>
             {education.map((ed, i) => (
@@ -1448,11 +1448,11 @@ function StepCVAdattato({
           </div>
         )}
         {renderSkills()}
-        {extraSections && extraSections.length > 0 && extraSections.map((sec, i) => (
+        {Array.isArray(extraSections) && extraSections.length > 0 && extraSections.map((sec, i) => (
           <div key={i}>
             <p className="font-mono text-xs text-muted-foreground uppercase mb-1">{sec.title}</p>
             <ul className="list-disc list-inside text-xs">
-              {sec.items.map((item, j) => <li key={j}>{item}</li>)}
+              {(Array.isArray(sec.items) ? sec.items : []).map((item, j) => <li key={j}>{item}</li>)}
             </ul>
           </div>
         ))}
