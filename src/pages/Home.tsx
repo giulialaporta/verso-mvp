@@ -296,7 +296,7 @@ function CVCard({
           <p className="text-xs text-muted-foreground mt-1">
             {cv.parsed_data.experience[0].title} · {cv.parsed_data.experience[0].company}
           </p>
-        ) : cv.file_name ? (
+        ) : !cv.parsed_data?.personal?.name && cv.file_name ? (
           <p className="font-mono text-xs text-muted-foreground break-all mt-1">
             {cv.file_name}
           </p>

@@ -87,7 +87,7 @@ function MobileTabBar() {
   const navigate = useNavigate();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-border bg-background/80 backdrop-blur-xl">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-14 items-center justify-center gap-16 border-t border-border bg-background/80 backdrop-blur-xl">
       {navItems.map((item) => {
         const isActive = location.pathname === item.url;
         return (
@@ -119,7 +119,7 @@ export default function AppShell() {
 
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-background pb-16 pt-6">
         <Outlet />
         <MobileTabBar />
       </div>
