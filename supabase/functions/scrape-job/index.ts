@@ -6,10 +6,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function md5Hash(text: string): Promise<string> {
+async function hashUrl(text: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(text);
-  const hashBuffer = await crypto.subtle.digest("MD5", data);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     // --- Cache lookup (URL only) ---
     if (url && !text) {
-      const urlHash = await md5Hash(url.trim().toLowerCase());
+      const urlHash = await hashUrl(url.trim().toLowerCase());
 
       // Service role client for cache operations
       const serviceClient = createClient(
