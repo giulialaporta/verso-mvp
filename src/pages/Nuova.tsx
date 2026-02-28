@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -109,12 +109,18 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
+const PROBLEMATIC_DOMAINS = [
+  { pattern: "glassdoor.com", hint: "Glassdoor richiede login e potrebbe bloccare lo scraping." },
+  { pattern: "ashbyhq.com", hint: "Ashby usa pagine dinamiche che bloccano lo scraping." },
+  { pattern: "lever.co", hint: "Lever potrebbe bloccare le richieste automatiche." },
+  { pattern: "greenhouse.io", hint: "Greenhouse usa pagine dinamiche difficili da leggere." },
+];
+
 function getDomainHint(url: string): string | null {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
-    if (hostname.includes("glassdoor.com")) {
-      return "Glassdoor richiede login e potrebbe bloccare lo scraping. Prova a copiare il testo.";
-    }
+    const match = PROBLEMATIC_DOMAINS.find((d) => hostname.includes(d.pattern));
+    if (match) return `${match.hint} Prova a copiare il testo.`;
   } catch { /* invalid URL */ }
   return null;
 }
@@ -132,6 +138,15 @@ function Step1({
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(false);
   const [jobData, setJobData] = useState<JobData | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleCancel = useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setLoading(false);
+    toast.error("Il sito non risponde. Copia il testo dell'annuncio e usa il tab Testo.");
+    setTab("text");
+  }, []);
 
   const handleAnalyze = useCallback(async () => {
     if (!companyName.trim()) {
@@ -140,6 +155,11 @@ function Step1({
     }
     setLoading(true);
     setJobData(null);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const timeoutId = tab === "url" ? setTimeout(() => controller.abort(), 25000) : undefined;
+
     try {
       const body: Record<string, string> = {};
       if (tab === "url") {
@@ -150,13 +170,21 @@ function Step1({
         body.text = text.trim();
       }
 
-      const { data, error } = await supabase.functions.invoke("scrape-job", { body });
+      const { data, error } = await supabase.functions.invoke("scrape-job", {
+        body,
+        signal: controller.signal as AbortSignal,
+      });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       const merged = { ...data.job_data, company_name: companyName.trim() || data.job_data.company_name };
       setJobData(merged);
     } catch (e: unknown) {
+      if (controller.signal.aborted) {
+        toast.error("Il sito non risponde. Copia il testo dell'annuncio e usa il tab Testo.");
+        setTab("text");
+        return;
+      }
       const msg = e instanceof Error ? e.message : "Errore durante l'analisi";
       if (tab === "url") {
         const domainHint = getDomainHint(url);
@@ -167,6 +195,8 @@ function Step1({
         toast.error(msg);
       }
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      abortControllerRef.current = null;
       setLoading(false);
     }
   }, [tab, url, text, companyName]);
@@ -268,17 +298,15 @@ function Step1({
               </TabsContent>
             </Tabs>
 
-            <Button onClick={handleAnalyze} disabled={loading} className="w-full gap-2">
-              {loading ? (
-                <>
-                  <SpinnerGap size={16} className="animate-spin" /> Analisi in corso...
-                </>
-              ) : (
-                <>
-                  <MagicWand size={16} /> Analizza
-                </>
-              )}
-            </Button>
+            {loading ? (
+              <Button onClick={handleCancel} variant="destructive" className="w-full gap-2">
+                <XCircle size={16} /> Annulla
+              </Button>
+            ) : (
+              <Button onClick={handleAnalyze} className="w-full gap-2">
+                <MagicWand size={16} /> Analizza
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
