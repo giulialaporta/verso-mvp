@@ -24,6 +24,7 @@ import {
   DownloadSimple,
   FloppyDisk,
   SpinnerGap,
+  FileArrowUp,
 } from "@phosphor-icons/react";
 
 type JobData = {
@@ -604,11 +605,27 @@ function Step3({
 
 // --- Main Wizard ---
 export default function Nuova() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [jobData, setJobData] = useState<JobData | null>(null);
   const [jobUrl, setJobUrl] = useState<string | undefined>();
   const [tailorResult, setTailorResult] = useState<TailorResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [cvCheck, setCvCheck] = useState<"loading" | "ok" | "missing">("loading");
+
+  // CV Guard
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("master_cvs")
+      .select("id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .then(({ data }) => {
+        setCvCheck(data && data.length > 0 ? "ok" : "missing");
+      });
+  }, [user]);
 
   const handleStep1Confirm = async (data: JobData, url?: string, _text?: string) => {
     setJobData(data);
@@ -632,6 +649,31 @@ export default function Nuova() {
       setAnalyzing(false);
     }
   };
+
+  if (cvCheck === "loading") {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <SpinnerGap size={32} className="text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (cvCheck === "missing") {
+    return (
+      <div className="mx-auto max-w-md py-16 text-center space-y-6">
+        <FileArrowUp size={48} className="text-primary mx-auto" />
+        <div>
+          <h2 className="font-display text-2xl font-bold">CV necessario</h2>
+          <p className="text-muted-foreground mt-2">
+            Per creare una candidatura, devi prima caricare il tuo CV. Verso lo userà per adattarlo all'annuncio.
+          </p>
+        </div>
+        <Button onClick={() => navigate("/onboarding")} className="gap-2">
+          Carica il tuo CV <ArrowRight size={16} />
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="py-6 px-2">
