@@ -83,19 +83,11 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
-const BLOCKED_DOMAINS: Record<string, string> = {
-  "linkedin.com": "LinkedIn blocca lo scraping automatico. Copia il testo dall'annuncio e incollalo qui.",
-  "indeed.com": "Indeed usa protezioni anti-bot. Copia il testo dall'annuncio e incollalo qui.",
-  "glassdoor.com": "Glassdoor richiede login e blocca lo scraping. Copia il testo e incollalo qui.",
-  "monster.com": "Monster blocca lo scraping. Copia il testo dall'annuncio e incollalo qui.",
-  "infojobs.it": "InfoJobs potrebbe bloccare lo scraping. Prova a copiare il testo direttamente.",
-};
-
 function getDomainHint(url: string): string | null {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
-    for (const [domain, msg] of Object.entries(BLOCKED_DOMAINS)) {
-      if (hostname.includes(domain)) return msg;
+    if (hostname.includes("glassdoor.com")) {
+      return "Glassdoor richiede login e potrebbe bloccare lo scraping. Prova a copiare il testo.";
     }
   } catch { /* invalid URL */ }
   return null;
@@ -229,7 +221,7 @@ function Step1({
                       <div className="flex items-start gap-2 border-t border-border/30 pt-2">
                         <Info size={14} className="text-warning shrink-0 mt-0.5" />
                         <p>
-                          <span className="text-foreground font-medium">Tip:</span> Il tab URL funziona solo con siti senza protezioni anti-bot (es. Greenhouse, Lever, alcuni siti aziendali).
+                          <span className="text-foreground font-medium">Tip:</span> Puoi anche provare il tab URL incollando il link dell'annuncio. Se non funziona, il testo è sempre l'opzione più affidabile.
                         </p>
                       </div>
                     </motion.div>
@@ -239,13 +231,13 @@ function Step1({
 
               <TabsContent value="url" className="mt-4">
                 <Input
-                  placeholder="https://boards.greenhouse.io/company/jobs/..."
+                  placeholder="https://www.linkedin.com/jobs/view/..."
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   disabled={loading}
                 />
                 <p className="text-[10px] text-muted-foreground mt-2">
-                  Funziona con: Greenhouse, Lever, siti aziendali semplici. Non funziona con LinkedIn, Indeed, Glassdoor.
+                  Se l'URL non funziona, copia il testo dell'annuncio e usa il tab Testo.
                 </p>
               </TabsContent>
             </Tabs>
