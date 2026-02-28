@@ -82,7 +82,6 @@ export function CVSections({
           collapsible={collapsible}
           summary={data.personal.name}
         >
-          <p className="font-medium">{data.personal.name}</p>
           {data.personal.email && (
             <p className="text-sm text-muted-foreground">{data.personal.email}</p>
           )}

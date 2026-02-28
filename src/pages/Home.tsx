@@ -288,13 +288,19 @@ function CVCard({
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
           <FileText size={18} className="text-primary" />
-          <CardTitle className="text-sm font-medium">Il tuo CV</CardTitle>
+          <CardTitle className="text-sm font-medium">
+            {cv.parsed_data?.personal?.name || "Il tuo CV"}
+          </CardTitle>
         </div>
-        {cv.file_name && (
+        {cv.parsed_data?.experience?.[0] ? (
+          <p className="text-xs text-muted-foreground mt-1">
+            {cv.parsed_data.experience[0].title} · {cv.parsed_data.experience[0].company}
+          </p>
+        ) : cv.file_name ? (
           <p className="font-mono text-xs text-muted-foreground break-all mt-1">
             {cv.file_name}
           </p>
-        )}
+        ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
         {cv.parsed_data ? (
