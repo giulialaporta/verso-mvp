@@ -173,7 +173,7 @@ export function CVSections({
   const isLegacySkills = Array.isArray(data.skills);
 
   // Editable field helper
-  const E = ({ value, path, multiline, placeholder, className }: { value: string; path: string; multiline?: boolean; placeholder?: string; className?: string }) => {
+  const E = ({ value, path, multiline, placeholder, className, showIcon = false }: { value: string; path: string; multiline?: boolean; placeholder?: string; className?: string; showIcon?: boolean }) => {
     if (!editable) return <>{value}</>;
     return (
       <InlineEdit
@@ -182,6 +182,7 @@ export function CVSections({
         multiline={multiline}
         placeholder={placeholder}
         className={className}
+        showIcon={showIcon}
       />
     );
   };
@@ -201,28 +202,28 @@ export function CVSections({
             <div className="space-y-1 min-w-0 flex-1">
               {(data.personal?.name || editable) && (
                 <p className="text-sm font-medium">
-                  <E value={data.personal?.name || ""} path="personal.name" placeholder="Nome completo" />
+                  <E value={data.personal?.name || ""} path="personal.name" placeholder="Nome completo" showIcon />
                 </p>
               )}
               <div className="grid grid-cols-1 gap-0.5">
                 {(data.personal?.email || editable) && (
                   <p className="text-sm text-muted-foreground truncate">
-                    <E value={data.personal?.email || ""} path="personal.email" placeholder="Email" />
+                    <E value={data.personal?.email || ""} path="personal.email" placeholder="Email" showIcon />
                   </p>
                 )}
                 {(data.personal?.phone || editable) && (
                   <p className="text-sm text-muted-foreground">
-                    <E value={data.personal?.phone || ""} path="personal.phone" placeholder="Telefono" />
+                    <E value={data.personal?.phone || ""} path="personal.phone" placeholder="Telefono" showIcon />
                   </p>
                 )}
                 {(data.personal?.location || editable) && (
                   <p className="text-sm text-muted-foreground">
-                    <E value={data.personal?.location || ""} path="personal.location" placeholder="Località" />
+                    <E value={data.personal?.location || ""} path="personal.location" placeholder="Località" showIcon />
                   </p>
                 )}
                 {(data.personal?.date_of_birth || editable) && (
                   <p className="text-sm text-muted-foreground">
-                    <E value={data.personal?.date_of_birth || ""} path="personal.date_of_birth" placeholder="Data di nascita" />
+                    <E value={data.personal?.date_of_birth || ""} path="personal.date_of_birth" placeholder="Data di nascita" showIcon />
                   </p>
                 )}
               </div>
@@ -261,7 +262,7 @@ export function CVSections({
       {(data.summary !== undefined || editable) && (
         <Section icon={User} title="Profilo" collapsible={collapsible}>
           {editable ? (
-            <E value={data.summary || ""} path="summary" multiline placeholder="Scrivi un breve profilo professionale..." />
+            <E value={data.summary || ""} path="summary" multiline placeholder="Scrivi un breve profilo professionale..." showIcon />
           ) : (
             <p className="text-sm text-foreground/80">{data.summary}</p>
           )}
@@ -282,6 +283,7 @@ export function CVSections({
                 {editable && (
                   <div className="absolute right-0 top-0">
                     <ItemActions
+                      onEdit={() => {}}
                       onRemove={() => {
                         const updated = [...data.experience!];
                         updated.splice(i, 1);
@@ -354,6 +356,7 @@ export function CVSections({
                 {editable && (
                   <div className="absolute right-0 top-0">
                     <ItemActions
+                      onEdit={() => {}}
                       onRemove={() => {
                         const updated = [...data.education!];
                         updated.splice(i, 1);
@@ -461,6 +464,7 @@ export function CVSections({
                             onUpdate?.({ ...data, skills: { ...data.skills, languages: langs } });
                           }}
                           placeholder="Lingua"
+                          showIcon={false}
                         />
                         {" — "}
                         <InlineEdit
@@ -471,6 +475,7 @@ export function CVSections({
                             onUpdate?.({ ...data, skills: { ...data.skills, languages: langs } });
                           }}
                           placeholder="Livello"
+                          showIcon={false}
                         />
                         <button
                           onClick={() => {
@@ -540,10 +545,13 @@ export function CVSections({
                   )}
                 </p>
                 {editable && (
-                  <ItemActions onRemove={() => {
-                    const updated = data.certifications!.filter((_, j) => j !== i);
-                    onUpdate?.({ ...data, certifications: updated });
-                  }} />
+                  <ItemActions
+                    onEdit={() => {}}
+                    onRemove={() => {
+                      const updated = data.certifications!.filter((_, j) => j !== i);
+                      onUpdate?.({ ...data, certifications: updated });
+                    }}
+                  />
                 )}
               </div>
             ))}
@@ -574,10 +582,11 @@ export function CVSections({
                   {editable ? (
                     <div className="inline-flex items-center gap-1 text-xs mt-0.5">
                       <LinkIcon size={12} className="text-secondary shrink-0" />
-                      <InlineEdit
+                    <InlineEdit
                         value={proj.link || ""}
                         onChange={(v) => update(`projects.${i}.link`, v)}
                         placeholder="https://..."
+                        showIcon={false}
                       />
                     </div>
                   ) : (
@@ -594,10 +603,13 @@ export function CVSections({
                   )}
                 </div>
                 {editable && (
-                  <ItemActions onRemove={() => {
-                    const updated = data.projects!.filter((_, j) => j !== i);
-                    onUpdate?.({ ...data, projects: updated });
-                  }} />
+                  <ItemActions
+                    onEdit={() => {}}
+                    onRemove={() => {
+                      const updated = data.projects!.filter((_, j) => j !== i);
+                      onUpdate?.({ ...data, projects: updated });
+                    }}
+                  />
                 )}
               </div>
             ))}

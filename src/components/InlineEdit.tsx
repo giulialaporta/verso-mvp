@@ -7,6 +7,7 @@ interface InlineEditProps {
   multiline?: boolean;
   placeholder?: string;
   className?: string;
+  showIcon?: boolean;
 }
 
 export function InlineEdit({
@@ -15,6 +16,7 @@ export function InlineEdit({
   multiline = false,
   placeholder = "Clicca per modificare...",
   className = "",
+  showIcon = true,
 }: InlineEditProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -86,11 +88,13 @@ export function InlineEdit({
       <span className={value ? "" : "text-muted-foreground italic"}>
         {value || placeholder}
       </span>
-      <PencilSimple
-        size={12}
-        weight="bold"
-        className="text-primary/60 opacity-100 md:opacity-0 md:group-hover/edit:opacity-100 transition-opacity shrink-0"
-      />
+      {showIcon && (
+        <PencilSimple
+          size={12}
+          weight="bold"
+          className="text-primary/60 opacity-100 md:opacity-0 md:group-hover/edit:opacity-100 transition-opacity shrink-0"
+        />
+      )}
     </span>
   );
 }
