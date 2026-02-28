@@ -43,27 +43,38 @@ function applyPatches(
     const { path, value } = patch;
     // Parse path like "experience[0].bullets" or "skills.technical" or "summary"
     const segments = path.replace(/\[(\d+)\]/g, ".$1").split(".");
-    let target = result;
+    let target: unknown = result;
+    let valid = true;
     for (let i = 0; i < segments.length - 1; i++) {
+      if (target === null || target === undefined || typeof target !== "object") {
+        console.warn(`applyPatches: skipping patch "${path}" — intermediate segment "${segments[i]}" is not an object (got ${typeof target})`);
+        valid = false;
+        break;
+      }
       const seg = segments[i];
       const idx = Number(seg);
       if (!isNaN(idx)) {
-        target = target[idx];
+        target = (target as Record<string, unknown>)[idx as unknown as string];
       } else {
-        if (target[seg] === undefined || target[seg] === null) {
+        const obj = target as Record<string, unknown>;
+        if (obj[seg] === undefined || obj[seg] === null) {
           // Auto-create intermediate objects
           const nextSeg = segments[i + 1];
-          target[seg] = !isNaN(Number(nextSeg)) ? [] : {};
+          obj[seg] = !isNaN(Number(nextSeg)) ? [] : {};
         }
-        target = target[seg];
+        target = obj[seg];
       }
+    }
+    if (!valid || target === null || target === undefined || typeof target !== "object") {
+      if (valid) console.warn(`applyPatches: skipping patch "${path}" — target is not an object (got ${typeof target})`);
+      continue;
     }
     const lastSeg = segments[segments.length - 1];
     const lastIdx = Number(lastSeg);
     if (!isNaN(lastIdx)) {
-      target[lastIdx] = value;
+      (target as Record<string, unknown>)[lastIdx as unknown as string] = value;
     } else {
-      target[lastSeg] = value;
+      (target as Record<string, unknown>)[lastSeg] = value;
     }
   }
 

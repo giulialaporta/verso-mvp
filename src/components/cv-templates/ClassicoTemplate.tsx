@@ -64,9 +64,9 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
   const experience = cv.experience || [];
   const education = cv.education || [];
   const skills = cv.skills;
-  const certifications = cv.certifications || [];
-  const projects = cv.projects || [];
-  const extraSections = cv.extra_sections || [];
+  const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
+  const projects = Array.isArray(cv.projects) ? cv.projects : [];
+  const extraSections = Array.isArray(cv.extra_sections) ? cv.extra_sections : [];
 
   const contactParts = [personal.email, personal.phone, personal.location, personal.date_of_birth].filter(Boolean);
 
