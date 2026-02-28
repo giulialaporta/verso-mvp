@@ -55,7 +55,7 @@ export function EditableSkillChips({
     setEditDraft("");
   };
 
-  const chipBase = "group/chip inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs transition-colors min-h-[30px]";
+  const chipBase = "group/chip inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs transition-colors min-h-[30px] max-w-full";
   const chipClass =
     variant === "primary"
       ? `${chipBase} bg-primary/15 text-primary font-mono`
@@ -75,11 +75,11 @@ export function EditableSkillChips({
               if (e.key === "Escape") cancelEdit();
             }}
             onBlur={confirmEdit}
-            className="rounded-full border border-primary/50 bg-surface-2 px-3 py-1.5 font-mono text-xs text-foreground outline-none focus:ring-1 focus:ring-primary/30 w-32"
+            className="rounded-full border border-primary/50 bg-surface-2 px-3 py-1.5 font-mono text-xs text-foreground outline-none focus:ring-1 focus:ring-primary/30 min-w-[8rem] w-auto flex-1"
           />
         ) : (
           <span key={`${item}-${i}`} className={chipClass}>
-            <span className="truncate max-w-[180px]">{item}</span>
+            <span className="break-words whitespace-normal">{item}</span>
             <button
               onClick={() => startEdit(i)}
               className="text-primary/50 hover:text-primary transition-colors -mr-0.5"
