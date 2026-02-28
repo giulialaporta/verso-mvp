@@ -1,111 +1,188 @@
 
 
-# Piano completo: Recruiter onesto + Effetto WOW
+# Piano completo: Tailoring a due livelli + Approvazione interattiva modifiche
 
 ## Panoramica
 
-Implementazione combinata di due macro-feature:
-- **Recruiter onesto**: pre-screening AI con dealbreaker, domande interattive, penalizzazione score
-- **Effetto WOW**: animazione score con counter, editing inline del CV, suggerimenti risorse per skill gap
+Due macro-modifiche integrate nell'architettura esistente:
 
-Il wizard passa da 3 a 4 step:
+1. **Tailoring a due livelli** -- L'AI opera sia a livello strutturale (rimuovere/riordinare/condensare sezioni) sia a livello contenuto (riformulare). Il CV risultante e' conciso ed efficace.
+2. **Approvazione/rifiuto per ogni modifica** -- Nello Step 2, l'utente vede ogni modifica suggerita e puo' approvare o rifiutare singolarmente. Solo le modifiche approvate vengono applicate al CV finale in Step 3.
+
+---
+
+## 1. Modifiche a `ai-tailor` (backend)
+
+### 1a. System prompt: due livelli + sinteticita'
+
+Aggiungere al prompt esistente due nuove sezioni:
 
 ```text
-Step 0: Annuncio (invariato)
-Step 1: Verifica (NUOVO - dealbreaker + domande)
-Step 2: Analisi (arricchita con risposte utente)
-Step 3: CV Adattato (con editing inline)
+## TWO-LEVEL TAILORING
+
+### Level 1 -- STRUCTURAL (what to keep/remove/reorder)
+- REMOVE experiences completely irrelevant to the target role
+- REORDER experiences by relevance to the job (most relevant first)
+- CONDENSE verbose bullet lists (max 4-5 bullets per experience, keep only impactful ones)
+- REMOVE irrelevant projects, certifications, or extra sections
+- If education is not the candidate's strength for this role, keep it minimal
+
+### Level 2 -- CONTENT (how to rewrite what remains)
+- Summary: 2-3 sentences maximum, specific to this role
+- Bullets: action verb + measurable result, one line each
+- Skills: ordered by relevance, remove generic/obvious ones
+
+## CONCISENESS RULE
+Be as concise and effective as possible.
+A well-targeted 1-page CV beats a generic 3-page CV.
+Every word must earn its place. Remove filler, cliches, and redundancy.
+If a section adds no value for THIS specific role, remove it entirely.
 ```
 
----
+### 1b. Aggiornare le FUNDAMENTAL RULES
 
-## 1. Migrazione DB
+Sostituire la riga "You may ONLY modify: summary, description/bullets of experiences, skill ordering" con regole ampliate:
 
-Aggiungere colonna `user_answers jsonb` alla tabella `applications` per persistere le risposte alle domande del pre-screening.
+```text
+- You CAN remove entire experience/education/project entries if irrelevant to the target role
+- You CAN reorder entries by relevance
+- You CAN reduce the number of bullets per experience
+- You CAN remove entire extra_sections if not relevant
+- You CANNOT invent new experiences, degrees, or certifications
+- You CANNOT modify dates, company names, degree titles, grades
+- You CANNOT touch personal data or photo_base64
+```
 
----
+### 1c. Aggiornare i valid paths per le patch
 
-## 2. Nuova edge function: `ai-prescreen`
+Cambiare l'istruzione sui valid paths da singoli campi ad array interi:
 
-`supabase/functions/ai-prescreen/index.ts`
+```text
+Valid paths include full arrays: "experience", "education", "certifications", "projects", "extra_sections"
+As well as individual fields: "summary", "experience[N].bullets", "skills.technical", etc.
+When removing or reordering entries, return the entire array with entries removed/reordered.
+```
 
-- Modello: `google/gemini-2.5-flash` (veloce, economico)
-- Input: `job_data` (dal job parsing) + CV dell'utente (caricato dal DB via auth)
-- Output via tool calling:
-  - `requirements_analysis`: array di requisiti classificati come `mandatory` / `preferred` / `nice_to_have`, con flag `candidate_has` e `gap_type` (`bridgeable` / `unbridgeable`)
-  - `dealbreakers`: array di gap critici incolmabili (es. "5+ anni richiesti, 1 anno nel CV")
-  - `follow_up_questions`: 3-5 domande mirate per scoprire competenze implicite
-  - `overall_feasibility`: `low` / `medium` / `high`
-  - `feasibility_note`: spiegazione breve
+### 1d. Nuovo campo nel tool schema: `structural_changes`
 
-Il system prompt istruisce l'AI a:
-- Riconoscere parole chiave mandatory ("must have", "required", "X+ years", "obbligatorio")
-- Riconoscere parole chiave preferred ("nice to have", "preferred", "gradito")
-- Generare domande solo per gap colmabili (non chiedere dell'esperienza se mancano 4 anni)
-- Comportarsi come recruiter esperto e onesto
+Aggiungere al tool schema per tracciare le modifiche strutturali:
 
----
+```json
+{
+  "structural_changes": {
+    "type": "array",
+    "description": "List of structural changes made (removals, reorders, condensations)",
+    "items": {
+      "type": "object",
+      "properties": {
+        "action": { "type": "string", "enum": ["removed", "reordered", "condensed"] },
+        "section": { "type": "string" },
+        "item": { "type": "string", "description": "What was affected" },
+        "reason": { "type": "string" }
+      },
+      "required": ["action", "section", "item", "reason"]
+    }
+  }
+}
+```
 
-## 3. Modifiche a `ai-tailor`
+### 1e. Aggiungere `patch_path` al diff schema
 
-- Nuovo campo nel body: `user_answers?: Array<{question: string, answer: string}>`
-- Il prompt viene arricchito con una sezione "ADDITIONAL CONTEXT FROM CANDIDATE" contenente le risposte
-- Il `match_score` viene penalizzato: se ci sono requisiti mandatory mancanti, il massimo possibile e' 40%
-- Nuovo campo nel tool schema: `learning_suggestions` (array di `{skill, resource_name, url, type, duration}`) per suggerire risorse per skill mancanti essenziali
+Ogni entry nel `diff` deve puntare alla patch corrispondente:
 
----
+```json
+{
+  "patch_path": {
+    "type": "string",
+    "description": "Corresponding path in tailored_patches for this change"
+  }
+}
+```
 
-## 4. UI Step 1: Pre-screening (NUOVO)
+### 1f. Mantenere `tailored_patches` nella risposta
 
-Dopo Step 0 (annuncio confermato), il wizard chiama `ai-prescreen` e mostra:
-
-**Se ci sono dealbreaker:**
-- Card con bordo rosso, icona Warning
-- Lista dei dealbreaker con spiegazione
-- Indicatore feasibility (basso/medio/alto) colorato
-- Tono: "Verso non ti impedisce di candidarti, ma vuole che tu sia consapevole."
-
-**Domande interattive:**
-- Card con le domande generate dall'AI
-- Ogni domanda ha un campo Textarea per la risposta
-- Le domande sono facoltative (l'utente puo' lasciare vuoto)
-- Bottone "Prosegui con queste informazioni"
-
-Le risposte vengono salvate in `applications.user_answers` e passate ad `ai-tailor`.
-
----
-
-## 5. Animazione score con counter (Step 2)
-
-- Il match score "conta" da 0 al valore finale con `requestAnimationFrame`
-- La barra di progresso si riempie con timing `ease-out` su 800ms
-- Ogni card dei risultati appare con stagger animation (Framer Motion, delay incrementale)
-- Se score >= 80%: badge verde "Ottimo match"
-- Se score <= 40%: badge rosso "Gap significativi"
+Attualmente la riga `delete result.tailored_patches` rimuove le patch dalla risposta. Rimuovere questa riga per conservare sia `tailored_patches` che `tailored_cv` nella risposta al frontend.
 
 ---
 
-## 6. Editing inline del CV (Step 3)
+## 2. Modifiche al frontend (`Nuova.tsx`)
 
-- Nella vista "Adattato", ogni sezione diventa cliccabile:
-  - Summary: click per editare in textarea
-  - Bullet points: click per editare singoli bullet
-  - Skills: click per aggiungere/rimuovere tag
-- Le modifiche aggiornano lo state `tailored_cv` in memoria
-- Il PDF scaricato riflette le modifiche dell'utente
-- Usa il componente `InlineEdit` gia' presente nel progetto
+### 2a. Aggiornare il tipo `TailorResult`
 
----
+Aggiungere i nuovi campi:
 
-## 7. Suggerimenti risorse per skill gap (Step 2)
+```typescript
+type TailorResult = {
+  // ... campi esistenti ...
+  tailored_patches?: Array<{ path: string; value: unknown }>;
+  structural_changes?: Array<{
+    action: "removed" | "reordered" | "condensed";
+    section: string;
+    item: string;
+    reason: string;
+  }>;
+  diff: {
+    section: string;
+    index?: number;
+    original: string;
+    suggested: string;
+    reason: string;
+    patch_path?: string;  // NUOVO
+  }[];
+};
+```
 
-- Sotto le skill mancanti con importanza "essential", mostrare card cliccabili con:
-  - Icona GraduationCap
-  - Nome risorsa (es. "Python for Data Science - Coursera")
-  - Tipo (corso/certificazione)
-  - Durata stimata
-  - Link diretto
-- I dati vengono dall'AI (campo `learning_suggestions` in `ai-tailor`)
+### 2b. Trasformare Step 2 (StepAnalisi) con approvazione interattiva
+
+Dopo le card di score/skills/ATS, la sezione "Modifiche suggerite" diventa interattiva:
+
+**Stato interno:**
+- `diffDecisions: Record<number, "approved" | "rejected">` -- inizializzato con tutte le modifiche "approved" di default
+
+**UI per ogni modifica:**
+```text
++-----------------------------------------------------+
+| SUMMARY                           [Approva] [Rifiuta]|
+| --------------------------------------------------- |
+| Originale: "Sono un professionista con..."           |
+| (barrato, grigio)                                    |
+|                                                      |
+| Suggerito: "Software engineer con 3 anni di..."     |
+| (verde)                                              |
+|                                                      |
+| Motivo: "Riformulato per il ruolo target"            |
++-----------------------------------------------------+
+```
+
+- Bottone CheckCircle (verde) = approvato (default)
+- Bottone XCircle (rosso) = rifiutato
+- Card rifiutata: opacita' ridotta, bordo rosso
+- Sopra la lista: contatore "4/6 modifiche approvate"
+- Bottoni batch: "Approva tutte" / "Rifiuta tutte"
+
+**Sezione modifiche strutturali:**
+Se presenti `structural_changes`, mostrarle prima dei diff come card informative:
+- "Rimossa: Cameriere - Ristorante Da Mario" con motivo
+- Ciascuna con bottoni approva/rifiuta
+
+### 2c. Ricostruzione CV selettiva (passaggio Step 2 -> Step 3)
+
+Quando l'utente clicca "Vedi il CV adattato":
+
+1. Prendere il CV originale (dal master_cv gia' disponibile nel result)
+2. Filtrare `tailored_patches` mantenendo solo quelle corrispondenti ai diff/structural_changes approvati (correlazione via `patch_path` o indice)
+3. Applicare `applyPatches(originalCV, approvedPatches)` lato frontend (la funzione `applyPatches` e' gia' presente in `ai-tailor` -- va duplicata nel frontend)
+4. Il risultato diventa il `tailored_cv` usato nello Step 3
+
+Questo richiede anche che il frontend riceva il CV originale. Opzioni:
+- Il backend gia' restituisce `master_cv_id` -- il frontend puo' fare un fetch dal DB
+- Oppure aggiungere `original_cv` alla risposta di `ai-tailor`
+
+Scelta: aggiungere `original_cv` alla risposta (senza `photo_base64`) per evitare un round-trip aggiuntivo.
+
+### 2d. Aggiornamento del bottone "Vedi il CV adattato"
+
+Il bottone passa il CV ricostruito (con solo le patch approvate) a Step 3 invece del `tailored_cv` completo.
 
 ---
 
@@ -113,19 +190,16 @@ Le risposte vengono salvate in `applications.user_answers` e passate ad `ai-tail
 
 | File | Modifica |
 |------|----------|
-| `supabase/functions/ai-prescreen/index.ts` | **Nuovo** -- edge function pre-screening |
-| `supabase/functions/ai-tailor/index.ts` | Accettare `user_answers`, `learning_suggestions`, penalizzazione score |
-| `supabase/config.toml` | Aggiungere `[functions.ai-prescreen]` |
-| `src/pages/Nuova.tsx` | Wizard a 4 step, nuovo Step "Verifica", animazione score, editing inline |
-| Migrazione DB | Aggiungere `user_answers jsonb` a `applications` |
+| `supabase/functions/ai-tailor/index.ts` | Prompt a due livelli, sinteticita', `structural_changes` nel schema, `patch_path` nei diff, conservare `tailored_patches` e `original_cv` nella risposta |
+| `src/pages/Nuova.tsx` | Tipo `TailorResult` aggiornato, stato `diffDecisions`, UI approvazione/rifiuto con contatore, rendering `structural_changes`, ricostruzione CV selettiva con `applyPatches` frontend, bottoni batch |
+
+---
 
 ## Ordine di implementazione
 
-1. Migrazione DB (`user_answers`)
-2. Edge function `ai-prescreen`
-3. Modifiche a `ai-tailor` (user_answers + learning_suggestions + penalizzazione)
-4. UI Step "Verifica" (dealbreaker + domande)
-5. Animazione score counter + stagger
-6. Editing inline CV in Step 3
-7. Suggerimenti risorse per skill gap
+1. Aggiornare il system prompt e il tool schema di `ai-tailor` (due livelli, sinteticita', `structural_changes`, `patch_path`, conservare patches + original_cv)
+2. Aggiornare i tipi e lo stato in `Nuova.tsx` (TailorResult, diffDecisions)
+3. Implementare l'UI di approvazione/rifiuto nello Step 2 con contatore e bottoni batch
+4. Implementare `applyPatches` nel frontend e la ricostruzione selettiva nel passaggio Step 2 -> Step 3
+5. Rendering delle `structural_changes` con approvazione nel Step 2
 
