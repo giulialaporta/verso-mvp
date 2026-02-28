@@ -112,6 +112,7 @@ Verifica di onestà delle modifiche apportate.
 Lista delle modifiche apportate.
 
 ## REGOLE FONDAMENTALI
+- **LANGUAGE IN = LANGUAGE OUT**: Rileva la lingua dell'annuncio di lavoro. TUTTE le modifiche al CV (summary, bullets, description, skill labels, suggerimenti, note, diff) DEVONO essere nella STESSA LINGUA dell'annuncio. Se l'annuncio è in inglese, il CV generato deve essere in inglese. Se è in italiano, in italiano. Se è in tedesco, in tedesco. Questa regola è ASSOLUTA e non ammette eccezioni.
 - MAI inventare esperienze, competenze o certificazioni
 - MAI modificare date, nomi aziende, titoli di studio, gradi, foto
 - MAI toccare extra_sections, dati personali, photo_base64
