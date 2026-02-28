@@ -1,151 +1,84 @@
 
 
-# EditItemDrawer -- Dove serve in Verso
+# Supporto Bullets e Progetti nel Drawer di Editing
 
-## Il componente
+## Problema
 
-Un drawer (bottom sheet su mobile, overlay su desktop) che mostra tutti i campi di un elemento composto in un form verticale scrollabile con input/textarea a larghezza piena. Un unico componente riutilizzabile ovunque.
+Quando l'utente clicca la matitina su un'esperienza, il drawer mostra solo i campi base (ruolo, azienda, date, descrizione). I **bullets** -- cioe' le attivita' principali svolte nel ruolo (es. "New Customer Journey Strategy...") -- restano come chip piccole troncate, non visibili per intero. Lo stesso vale per i progetti che hanno descrizioni lunghe.
 
-## Dove serve
+## Soluzione
 
-### 1. Onboarding (preview CV dopo parsing) -- `CVSections.tsx` in modalita' `editable`
+### 1. Estendere `EditItemDrawer` per supportare campi lista (array di stringhe)
 
-Questo e' il caso primario gia' identificato. Quando l'utente clicca la matitina su:
-- **Esperienza** (role, company, location, start, end, description)
-- **Formazione** (degree, field, institution, start, end, grade, honors, program, publication)
-- **Certificazioni** (name, issuer, year)
-- **Progetti** (name, description, link)
+Aggiungere un nuovo tipo di campo `list` al drawer. Oltre a `string` (Input) e `multiline` (Textarea), il drawer supportera' un campo di tipo lista dove ogni elemento e' una Textarea a larghezza piena, con possibilita' di aggiungere/rimuovere elementi.
 
-Oggi `onEdit={() => {}}` non fa nulla. Col drawer, ogni campo si vede intero e si modifica comodamente.
-
-### 2. Candidature -- dettaglio card (`Candidature.tsx`)
-
-Oggi ogni candidatura e' una card statica senza possibilita' di modifica. Il drawer permetterebbe:
-- **Modificare status** (Inviata -> Contattato -> Follow-up -> KO) con selettore
-- **Aggiungere note** libere
-- **Vedere il dettaglio completo**: company, role, score, ATS score, data
-
-Si aprirebbe toccando la card della candidatura.
-
-### 3. Nuova Candidatura -- Step 1: Job Data confermata (`Nuova.tsx`)
-
-Quando l'utente conferma i dati dell'annuncio e vede la card riassuntiva (company, role, requirements, skills), oggi puo' solo "Modifica" per ricominciare. Col drawer potrebbe **editare singoli campi** del job data (company name, role title, requirements) senza ricominciare lo scraping.
-
-### 4. Home -- CV Card (`Home.tsx`)
-
-Il CV nella Home e' in sola lettura (`CVSections` senza `editable`). Si potrebbe aggiungere un pulsante "Modifica CV" che apre il drawer per editare i campi del master CV direttamente dalla Home, salvando su DB.
-
----
-
-## Piano implementativo
-
-### File nuovi
-
-| File | Descrizione |
-|------|-------------|
-| `src/components/EditItemDrawer.tsx` | Componente drawer generico con form verticale |
-
-### File modificati
-
-| File | Modifica |
-|------|----------|
-| `src/components/CVSections.tsx` | Stato `editingItem`, collegamento `onEdit` al drawer, mappa campi per tipo (experience, education, certifications, projects) |
-| `src/pages/Candidature.tsx` | Click su card apre drawer con dettaglio candidatura + modifica status/note |
-| `src/pages/Nuova.tsx` | Pulsante edit su job data card per modificare campi senza restart |
-| `src/pages/Home.tsx` | Pulsante "Modifica CV" sulla CVCard che abilita editing via drawer |
-
-### Dettaglio tecnico
-
-**`EditItemDrawer.tsx`** -- Props:
+**Modifica a `DrawerField`:**
 
 ```text
-interface EditItemDrawerProps {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  fields: {
-    key: string;
-    label: string;
-    value: string;
-    multiline?: boolean;
-    placeholder?: string;
-  }[];
-  onSave: (values: Record<string, string>) => void;
-}
-```
-
-Internamente:
-- Usa il componente `Drawer` (vaul) gia' installato
-- Form verticale con `Input` per campi brevi, `Textarea` per multiline
-- Label in `font-mono text-[11px] uppercase` (brand system)
-- Pulsante "Salva" verde (CTA primario) in fondo
-- Su mobile: bottom sheet nativo con handle draggable
-- Su desktop: stesso drawer, max-height 85vh con scroll interno
-
-**`CVSections.tsx`** -- Integrazione:
-
-```text
-// Nuovo stato
-const [editingItem, setEditingItem] = useState<{
-  type: "experience" | "education" | "certification" | "project";
-  index: number;
-} | null>(null);
-
-// onEdit collegato
-<ItemActions
-  onEdit={() => setEditingItem({ type: "experience", index: i })}
-  onRemove={...}
-/>
-
-// Mappa campi
-const fieldMaps = {
-  experience: (exp) => [
-    { key: "role", label: "Ruolo", value: exp.role },
-    { key: "company", label: "Azienda", value: exp.company },
-    { key: "location", label: "Luogo", value: exp.location },
-    { key: "start", label: "Data inizio", value: exp.start },
-    { key: "end", label: "Data fine", value: exp.end },
-    { key: "description", label: "Descrizione", value: exp.description, multiline: true },
-  ],
-  // ... education, certifications, projects
+export type DrawerField = {
+  key: string;
+  label: string;
+  value: string;       // per campi singoli
+  values?: string[];   // per campi lista (bullets)
+  multiline?: boolean;
+  list?: boolean;      // attiva la modalita' lista
+  placeholder?: string;
 };
 ```
 
-**`Candidature.tsx`** -- Drawer dettaglio:
+**Rendering nel drawer per campi `list: true`:**
+- Ogni elemento come Textarea (2-3 righe) con pulsante X per rimuoverlo
+- Pulsante "+ Aggiungi" in fondo alla lista
+- Label mono uppercase come gli altri campi
+
+### 2. Aggiungere bullets ai campi experience nel drawer
+
+Nel `drawerFields` per le esperienze in `CVSections.tsx`, aggiungere in fondo:
 
 ```text
-// Click su AppCard apre drawer
-<div onClick={() => setSelectedApp(app)}>
-  <AppCard app={app} />
-</div>
-
-// Drawer mostra:
-// - Company, role, date, scores
-// - Status selector (chip cliccabili)
-// - Campo note (textarea)
-// - Pulsante salva
+{ key: "bullets", label: "Attivita' principali", values: exp.bullets || [], list: true, placeholder: "Descrivi un'attivita'..." }
 ```
 
-**`Nuova.tsx`** -- Edit job data:
+### 3. Aggiornare `handleDrawerSave` in CVSections
+
+Il salvataggio deve gestire sia valori stringa (`Record<string, string>`) sia valori lista (`Record<string, string | string[]>`). Quando il campo e' di tipo lista, il valore salvato sara' un array.
+
+**Modifica del tipo di ritorno di `onSave`:**
 
 ```text
-// Nella card confermata, aggiungere pulsante edit
-// che apre drawer con campi: company_name, role_title, location
-// Al salvataggio aggiorna jobData senza ri-scraping
+onSave: (values: Record<string, string | string[]>) => void;
 ```
 
-**`Home.tsx`** -- Edit master CV:
+### 4. Aggiungere description ai campi project nel drawer
+
+I progetti gia' hanno il campo `description` come multiline, ma se hanno bullets o sotto-attivita' in futuro, la struttura e' pronta.
+
+---
+
+## File modificati
+
+| File | Modifica |
+|------|----------|
+| `src/components/EditItemDrawer.tsx` | Aggiungere supporto per campi `list` (array di textarea con add/remove). Aggiornare tipo `DrawerField` con `values?: string[]` e `list?: boolean`. Aggiornare stato interno e `onSave` per gestire array. |
+| `src/components/CVSections.tsx` | Aggiungere campo `bullets` (list) nel `drawerFields` per experience. Aggiornare `handleDrawerSave` per gestire valori array. |
+
+## UX del campo lista nel drawer
 
 ```text
-// Aggiungere prop editable + onUpdate a CVCard
-// Pulsante "Modifica" nella CVCard header
-// Al salvataggio: UPDATE su master_cvs.parsed_data
+ATTIVITA' PRINCIPALI
++--------------------------------------------------+
+| New Customer Journey Strategy definition and      |
+| implementation across all digital touchpoints     |
++--------------------------------------------------+  [X]
++--------------------------------------------------+
+| Led cross-functional team of 12 engineers on      |
+| platform migration project                        |
++--------------------------------------------------+  [X]
++--------------------------------------------------+
+| Budget management for EUR 2.5M annual portfolio   |
++--------------------------------------------------+  [X]
+
+[+ Aggiungi attivita']
 ```
 
-### Priorita'
-
-1. `EditItemDrawer.tsx` (componente base)
-2. `CVSections.tsx` (caso principale: onboarding)
-3. `Candidature.tsx` (dettaglio + status change)
-4. `Nuova.tsx` e `Home.tsx` (miglioramenti secondari)
-
+Ogni textarea si espande automaticamente col contenuto. Il pulsante X rimuove l'elemento. Il pulsante + aggiunge un nuovo campo vuoto in fondo.
