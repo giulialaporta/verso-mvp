@@ -606,10 +606,15 @@ function Step3({
           </div>
         );
       }
+      const ensureArray = (val: unknown): string[] => {
+        if (Array.isArray(val)) return val;
+        if (typeof val === 'string') return val.split(',').map((s: string) => s.trim()).filter(Boolean);
+        return [];
+      };
       const all = [
-        ...(skills.technical || []),
-        ...(skills.soft || []),
-        ...(skills.tools || []),
+        ...ensureArray(skills.technical),
+        ...ensureArray(skills.soft),
+        ...ensureArray(skills.tools),
       ];
       return all.length > 0 ? (
         <div>

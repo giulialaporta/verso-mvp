@@ -406,6 +406,16 @@ Deno.serve(async (req) => {
     const patches = (result.tailored_patches as Array<{ path: string; value: unknown }>) || [];
     const tailoredCV = applyPatches(originalCV, patches);
 
+    // Ensure skills fields are arrays (AI sometimes returns comma-separated strings)
+    const cvSkills = (tailoredCV as any)?.skills;
+    if (cvSkills && typeof cvSkills === "object") {
+      for (const key of ["technical", "soft", "tools"]) {
+        if (typeof cvSkills[key] === "string") {
+          cvSkills[key] = cvSkills[key].split(",").map((s: string) => s.trim()).filter(Boolean);
+        }
+      }
+    }
+
     // Reinsert photo_base64 if it existed
     if (photoBase64) {
       (tailoredCV as any).photo_base64 = photoBase64;
