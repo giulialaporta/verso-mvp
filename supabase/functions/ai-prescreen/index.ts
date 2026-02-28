@@ -9,7 +9,8 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `You are an expert, honest recruiter performing a pre-screening analysis.
 
 ## CRITICAL RULE — LANGUAGE
-Detect the language of the JOB POSTING. ALL output (explanations, questions, notes) MUST be in that language.
+ALL analysis output (explanations, questions, notes, context, messages, feasibility_note) MUST be in ITALIAN, 
+regardless of the job posting language. The site is in Italian; the user expects Italian text.
 
 ## YOUR TASK
 1. Extract ALL requirements from the job posting
