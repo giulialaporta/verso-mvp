@@ -1,49 +1,44 @@
 
 
-# Fix CV Card in Home: rimuovere ridondanze e rendere utile
+# Ottimizzazione versione mobile
 
-## Il problema
+## Problemi identificati
 
-1. **Nome ripetuto 2 volte**: la sezione "Dati personali" mostra il nome come summary del collapsible ("Dati personali — Mario Rossi") E poi lo ripete dentro il contenuto espanso come testo bold. Inutile.
+Dallo screenshot a 375px emergono 3 problemi:
 
-2. **Non si capisce quale CV e' caricato**: il filename ("CV_Giulia_La_Porta.pdf") non dice nulla sul contenuto. Serve un riassunto rapido del CV: ultimo ruolo, competenze principali, qualcosa che aiuti a riconoscerlo.
+1. **Nessun padding-top**: il contenuto ("Ciao, Giulia") parte a filo con il bordo superiore dello schermo, senza respiro. Su mobile manca completamente un margine superiore sicuro.
 
-## Soluzione
+2. **Navbar bottom sproporzionata**: la tab bar occupa `h-16` (64px) ma ha solo 2 tab (Home e Candidature) distribuiti con `justify-around` su tutta la larghezza. Le icone (22px) e il testo sono piccoli rispetto allo spazio. Risultato: troppo spazio vuoto, navbar visivamente "smorta".
 
-### `src/components/CVSections.tsx` — Fix nome ripetuto
+3. **Pagina Nuova mancante di padding mobile**: i wrapper `mx-auto max-w-2xl space-y-6` non hanno `px-4` su mobile, quindi il contenuto tocca i bordi.
 
-Nella sezione "Dati personali" in modalita' collapsible, il nome appare gia' come `summary` nel trigger. Dentro il contenuto espanso, mostrare solo email, telefono, location — **rimuovere la riga `<p className="font-medium">{data.personal.name}</p>`** che duplica il nome.
+4. **Filename ancora visibile**: nella CV Card il filename raw ("CV GIulia La Porta_01_2026.pdf") appare sotto il nome, anche quando c'e' il nome parsed. Andrebbe mostrato solo se non ci sono dati di esperienza.
 
-### `src/pages/Home.tsx` — CV Card piu' informativa
+## Modifiche
 
-Sostituire l'header generico "Il tuo CV" + filename con un riassunto significativo:
+### `src/components/AppShell.tsx`
 
-- **Titolo**: nome completo dal parsed_data (es. "Giulia La Porta") invece di "Il tuo CV"
-- **Sotto-titolo**: ultimo ruolo + azienda dall'esperienza piu' recente (es. "Product Manager · Acme Corp"), oppure il filename come fallback se non ci sono dati estratti
-- **Rimuovere** la riga del filename raw — non serve piu'
+**Mobile wrapper**: Aggiungere padding-top sicuro (`pt-6`) al container mobile per dare respiro in alto.
 
-Layout risultante della CV Card:
+**MobileTabBar**:
+- Ridurre altezza da `h-16` a `h-14` (56px) — piu' proporzionata con 2 tab
+- Aggiornare `pb-20` del wrapper a `pb-16` di conseguenza
+- Aggiungere `px-8` o `justify-center gap-16` per avvicinare i 2 tab e non disperderli su tutta la larghezza
+- Aumentare leggermente touch target dei bottoni con padding interno
 
-```text
-+------------------------------------------+
-| [icon] Giulia La Porta                   |
-| Product Manager · Acme Corp              |
-+------------------------------------------+
-| > Dati personali — Giulia La Porta       |
-|   email, telefono, citta'                |
-| > Esperienza — 3 posizioni              |
-| > Competenze — 12                        |
-| ...                                      |
-+------------------------------------------+
-| [Elimina CV]  [Carica nuovo CV]          |
-+------------------------------------------+
-```
+### `src/pages/Nuova.tsx`
 
-## Riepilogo modifiche
+Aggiungere `px-4` ai wrapper di Step1, Step2, Step3 che attualmente usano solo `mx-auto max-w-2xl space-y-6` senza padding laterale.
 
-| File | Cosa cambia |
-|------|-------------|
-| `src/components/CVSections.tsx` | Rimuovere `<p>{data.personal.name}</p>` dentro la sezione Dati personali (il nome e' gia' nel summary) |
-| `src/pages/Home.tsx` | CV Card: titolo = nome dal CV, sottotitolo = ultimo ruolo + azienda, rimuovere filename raw |
+### `src/pages/Home.tsx` — CV Card subtitle
 
-Nessuna modifica backend, nessun nuovo file.
+Il filename appare come fallback ma la condizione lo mostra anche quando non dovrebbe. Il codice attuale funziona correttamente (experience[0] ha priorita'), ma dallo screenshot si vede il filename — probabilmente `experience` e' un array vuoto nel parsed_data. Aggiungere un check: se `parsed_data?.personal?.name` esiste, non mostrare mai il filename raw.
+
+## Riepilogo
+
+| File | Modifica |
+|------|----------|
+| `src/components/AppShell.tsx` | pt-6 al wrapper mobile, navbar h-14 + tab centrati, pb-16 |
+| `src/pages/Nuova.tsx` | px-4 ai 3 step wrapper su mobile |
+| `src/pages/Home.tsx` | Nascondere filename raw se il nome parsed esiste |
+
