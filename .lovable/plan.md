@@ -1,121 +1,61 @@
 
 
-# Piano: Ripresa bozze, eliminazione candidature, download PDF
+# Verifica complessiva del codice — Bug trovati
 
-## Panoramica
+## Bug identificati
 
-Tre problemi da risolvere + una feature nuova (export PDF):
+### 1. CRITICO: `handleSave` in Step3 crea duplicati di `tailored_cvs` alla ripresa bozza
+Quando l'utente riprende una bozza che ha gia' un `tailored_cvs` (step 2/3), e poi clicca "Salva candidatura", il codice fa sempre un `INSERT` in `tailored_cvs` (riga 726). Se il record esiste gia' (caricato dalla ripresa bozza), viene creato un duplicato, oppure l'insert fallisce silenziosamente.
 
-1. **"Riprendi" ricomincia da capo** — il bottone naviga a `/app/nuova` senza passare l'ID della bozza, quindi il wizard ricomincia sempre dallo Step 1 vuoto
-2. **Non si possono eliminare candidature attive** — il bottone elimina esiste solo per le bozze
-3. **Download PDF** — implementare il template system dell'Epic 5 con `@react-pdf/renderer`
+**Fix:** Prima di inserire, controllare se esiste gia' un `tailored_cvs` per quell'`application_id`. Se si', fare un `UPDATE` invece che un `INSERT`.
 
----
+### 2. CRITICO: Step 2 "Indietro" resetta tutto senza recupero
+Cliccando "Indietro" da Step 2 (`onBack={() => updateStep(0)}`), l'utente torna allo Step 1 ma `Step1` e' un componente separato con stato interno vuoto. Tutti i dati dell'analisi AI vengono persi. L'utente deve reinserire l'annuncio e rieseguire l'analisi AI.
 
-## 1. Ripresa bozze (Riprendi dove avevi lasciato)
+**Fix:** Passare `jobData` iniziale a `Step1` come prop opzionale, cosi' da pre-compilare i campi quando l'utente torna indietro.
 
-### Problema
-Il bottone "Riprendi" fa `navigate("/app/nuova")` senza contesto. Il wizard parte sempre da zero e crea un nuovo draft.
+### 3. MEDIO: Drawer candidature non carica le `notes` dal DB
+In `Candidature.tsx`, `handleOpenDetail` imposta `setDrawerNotes("")` (riga 129). Il campo `notes` della tabella `applications` non viene mai letto ne' scritto. L'utente scrive note ma non vengono salvate.
 
-### Soluzione
+**Fix:** 
+- Aggiungere `notes` alla query SELECT e al tipo `AppRow`
+- Caricare `drawerNotes` dal record esistente in `handleOpenDetail`
+- Salvare `notes` nell'`update` di `handleStatusSave`
 
-**Candidature.tsx:**
-- Cambiare il bottone "Riprendi" per navigare con l'ID della bozza: `navigate("/app/nuova?draft=<id>")`
+### 4. MEDIO: `cv-uploads` bucket non e' pubblico ma `getPublicUrl` viene usato
+In `parse-cv/index.ts` (riga 116), `supabase.storage.from("cv-uploads").getPublicUrl(photoPath)` genera un URL pubblico, ma il bucket `cv-uploads` e' privato (`Is Public: No`). La foto del profilo non sara' mai accessibile tramite quell'URL.
 
-**Nuova.tsx:**
-- Leggere il query param `draft` dall'URL
-- Se presente, caricare i dati dell'application dal DB (`company_name`, `role_title`, `job_description`, `job_url`, `match_score`, `status`)
-- Controllare se esiste gia' un `tailored_cvs` per quell'application:
-  - **Se esiste** (l'AI ha gia' finito): saltare direttamente allo Step 2 o Step 3 con i dati caricati
-  - **Se non esiste** ma c'e' `job_description`: rilanciare l'analisi AI dallo Step 1 con i dati pre-compilati
-  - **Se non esiste** e non c'e' `job_description`: mostrare Step 1 vuoto (caso raro)
-- Usare `applicationId` dalla bozza esistente (non crearne uno nuovo)
-- Lo stato del wizard (`step`, `jobData`, `tailorResult`, `applicationId`) viene derivato dai dati DB
+**Fix:** O rendere il bucket `cv-uploads` pubblico, oppure usare `createSignedUrl` per generare URL temporanei, oppure spostare le foto in un bucket pubblico separato.
 
-### Persistenza tra desktop/mobile
-Il cambio di viewport causa un remount dell'AppShell (da mobile layout a sidebar layout). Il componente `Nuova` viene smontato e rimontato, perdendo tutto lo state.
-- Soluzione: salvare `step` e `applicationId` corrente come query params nell'URL (`?draft=<id>&step=2`). Al mount, se presenti, riprendere da li'.
+### 5. BASSO: `draftLoaded` ref non si resetta quando cambia il draft ID
+Se l'utente naviga a `/app/nuova?draft=abc`, poi torna a `/app/candidature`, e poi clicca "Riprendi" su un'altra bozza (`/app/nuova?draft=xyz`), il `useRef` `draftLoaded` resta `true` dal primo caricamento e il secondo draft non viene mai caricato.
 
----
+**Fix:** Resettare `draftLoaded.current = false` quando il `draft` param cambia. Usare l'ID del draft come dipendenza e tracciare quale draft e' stato caricato.
 
-## 2. Eliminazione candidature attive
+### 6. BASSO: `handleSave` in Step3 non aggiorna `job_description` nel draft
+Quando l'utente crea una nuova candidatura, il `job_description` viene salvato nel draft iniziale. Ma se l'utente riprende una bozza senza `job_description` e l'AI viene rieseguita, il `job_description` non viene mai aggiornato.
 
-### Problema
-Il bottone elimina con AlertDialog esiste solo nella sezione bozze. Le candidature attive possono solo cambiare stato.
+### 7. BASSO: Bottom bar in Step3 si sovrappone alla mobile tab bar
+La barra fissa in basso di Step3 (`fixed bottom-0`, riga 832) si sovrappone alla `MobileTabBar` di `AppShell.tsx`. Su mobile, i bottoni "Scarica PDF" e "Salva candidatura" sono parzialmente coperti.
 
-### Soluzione
+**Fix:** Aggiungere `bottom-[calc(3.5rem+env(safe-area-inset-bottom))]` su mobile per la barra di Step3, o usare la classe `md:bottom-0` con un offset su mobile.
 
-**Candidature.tsx:**
-- Aggiungere un bottone "Elimina" nel drawer di dettaglio della candidatura (in fondo, sotto il bottone Salva)
-- Stesso pattern AlertDialog gia' usato per le bozze
-- Stessa funzione `handleDelete` che elimina prima `tailored_cvs` e poi `applications`
-- Chiudere il drawer dopo l'eliminazione
-
----
-
-## 3. Download PDF con Template System (Epic 5)
-
-### Installazione
-- `@react-pdf/renderer` per generare PDF nel browser
-
-### Template: Classico (Free, default)
-Un componente React PDF che riceve il JSON del CV adattato (`tailored_cv`) e genera un PDF A4:
-- Header scuro (#141518) con nome, email, telefono, localita'
-- Body bianco con sezioni: Profilo, Esperienza, Formazione, Competenze, Certificazioni, Progetti
-- Titoli sezione in uppercase con linea sottile
-- Font: DM Sans (registrato via Google Fonts TTF)
-- Competenze come testo inline separato da " . "
-- Margini 24mm
-
-### Template: Minimal (Free)
-- Sfondo bianco, nessun header colorato
-- Nome grande, dati contatto separati da " | "
-- Linea sottile tra sezioni
-- Font: Inter
-- Margini 22mm
-
-### Integrazione nello Step 3 del wizard
-
-**Nuova.tsx (Step 3):**
-- Il bottone "Scarica PDF" (attualmente disabilitato) apre un Drawer
-- Il Drawer contiene:
-  - Pannello ATS Check (score + lista check colorati)
-  - Pannello Honest Score (accordion, collassato di default)
-  - Template picker (griglia 2 colonne: Classico e Minimal selezionabili, Executive e Moderno con lucchetto "Pro")
-  - Bottone "Scarica PDF" che genera e scarica il file
-- Nome file: `CV-[Nome]-[Azienda].pdf`
-- Upload del PDF su Storage (bucket `cv-exports`) e salvataggio URL in `tailored_cvs.pdf_url`
-
-### Drawer Candidature (download da candidature salvate)
-- Nel drawer di dettaglio delle candidature attive, aggiungere un bottone "Scarica PDF" che:
-  - Carica `tailored_cvs.tailored_data` dal DB
-  - Genera il PDF con il template salvato
-  - Trigger download
-
----
-
-## File coinvolti
-
-| File | Modifica |
-|------|----------|
-| `src/pages/Nuova.tsx` | Query param `draft`, caricamento bozza da DB, URL state per step, drawer export PDF, template picker |
-| `src/pages/Candidature.tsx` | Navigate con `?draft=<id>`, bottone elimina nel drawer attivi, bottone scarica PDF |
-| `src/components/cv-templates/ClassicoTemplate.tsx` | **Nuovo** — template PDF Classico con @react-pdf/renderer |
-| `src/components/cv-templates/MinimalTemplate.tsx` | **Nuovo** — template PDF Minimal |
-| `src/components/cv-templates/index.ts` | **Nuovo** — export centralizzato dei template |
-| `src/components/ExportDrawer.tsx` | **Nuovo** — drawer con ATS panel, honest score, template picker, download |
-
-### Migrazione DB
-- Creare bucket Storage `cv-exports` (se non esiste)
-- Aggiungere colonna `pdf_url` a `tailored_cvs` (se non esiste gia')
-
----
+### 8. BASSO: Tipo `as any` eccessivo
+Molti cast `as any` nelle query Supabase (`update({ ... } as any)`, `insert({ ... } as any)`). Questo nasconde errori di tipo e potrebbe causare problemi runtime se i nomi delle colonne non corrispondono.
 
 ## Ordine di implementazione
 
-1. Ripresa bozze (query params + caricamento da DB)
-2. Eliminazione candidature attive (bottone nel drawer)
-3. Template PDF (Classico + Minimal con @react-pdf/renderer)
-4. Export Drawer (ATS panel + template picker + download)
-5. Integrazione nel wizard Step 3 e nel drawer Candidature
+1. Fix duplicati `tailored_cvs` (bug 1) — critico per integrita' dati
+2. Fix `draftLoaded` ref (bug 5) — blocca la ripresa di bozze diverse
+3. Fix note non salvate (bug 3) — funzionalita' visibile rotta
+4. Fix bottom bar overlap su mobile (bug 7) — UX
+5. Fix Step1 back navigation (bug 2) — UX
+6. Fix foto profilo URL privato (bug 4) — richiede migrazione
+
+## File coinvolti
+
+| File | Bug | Modifica |
+|------|-----|----------|
+| `src/pages/Nuova.tsx` | 1, 2, 5, 7 | Upsert tailored_cvs, passare jobData a Step1, fix ref, fix bottom bar |
+| `src/pages/Candidature.tsx` | 3 | Leggere/salvare notes, aggiungere al tipo AppRow |
 
