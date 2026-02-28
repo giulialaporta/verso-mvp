@@ -70,61 +70,68 @@ function applyPatches(
   return result;
 }
 
-const SYSTEM_PROMPT = `Sei un esperto career coach e specialista ATS per il mercato italiano ed europeo.
+const SYSTEM_PROMPT = `You are an expert career coach and ATS specialist for the European job market.
 
-Confronta il CV del candidato con l'annuncio di lavoro e produci un'analisi completa.
+## CRITICAL RULE — LANGUAGE IN = LANGUAGE OUT
+Before generating ANY content, detect the language of the JOB POSTING.
+ALL CV modifications (summary, bullets, descriptions, skill labels, suggestions, notes, diff reasons) MUST be written in the SAME LANGUAGE as the job posting.
+- English job posting → English CV output
+- Italian job posting → Italian CV output
+- German job posting → German CV output
+This rule is ABSOLUTE. No exceptions. Report the detected language in the detected_language field.
 
-## OUTPUT RICHIESTO
+Compare the candidate's CV with the job posting and produce a comprehensive analysis.
+
+## REQUIRED OUTPUT
 
 ### 1. MATCH SCORE (0-100)
-Percentuale di compatibilità complessiva tra CV e annuncio.
+Overall compatibility percentage between CV and job posting.
 
 ### 2. ATS SCORE (0-100)
-Punteggio di compatibilità con sistemi ATS. Valuta 7 check specifici:
-- **keywords**: Le keyword dell'annuncio sono presenti nel CV?
-- **format**: Il formato è ATS-friendly (no tabelle, colonne, header/footer)?
-- **dates**: Le date sono in formato standard e consistente?
-- **measurable**: I risultati sono quantificati con numeri/percentuali?
-- **cliches**: Assenza di frasi vuote ("team player", "problem solver" senza contesto)?
-- **sections**: Tutte le sezioni standard sono presenti (summary, experience, education, skills)?
-- **action_verbs**: I bullet point iniziano con verbi d'azione forti?
+ATS compatibility score. Evaluate 7 specific checks:
+- **keywords**: Are the job posting keywords present in the CV?
+- **format**: Is the format ATS-friendly (no tables, columns, headers/footers)?
+- **dates**: Are dates in a standard, consistent format?
+- **measurable**: Are results quantified with numbers/percentages?
+- **cliches**: No empty phrases ("team player", "problem solver" without context)?
+- **sections**: Are all standard sections present (summary, experience, education, skills)?
+- **action_verbs**: Do bullet points start with strong action verbs?
 
 ### 3. SKILLS ANALYSIS
-- skills_present: lista di competenze richieste dall'annuncio con indicazione se il candidato le ha
-- skills_missing: competenze mancanti con livello di importanza (essenziale/importante/utile)
+- skills_present: list of skills required by the job with indication whether the candidate has them
+- skills_missing: missing skills with importance level (essential/important/nice_to_have)
 
 ### 4. SENIORITY MATCH
-Confronta il livello di seniority del candidato con quello richiesto dal ruolo.
+Compare the candidate's seniority level with what the role requires.
 
 ### 5. TAILORED PATCHES
-Restituisci SOLO le sezioni del CV che hai modificato, come array di patch.
-Ogni patch ha:
-- path: percorso nel JSON del CV (es. "summary", "experience[0].bullets", "skills.technical")
-- value: il nuovo valore per quel campo
+Return ONLY the CV sections you modified, as an array of patches.
+Each patch has:
+- path: JSON path in the CV (e.g. "summary", "experience[0].bullets", "skills.technical")
+- value: the new value for that field
 
-NON restituire l'intero CV. Restituisci SOLO i campi che hai effettivamente cambiato.
-Percorsi validi: "summary", "experience[N].description", "experience[N].bullets", "skills.technical", "skills.soft", "skills.tools"
+Do NOT return the entire CV. Return ONLY the fields you actually changed.
+Valid paths: "summary", "experience[N].description", "experience[N].bullets", "skills.technical", "skills.soft", "skills.tools"
 
 ### 6. HONEST SCORE
-Verifica di onestà delle modifiche apportate.
+Honesty verification of the modifications made.
 
 ### 7. DIFF
-Lista delle modifiche apportate.
+List of changes made.
 
-## REGOLE FONDAMENTALI
-- **LANGUAGE IN = LANGUAGE OUT**: Rileva la lingua dell'annuncio di lavoro. TUTTE le modifiche al CV (summary, bullets, description, skill labels, suggerimenti, note, diff) DEVONO essere nella STESSA LINGUA dell'annuncio. Se l'annuncio è in inglese, il CV generato deve essere in inglese. Se è in italiano, in italiano. Se è in tedesco, in tedesco. Questa regola è ASSOLUTA e non ammette eccezioni.
-- MAI inventare esperienze, competenze o certificazioni
-- MAI modificare date, nomi aziende, titoli di studio, gradi, foto
-- MAI toccare extra_sections, dati personali, photo_base64
-- Puoi SOLO modificare: summary, description/bullets delle esperienze, ordine delle skill
-- Ogni patch path DEVE corrispondere a un campo esistente nel CV originale (eccetto nuove skill)
+## FUNDAMENTAL RULES
+- NEVER invent experiences, skills, or certifications
+- NEVER modify dates, company names, degree titles, grades, photos
+- NEVER touch extra_sections, personal data, photo_base64
+- You may ONLY modify: summary, description/bullets of experiences, skill ordering
+- Every patch path MUST correspond to an existing field in the original CV (except new skills)
 
-## CALIBRAZIONE MERCATO ITALIANO
-- Laurea triennale = Bachelor, Laurea magistrale = Master
-- Considera albi professionali (ingegneri, avvocati, commercialisti)
-- Riconosci certificazioni italiane ed europee (ECDL, Cambridge, DELF, ecc.)
+## EUROPEAN MARKET CALIBRATION
+- Laurea triennale = Bachelor's degree, Laurea magistrale = Master's degree
+- Consider professional registers (engineers, lawyers, accountants)
+- Recognize Italian and European certifications (ECDL, Cambridge, DELF, etc.)
 
-Rispondi SOLO con il tool function call richiesto.`;
+Respond ONLY with the required tool function call.`;
 
 const TOOL_SCHEMA = {
   type: "function",
@@ -134,13 +141,17 @@ const TOOL_SCHEMA = {
     parameters: {
       type: "object",
       properties: {
+        detected_language: {
+          type: "string",
+          description: "ISO 639-1 language code detected from the job posting (e.g. 'en', 'it', 'de')",
+        },
         match_score: {
           type: "number",
-          description: "Punteggio di match 0-100",
+          description: "Overall match score 0-100",
         },
         ats_score: {
           type: "number",
-          description: "Punteggio ATS 0-100",
+          description: "ATS compatibility score 0-100",
         },
         skills_present: {
           type: "array",
@@ -159,7 +170,7 @@ const TOOL_SCHEMA = {
             type: "object",
             properties: {
               label: { type: "string" },
-              importance: { type: "string", enum: ["essenziale", "importante", "utile"] },
+              importance: { type: "string", enum: ["essential", "important", "nice_to_have"], description: "Priority of the missing skill for this job" },
             },
             required: ["label", "importance"],
           },
@@ -189,16 +200,16 @@ const TOOL_SCHEMA = {
         },
         tailored_patches: {
           type: "array",
-          description: "Array di modifiche da applicare al CV originale. Solo i campi effettivamente cambiati.",
+          description: "Array of patches to apply to the original CV. Only fields that were actually changed.",
           items: {
             type: "object",
             properties: {
               path: {
                 type: "string",
-                description: "Percorso nel JSON del CV (es. 'summary', 'experience[0].bullets', 'skills.technical')",
+                description: "JSON path in the CV (e.g. 'summary', 'experience[0].bullets', 'skills.technical')",
               },
               value: {
-                description: "Nuovo valore per il campo (stringa, array, oggetto)",
+                description: "New value for the field (string, array, or object)",
               },
             },
             required: ["path", "value"],
@@ -244,6 +255,7 @@ const TOOL_SCHEMA = {
         },
       },
       required: [
+        "detected_language",
         "match_score",
         "ats_score",
         "skills_present",
@@ -338,7 +350,7 @@ Deno.serve(async (req) => {
           { role: "system", content: SYSTEM_PROMPT },
           {
             role: "user",
-            content: `CV ORIGINALE:\n${JSON.stringify(compactedCV)}\n\nANNUNCIO DI LAVORO:\n${JSON.stringify(job_data)}`,
+            content: `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}`,
           },
         ],
         tools: [TOOL_SCHEMA],
