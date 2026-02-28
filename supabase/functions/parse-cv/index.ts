@@ -113,8 +113,8 @@ serve(async (req) => {
             contentType: img.ext === "jpg" ? "image/jpeg" : "image/png",
           });
         if (!uploadErr) {
-          const { data: urlData } = supabase.storage.from("cv-uploads").getPublicUrl(photoPath);
-          photoUrl = urlData?.publicUrl || null;
+          const { data: urlData } = await supabase.storage.from("cv-uploads").createSignedUrl(photoPath, 60 * 60 * 24 * 365);
+          photoUrl = urlData?.signedUrl || null;
         }
       }
     } catch (e) {

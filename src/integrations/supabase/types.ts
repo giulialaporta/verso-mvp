@@ -23,6 +23,7 @@ export type Database = {
           job_description: string | null
           job_url: string | null
           match_score: number | null
+          notes: string | null
           role_title: string
           status: string
           template_id: string | null
@@ -37,6 +38,7 @@ export type Database = {
           job_description?: string | null
           job_url?: string | null
           match_score?: number | null
+          notes?: string | null
           role_title: string
           status?: string
           template_id?: string | null
@@ -51,6 +53,7 @@ export type Database = {
           job_description?: string | null
           job_url?: string | null
           match_score?: number | null
+          notes?: string | null
           role_title?: string
           status?: string
           template_id?: string | null

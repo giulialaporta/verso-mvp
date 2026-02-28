@@ -50,6 +50,7 @@ type AppRow = {
   match_score: number | null;
   status: string;
   created_at: string;
+  notes: string | null;
 };
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
@@ -99,7 +100,7 @@ export default function Candidature() {
     if (!user) return;
     supabase
       .from("applications")
-      .select("id, company_name, role_title, match_score, status, created_at")
+      .select("id, company_name, role_title, match_score, status, created_at, notes")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -126,7 +127,7 @@ export default function Candidature() {
   const handleOpenDetail = (app: AppRow) => {
     setSelectedApp(app);
     setDrawerStatus(app.status.toLowerCase());
-    setDrawerNotes("");
+    setDrawerNotes(app.notes || "");
   };
 
   const handleStatusSave = async () => {
@@ -134,11 +135,11 @@ export default function Candidature() {
     try {
       const { error } = await supabase
         .from("applications")
-        .update({ status: drawerStatus })
+        .update({ status: drawerStatus, notes: drawerNotes || null } as any)
         .eq("id", selectedApp.id);
       if (error) throw error;
       setApps((prev) =>
-        prev?.map((a) => (a.id === selectedApp.id ? { ...a, status: drawerStatus } : a))
+        prev?.map((a) => (a.id === selectedApp.id ? { ...a, status: drawerStatus, notes: drawerNotes || null } : a))
       );
       toast.success("Stato aggiornato.");
       setSelectedApp(null);
