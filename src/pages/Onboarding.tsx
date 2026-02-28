@@ -15,6 +15,7 @@ import {
   ArrowRight,
 } from "@phosphor-icons/react";
 import { CVSections } from "@/components/CVSections";
+import { CVSuggestions } from "@/components/CVSuggestions";
 import type { ParsedCV } from "@/types/cv";
 
 type Step = "upload" | "parsing" | "preview";
@@ -242,17 +243,19 @@ export default function Onboarding() {
                       <Check size={24} className="text-primary" weight="bold" />
                     </div>
                     <h2 className="font-display text-xl font-bold">CV analizzato</h2>
-                    <p className="text-sm text-muted-foreground">Ecco cosa abbiamo estratto. Verifica che sia corretto.</p>
+                    <p className="text-sm text-muted-foreground">Clicca su qualsiasi campo per modificarlo.</p>
                   </div>
 
-                  <CVSections data={parsedData} />
+                  <CVSections data={parsedData} editable onUpdate={setParsedData} />
+
+                  <CVSuggestions data={parsedData} onUpdate={setParsedData} />
 
                   <p className="text-center text-xs text-muted-foreground/60 italic">
                     Verso conosce solo quello che hai scritto nel tuo CV. Nessuna informazione inventata.
                   </p>
 
                   <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
-                    {saving ? "Salvataggio..." : "Tutto corretto, continua"}
+                    {saving ? "Salvataggio..." : "Salva e continua"}
                     <ArrowRight size={16} />
                   </Button>
                 </CardContent>
