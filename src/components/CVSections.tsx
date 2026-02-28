@@ -368,41 +368,22 @@ export function CVSections({
                     />
                   </div>
                 )}
-                <p className="font-medium text-sm pr-14">
-                  <E value={exp.role || ""} path={`experience.${i}.role`} placeholder="Ruolo" />
-                </p>
+                <p className="font-medium text-sm pr-14">{exp.role || ""}</p>
                 <p className="text-xs text-muted-foreground">
-                  <E value={exp.company || ""} path={`experience.${i}.company`} placeholder="Azienda" />
-                  {" · "}
-                  <E value={exp.location || ""} path={`experience.${i}.location`} placeholder="Luogo" />
+                  {exp.company || ""}{exp.location ? ` · ${exp.location}` : ""}
                 </p>
                 <p className="text-xs text-muted-foreground/60">
-                  <E value={exp.start || ""} path={`experience.${i}.start`} placeholder="Inizio" />
-                  {" – "}
-                  <E value={exp.end || (exp.current ? "Attuale" : "")} path={`experience.${i}.end`} placeholder="Fine" />
+                  {exp.start || ""}{" – "}{exp.end || (exp.current ? "Attuale" : "")}
                 </p>
-                {(exp.description || editable) && (
-                  <p className="text-xs text-foreground/70 mt-1">
-                    <E value={exp.description || ""} path={`experience.${i}.description`} multiline placeholder="Descrizione..." />
-                  </p>
+                {exp.description && (
+                  <p className="text-xs text-foreground/70 mt-1">{exp.description}</p>
                 )}
-                {editable ? (
-                  <div className="mt-1.5">
-                    <EditableSkillChips
-                      items={exp.bullets || []}
-                      onChange={(bullets) => update(`experience.${i}.bullets`, bullets)}
-                      variant="outline"
-                      placeholder="Aggiungi bullet..."
-                    />
-                  </div>
-                ) : (
-                  exp.bullets && exp.bullets.length > 0 && (
-                    <ul className="mt-1 space-y-0.5 list-disc list-inside">
-                      {exp.bullets.map((b, j) => (
-                        <li key={j} className="text-xs text-foreground/70">{b}</li>
-                      ))}
-                    </ul>
-                  )
+                {exp.bullets && exp.bullets.length > 0 && (
+                  <ul className="mt-1 space-y-0.5 list-disc list-inside">
+                    {exp.bullets.map((b, j) => (
+                      <li key={j} className="text-xs text-foreground/70">{b}</li>
+                    ))}
+                  </ul>
                 )}
               </div>
             ))}
@@ -442,41 +423,23 @@ export function CVSections({
                   </div>
                 )}
                 <p className="font-medium text-sm pr-14">
-                  <E value={edu.degree || ""} path={`education.${i}.degree`} placeholder="Titolo" />
-                  {(edu.field || editable) && (
-                    <>
-                      {" in "}
-                      <E value={edu.field || ""} path={`education.${i}.field`} placeholder="Campo" />
-                    </>
-                  )}
+                  {edu.degree || ""}{edu.field ? ` in ${edu.field}` : ""}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  <E value={edu.institution || ""} path={`education.${i}.institution`} placeholder="Istituto" />
-                </p>
+                <p className="text-xs text-muted-foreground">{edu.institution || ""}</p>
                 <p className="text-xs text-muted-foreground/60">
-                  <E value={edu.start || ""} path={`education.${i}.start`} placeholder="Inizio" />
-                  {" – "}
-                  <E value={edu.end || ""} path={`education.${i}.end`} placeholder="Fine" />
+                  {edu.start || ""}{" – "}{edu.end || ""}
                 </p>
-                {(edu.grade || editable) && (
-                  <p className="text-xs text-primary mt-0.5">
-                    <E value={edu.grade || ""} path={`education.${i}.grade`} placeholder="Voto" />
-                  </p>
+                {edu.grade && (
+                  <p className="text-xs text-primary mt-0.5">{edu.grade}</p>
                 )}
-                {(edu.honors) && (
-                  <p className="text-xs text-primary/80 mt-0.5 italic">
-                    <E value={edu.honors || ""} path={`education.${i}.honors`} placeholder="Menzioni" />
-                  </p>
+                {edu.honors && (
+                  <p className="text-xs text-primary/80 mt-0.5 italic">{edu.honors}</p>
                 )}
-                {(edu.program) && (
-                  <p className="text-xs text-secondary mt-0.5">
-                    <E value={edu.program || ""} path={`education.${i}.program`} placeholder="Programma" />
-                  </p>
+                {edu.program && (
+                  <p className="text-xs text-secondary mt-0.5">{edu.program}</p>
                 )}
-                {(edu.publication) && (
-                  <p className="text-xs text-foreground/60 mt-0.5">
-                    <E value={edu.publication || ""} path={`education.${i}.publication`} placeholder="Tesi / Pubblicazione" />
-                  </p>
+                {edu.publication && (
+                  <p className="text-xs text-foreground/60 mt-0.5">{edu.publication}</p>
                 )}
               </div>
             ))}
@@ -620,20 +583,9 @@ export function CVSections({
             {data.certifications.map((cert, i) => (
               <div key={i} className="flex items-start gap-2">
                 <p className="text-sm flex-1 min-w-0">
-                  <E value={cert.name} path={`certifications.${i}.name`} placeholder="Nome certificazione" />
-                  {(cert.issuer || editable) && (
-                    <span className="text-muted-foreground">
-                      {" — "}
-                      <E value={cert.issuer || ""} path={`certifications.${i}.issuer`} placeholder="Ente" />
-                    </span>
-                  )}
-                  {(cert.year || editable) && (
-                    <span className="text-muted-foreground">
-                      {" ("}
-                      <E value={cert.year || ""} path={`certifications.${i}.year`} placeholder="Anno" />
-                      {")"}
-                    </span>
-                  )}
+                  {cert.name}
+                  {cert.issuer && <span className="text-muted-foreground"> — {cert.issuer}</span>}
+                  {cert.year && <span className="text-muted-foreground"> ({cert.year})</span>}
                 </p>
                 {editable && (
                   <ItemActions
@@ -662,35 +614,19 @@ export function CVSections({
             {data.projects.map((proj, i) => (
               <div key={i} className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">
-                    <E value={proj.name} path={`projects.${i}.name`} placeholder="Nome progetto" />
-                  </p>
-                  {(proj.description || editable) && (
-                    <p className="text-xs text-foreground/70 mt-0.5">
-                      <E value={proj.description || ""} path={`projects.${i}.description`} multiline placeholder="Descrizione..." />
-                    </p>
+                  <p className="font-medium text-sm">{proj.name}</p>
+                  {proj.description && (
+                    <p className="text-xs text-foreground/70 mt-0.5">{proj.description}</p>
                   )}
-                  {editable ? (
-                    <div className="inline-flex items-center gap-1 text-xs mt-0.5">
-                      <LinkIcon size={12} className="text-secondary shrink-0" />
-                    <InlineEdit
-                        value={proj.link || ""}
-                        onChange={(v) => update(`projects.${i}.link`, v)}
-                        placeholder="https://..."
-                        showIcon={false}
-                      />
-                    </div>
-                  ) : (
-                    proj.link && (
-                      <a
-                        href={proj.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-secondary hover:underline mt-0.5"
-                      >
-                        <LinkIcon size={12} /> {proj.link}
-                      </a>
-                    )
+                  {proj.link && (
+                    <a
+                      href={proj.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-secondary hover:underline mt-0.5"
+                    >
+                      <LinkIcon size={12} /> {proj.link}
+                    </a>
                   )}
                 </div>
                 {editable && (
