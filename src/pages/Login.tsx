@@ -13,6 +13,7 @@ export default function Login() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -58,12 +59,79 @@ export default function Login() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Email di recupero inviata! Controlla la tua casella di posta.");
+      setIsForgot(false);
+    } catch (error: any) {
+      toast.error(error.message || "Errore durante l'invio dell'email di recupero");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     const { error } = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
     if (error) toast.error(error.message);
   };
+
+  // Forgot password view
+  if (isForgot) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm space-y-8">
+          <div className="text-center">
+            <h1 className="font-display text-4xl font-extrabold tracking-tight">
+              VERS<span className="text-primary">O</span>
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Recupera la tua password
+            </p>
+          </div>
+
+          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+            <CardContent className="pt-6">
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="tu@esempio.com"
+                    required
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? "Invio in corso..." : "Invia link di recupero"}
+                </Button>
+              </form>
+
+              <p className="mt-4 text-center text-sm text-muted-foreground">
+                <button
+                  type="button"
+                  className="text-primary underline-offset-4 hover:underline"
+                  onClick={() => setIsForgot(false)}
+                >
+                  Torna al login
+                </button>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -107,7 +175,18 @@ export default function Login() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {!isSignUp && (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+                      onClick={() => setIsForgot(true)}
+                    >
+                      Password dimenticata?
+                    </button>
+                  )}
+                </div>
                 <Input
                   id="password"
                   type="password"
