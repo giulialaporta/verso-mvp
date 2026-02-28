@@ -1,205 +1,142 @@
 
+# Revisione completa Verso -- Bug, Ottimizzazioni, Mancanze
 
-# Piano completo: Tailoring a due livelli + Approvazione interattiva modifiche
+## BUG CRITICI
 
-## Panoramica
+### 1. `Nuova.tsx` -- `useEffect` per `decisions` reinizializza lo stato quando non dovrebbe
+**Linea 688-695**: `useEffect` che inizializza `decisions` dipende da `result`, ma `result` cambia anche quando l'utente modifica il CV inline in Step 3 (via `handleTailoredCvChange` che fa `setTailorResult({...tailorResult, tailored_cv: updatedCv})`). Ogni modifica inline resetta tutte le approvazioni.
 
-Due macro-modifiche integrate nell'architettura esistente:
+**Fix**: Usare un ref per tracciare se le decisions sono gia' state inizializzate, oppure usare `useState` con inizializzatore lazy basato sull'ID del result.
 
-1. **Tailoring a due livelli** -- L'AI opera sia a livello strutturale (rimuovere/riordinare/condensare sezioni) sia a livello contenuto (riformulare). Il CV risultante e' conciso ed efficace.
-2. **Approvazione/rifiuto per ogni modifica** -- Nello Step 2, l'utente vede ogni modifica suggerita e puo' approvare o rifiutare singolarmente. Solo le modifiche approvate vengono applicate al CV finale in Step 3.
+### 2. `Nuova.tsx` -- Selective patching non gestisce correttamente le structural_changes
+**Linea 731-735**: Le structural changes vengono correlate alle patch tramite `sc.section` (es. "experience"), ma le patch usano path come "experience" (array intero). Se una structural change e' "condensed" su `experience[0].bullets` e un'altra e' "removed" su `experience`, condividono lo stesso path "experience" ma dovrebbero essere gestite separatamente. La logica attuale le confonde.
 
----
+**Fix**: Aggiungere un campo `patch_path` esplicito anche alle `structural_changes` nel tool schema, oppure usare indici di correlazione.
 
-## 1. Modifiche a `ai-tailor` (backend)
+### 3. `Nuova.tsx` -- `applyPatchesFrontend` crasha su path con target null/undefined
+**Linea 640-644**: Se un segmento intermedio del path e' null/undefined e si tenta `target[idx]`, restituisce undefined e la riga successiva fallisce con "Cannot set properties of undefined".
 
-### 1a. System prompt: due livelli + sinteticita'
+**Fix**: Aggiungere un guard `if (!target) return result;` nel loop.
 
-Aggiungere al prompt esistente due nuove sezioni:
+### 4. `Nuova.tsx` -- `useAnimatedCounter` non si resetta tra navigazioni
+**Linea 179-199**: `startedRef.current` non si resetta mai. Se l'utente torna allo Step 2 con un nuovo risultato, il counter non si rianima.
 
-```text
-## TWO-LEVEL TAILORING
+**Fix**: Aggiungere `target` come dipendenza per resettare `startedRef`.
 
-### Level 1 -- STRUCTURAL (what to keep/remove/reorder)
-- REMOVE experiences completely irrelevant to the target role
-- REORDER experiences by relevance to the job (most relevant first)
-- CONDENSE verbose bullet lists (max 4-5 bullets per experience, keep only impactful ones)
-- REMOVE irrelevant projects, certifications, or extra sections
-- If education is not the candidate's strength for this role, keep it minimal
+### 5. `Home.tsx` -- `master_cvs` query non ordina per `created_at`
+**Linea 389-392**: La query `select("*").eq("user_id", user.id).limit(1)` non specifica un ordine. Potrebbe restituire un CV vecchio invece dell'ultimo caricato.
 
-### Level 2 -- CONTENT (how to rewrite what remains)
-- Summary: 2-3 sentences maximum, specific to this role
-- Bullets: action verb + measurable result, one line each
-- Skills: ordered by relevance, remove generic/obvious ones
+**Fix**: Aggiungere `.order("created_at", { ascending: false })`.
 
-## CONCISENESS RULE
-Be as concise and effective as possible.
-A well-targeted 1-page CV beats a generic 3-page CV.
-Every word must earn its place. Remove filler, cliches, and redundancy.
-If a section adds no value for THIS specific role, remove it entirely.
-```
+### 6. `Candidature.tsx` -- `ats_score` acceduto con `(app as any).ats_score` in Home ma non selezionato nella query di Candidature
+**Linea 103**: La query seleziona `match_score` ma non `ats_score`, pero' il tipo `AppRow` in Home lo include. Inconsistenza tra le due pagine.
 
-### 1b. Aggiornare le FUNDAMENTAL RULES
+**Fix**: Aggiungere `ats_score` al tipo `AppRow` in `Candidature.tsx` e alla query select.
 
-Sostituire la riga "You may ONLY modify: summary, description/bullets of experiences, skill ordering" con regole ampliate:
+### 7. `Onboarding.tsx` -- Nessuna gestione di CV multipli
+**Linea 95**: `insert` aggiunge sempre un nuovo master_cv senza eliminare il precedente. L'utente puo' accumulare CV multipli, e le edge functions prendono sempre l'ultimo.
 
-```text
-- You CAN remove entire experience/education/project entries if irrelevant to the target role
-- You CAN reorder entries by relevance
-- You CAN reduce the number of bullets per experience
-- You CAN remove entire extra_sections if not relevant
-- You CANNOT invent new experiences, degrees, or certifications
-- You CANNOT modify dates, company names, degree titles, grades
-- You CANNOT touch personal data or photo_base64
-```
+**Fix**: Prima di inserire, fare `delete` dei master_cvs esistenti per lo stesso user_id, oppure fare upsert.
 
-### 1c. Aggiornare i valid paths per le patch
+### 8. `ExportDrawer.tsx` -- PDF template Classico manca certificazioni nel PDF
+**ClassicoTemplate.tsx**: Il template non renderizza le `certifications` ne' i `projects` dal CV. Informazioni perse nell'export.
 
-Cambiare l'istruzione sui valid paths da singoli campi ad array interi:
-
-```text
-Valid paths include full arrays: "experience", "education", "certifications", "projects", "extra_sections"
-As well as individual fields: "summary", "experience[N].bullets", "skills.technical", etc.
-When removing or reordering entries, return the entire array with entries removed/reordered.
-```
-
-### 1d. Nuovo campo nel tool schema: `structural_changes`
-
-Aggiungere al tool schema per tracciare le modifiche strutturali:
-
-```json
-{
-  "structural_changes": {
-    "type": "array",
-    "description": "List of structural changes made (removals, reorders, condensations)",
-    "items": {
-      "type": "object",
-      "properties": {
-        "action": { "type": "string", "enum": ["removed", "reordered", "condensed"] },
-        "section": { "type": "string" },
-        "item": { "type": "string", "description": "What was affected" },
-        "reason": { "type": "string" }
-      },
-      "required": ["action", "section", "item", "reason"]
-    }
-  }
-}
-```
-
-### 1e. Aggiungere `patch_path` al diff schema
-
-Ogni entry nel `diff` deve puntare alla patch corrispondente:
-
-```json
-{
-  "patch_path": {
-    "type": "string",
-    "description": "Corresponding path in tailored_patches for this change"
-  }
-}
-```
-
-### 1f. Mantenere `tailored_patches` nella risposta
-
-Attualmente la riga `delete result.tailored_patches` rimuove le patch dalla risposta. Rimuovere questa riga per conservare sia `tailored_patches` che `tailored_cv` nella risposta al frontend.
+**Fix**: Aggiungere sezioni certifications e projects ai template PDF.
 
 ---
 
-## 2. Modifiche al frontend (`Nuova.tsx`)
+## BUG MINORI
 
-### 2a. Aggiornare il tipo `TailorResult`
+### 9. `StepCVAdattato` -- doppia fetch del CV originale
+**Linea 1509-1520**: Viene fatto un fetch separato del master CV per la tab "Originale", ma `result.original_cv` e' gia' disponibile nella risposta di `ai-tailor`. Il fetch e' ridondante e puo' fallire.
 
-Aggiungere i nuovi campi:
+**Fix**: Usare `result.original_cv` se disponibile, con fallback al fetch.
 
-```typescript
-type TailorResult = {
-  // ... campi esistenti ...
-  tailored_patches?: Array<{ path: string; value: unknown }>;
-  structural_changes?: Array<{
-    action: "removed" | "reordered" | "condensed";
-    section: string;
-    item: string;
-    reason: string;
-  }>;
-  diff: {
-    section: string;
-    index?: number;
-    original: string;
-    suggested: string;
-    reason: string;
-    patch_path?: string;  // NUOVO
-  }[];
-};
-```
+### 10. `CVSections.tsx` -- experience con `role` vuoto mostra stringa vuota
+**Linea 371**: Se `exp.role` e' vuoto (ad es. dopo "Aggiungi esperienza"), viene mostrata una stringa vuota. UX confusa.
 
-### 2b. Trasformare Step 2 (StepAnalisi) con approvazione interattiva
+**Fix**: Mostrare placeholder "Ruolo non specificato" quando role e' vuoto.
 
-Dopo le card di score/skills/ATS, la sezione "Modifiche suggerite" diventa interattiva:
+### 11. `Nuova.tsx` -- Step 3 bottom bar offset sbagliato su desktop
+**Linea 1585**: `md:bottom-0 md:pl-64` presume una sidebar di 256px (16rem), ma la sidebar e' collassabile. Quando collassata, il padding e' eccessivo.
 
-**Stato interno:**
-- `diffDecisions: Record<number, "approved" | "rejected">` -- inizializzato con tutte le modifiche "approved" di default
+**Fix**: Usare un approccio responsive che considera lo stato della sidebar, o rimuovere il padding fisso.
 
-**UI per ogni modifica:**
-```text
-+-----------------------------------------------------+
-| SUMMARY                           [Approva] [Rifiuta]|
-| --------------------------------------------------- |
-| Originale: "Sono un professionista con..."           |
-| (barrato, grigio)                                    |
-|                                                      |
-| Suggerito: "Software engineer con 3 anni di..."     |
-| (verde)                                              |
-|                                                      |
-| Motivo: "Riformulato per il ruolo target"            |
-+-----------------------------------------------------+
-```
-
-- Bottone CheckCircle (verde) = approvato (default)
-- Bottone XCircle (rosso) = rifiutato
-- Card rifiutata: opacita' ridotta, bordo rosso
-- Sopra la lista: contatore "4/6 modifiche approvate"
-- Bottoni batch: "Approva tutte" / "Rifiuta tutte"
-
-**Sezione modifiche strutturali:**
-Se presenti `structural_changes`, mostrarle prima dei diff come card informative:
-- "Rimossa: Cameriere - Ristorante Da Mario" con motivo
-- Ciascuna con bottoni approva/rifiuta
-
-### 2c. Ricostruzione CV selettiva (passaggio Step 2 -> Step 3)
-
-Quando l'utente clicca "Vedi il CV adattato":
-
-1. Prendere il CV originale (dal master_cv gia' disponibile nel result)
-2. Filtrare `tailored_patches` mantenendo solo quelle corrispondenti ai diff/structural_changes approvati (correlazione via `patch_path` o indice)
-3. Applicare `applyPatches(originalCV, approvedPatches)` lato frontend (la funzione `applyPatches` e' gia' presente in `ai-tailor` -- va duplicata nel frontend)
-4. Il risultato diventa il `tailored_cv` usato nello Step 3
-
-Questo richiede anche che il frontend riceva il CV originale. Opzioni:
-- Il backend gia' restituisce `master_cv_id` -- il frontend puo' fare un fetch dal DB
-- Oppure aggiungere `original_cv` alla risposta di `ai-tailor`
-
-Scelta: aggiungere `original_cv` alla risposta (senza `photo_base64`) per evitare un round-trip aggiuntivo.
-
-### 2d. Aggiornamento del bottone "Vedi il CV adattato"
-
-Il bottone passa il CV ricostruito (con solo le patch approvate) a Step 3 invece del `tailored_cv` completo.
+### 12. Brand system -- Colori non allineati al design doc
+**index.css**: `--primary: 145 62% 55%` (#3DDC84) non corrisponde al brand system che specifica `--color-accent: #A8FF78`. Il verde usato e' diverso da quello specificato. Anche `--secondary` e' mappato a surface-2 invece di Arctic Blue (#5DBBFF).
 
 ---
 
-## File coinvolti
+## OTTIMIZZAZIONI
 
-| File | Modifica |
-|------|----------|
-| `supabase/functions/ai-tailor/index.ts` | Prompt a due livelli, sinteticita', `structural_changes` nel schema, `patch_path` nei diff, conservare `tailored_patches` e `original_cv` nella risposta |
-| `src/pages/Nuova.tsx` | Tipo `TailorResult` aggiornato, stato `diffDecisions`, UI approvazione/rifiuto con contatore, rendering `structural_changes`, ricostruzione CV selettiva con `applyPatches` frontend, bottoni batch |
+### 13. `Nuova.tsx` -- File monolitico di 1898 righe
+Il file contiene 5 componenti complessi (StepAnnuncio, StepVerifica, StepAnalisi, StepCVAdattato, Nuova) tutti nello stesso file. Difficile da mantenere e debuggare.
+
+**Fix**: Estrarre ogni Step in un file separato sotto `src/components/nuova/`.
+
+### 14. `as any` diffuso ovunque
+Contati 15+ occorrenze di `as any` per aggirare i tipi Supabase. Questo nasconde errori a compile-time.
+
+**Fix**: Usare i tipi generati da Supabase (`Tables`, `TablesInsert`, `TablesUpdate`) dove possibile. Per campi JSONB, fare cast espliciti.
+
+### 15. Duplicazione StatusChip e STATUS_STYLES
+`StatusChip` e `STATUS_STYLES` sono definiti identici in `Home.tsx` e `Candidature.tsx`.
+
+**Fix**: Estrarre in `src/components/StatusChip.tsx`.
+
+### 16. `compactCV` duplicata in 2 edge functions
+La funzione `compactCV` e' identica in `ai-prescreen` e `ai-tailor`.
+
+**Fix**: Creare un modulo condiviso `supabase/functions/_shared/utils.ts` e importarlo in entrambe.
+
+### 17. No error boundary
+Nessun error boundary React nell'app. Un crash in un componente figlio fa cadere l'intera app.
+
+**Fix**: Aggiungere un `ErrorBoundary` wrapper in `App.tsx`.
+
+### 18. `renderCV` e `renderEditableCV` in StepCVAdattato sono quasi identici
+**Linea 1183-1453**: Due funzioni di ~270 righe ciascuna con l'80% di codice duplicato.
+
+**Fix**: Unificare in un singolo componente `CVRenderer` con prop `editable`.
 
 ---
 
-## Ordine di implementazione
+## MANCANZE FUNZIONALI
 
-1. Aggiornare il system prompt e il tool schema di `ai-tailor` (due livelli, sinteticita', `structural_changes`, `patch_path`, conservare patches + original_cv)
-2. Aggiornare i tipi e lo stato in `Nuova.tsx` (TailorResult, diffDecisions)
-3. Implementare l'UI di approvazione/rifiuto nello Step 2 con contatore e bottoni batch
-4. Implementare `applyPatches` nel frontend e la ricostruzione selettiva nel passaggio Step 2 -> Step 3
-5. Rendering delle `structural_changes` con approvazione nel Step 2
+### 19. Nessun profilo utente editabile
+La pagina profilo non esiste. L'utente non puo' cambiare nome, email, o impostazioni.
 
+### 20. Nessun feedback di errore per rate limiting AI
+Quando l'AI restituisce 429, il toast mostra un messaggio generico ma non indica quanto aspettare.
+
+### 21. PDF non include LinkedIn/website/data di nascita
+I template PDF mostrano solo email, telefono, location. Mancano LinkedIn, website, data di nascita se presenti nel CV.
+
+### 22. Nessuna validazione lato client sull'annuncio
+L'utente puo' inviare testo non pertinente (es. una ricetta) come annuncio di lavoro. Nessun check minimo.
+
+### 23. Certifications e Projects mancanti nei PDF template
+Come menzionato nel bug 8, i template PDF ignorano completamente queste sezioni.
+
+---
+
+## PIANO DI IMPLEMENTAZIONE
+
+Ordine per priorita' (bug critici prima, poi ottimizzazioni):
+
+| # | Modifica | File |
+|---|----------|------|
+| 1 | Fix reinizializzazione decisions | `src/pages/Nuova.tsx` |
+| 2 | Fix useAnimatedCounter reset | `src/pages/Nuova.tsx` |
+| 3 | Fix applyPatchesFrontend null guard | `src/pages/Nuova.tsx` |
+| 4 | Fix master_cvs ordering in Home | `src/pages/Home.tsx` |
+| 5 | Fix CV multipli in Onboarding | `src/pages/Onboarding.tsx` |
+| 6 | Usare original_cv dal result invece di fetch | `src/pages/Nuova.tsx` |
+| 7 | Aggiungere certifications/projects ai PDF | `src/components/cv-templates/*.tsx` |
+| 8 | Estrarre StatusChip condiviso | `src/components/StatusChip.tsx`, Home, Candidature |
+| 9 | Fix bottom bar padding desktop | `src/pages/Nuova.tsx` |
+| 10 | Aggiungere LinkedIn/website ai PDF | `src/components/cv-templates/*.tsx` |
+| 11 | Aggiungere ats_score alla query Candidature | `src/pages/Candidature.tsx` |
+| 12 | Aggiungere ErrorBoundary | `src/components/ErrorBoundary.tsx`, `src/App.tsx` |
+
+Le ottimizzazioni strutturali (split Nuova.tsx, rimozione `as any`, shared utils) possono essere fatte in un secondo momento per non introdurre regressioni.
