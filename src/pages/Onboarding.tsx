@@ -28,6 +28,8 @@ export default function Onboarding() {
   const [parsedData, setParsedData] = useState<ParsedCV | null>(null);
   const [saving, setSaving] = useState(false);
   const [filePath, setFilePath] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [rawText, setRawText] = useState<string | null>(null);
 
   const handleFile = useCallback((f: File) => {
     if (f.type !== "application/pdf") {
@@ -74,6 +76,8 @@ export default function Onboarding() {
       if (data?.error) throw new Error(data.error);
 
       setParsedData(data.parsed_data);
+      setPhotoUrl(data.photo_url || null);
+      setRawText(data.raw_text || null);
       setStep("preview");
     } catch (e: any) {
       console.error("Parse error:", e);
@@ -92,7 +96,10 @@ export default function Onboarding() {
         parsed_data: parsedData as any,
         file_name: file?.name || null,
         file_url: filePath || null,
-      });
+        raw_text: rawText || null,
+        source: "upload",
+        photo_url: photoUrl || null,
+      } as any);
 
       if (error) throw error;
       toast.success("CV salvato con successo!");

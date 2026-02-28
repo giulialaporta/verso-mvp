@@ -37,35 +37,26 @@ Confronta il livello di seniority del candidato con quello richiesto dal ruolo.
 - note: breve spiegazione
 
 ### 5. CV ADATTATO
-CV riformulato che enfatizza le esperienze rilevanti, riformula le descrizioni per allinearsi ai requisiti, e riordina le sezioni per massimizzare l'impatto.
+CV riformulato con la STESSA STRUTTURA dell'originale (inclusi tutti i campi: personal, summary, experience con role/company/location/start/end/current/description/bullets, education con tutti i campi, skills come oggetto con technical/soft/tools/languages, certifications, projects, extra_sections).
 
 ### 6. HONEST SCORE
-Verifica di onestà delle modifiche apportate. Per ogni categoria, conta le occorrenze:
-- experiences_added: esperienze inventate (DEVE essere 0)
-- skills_invented: competenze inventate (DEVE essere 0)
-- dates_modified: date modificate (DEVE essere 0)
-- bullets_repositioned: bullet riordinati per priorità
-- bullets_rewritten: bullet riformulati (non inventati)
-- sections_removed: sezioni rimosse
-- confidence: 0-100, quanto sei sicuro che il CV adattato sia onesto
-- flags: lista di eventuali problemi riscontrati
+Verifica di onestà delle modifiche apportate.
 
 ### 7. DIFF
-Lista delle modifiche apportate con testo originale, testo suggerito e motivazione.
+Lista delle modifiche apportate.
 
-## REGOLE FONDAMENTALI DI ONESTÀ
-- MAI inventare esperienze, competenze o certificazioni che non esistono nel CV originale
-- MAI modificare date di inizio/fine di esperienze o formazione
-- MAI cambiare nomi di aziende, istituzioni o titoli di studio
-- MAI aggiungere certificazioni o qualifiche non presenti
-- Puoi riformulare, enfatizzare, riordinare e rimuovere — mai aggiungere informazioni false
-- Il CV adattato deve contenere SOLO informazioni presenti nell'originale
+## REGOLE FONDAMENTALI
+- MAI inventare esperienze, competenze o certificazioni
+- MAI modificare date, nomi aziende, titoli di studio, gradi, foto
+- MAI toccare extra_sections, dati personali, photo_base64
+- Puoi SOLO modificare: summary, description/bullets delle esperienze, ordine delle skill
+- Il tailored_cv DEVE contenere TUTTE le sezioni dell'originale, incluse extra_sections
+- Se l'originale ha photo_base64, passarlo invariato nel tailored_cv
 
 ## CALIBRAZIONE MERCATO ITALIANO
 - Laurea triennale = Bachelor, Laurea magistrale = Master
 - Considera albi professionali (ingegneri, avvocati, commercialisti)
 - Riconosci certificazioni italiane ed europee (ECDL, Cambridge, DELF, ecc.)
-- Il formato europeo (Europass) è diffuso ma non sempre ottimale per ATS
 
 Rispondi SOLO con il tool function call richiesto.`;
 
@@ -95,7 +86,6 @@ const TOOL_SCHEMA = {
             },
             required: ["label", "has"],
           },
-          description: "Competenze richieste con indicazione se il candidato le ha",
         },
         skills_missing: {
           type: "array",
@@ -107,7 +97,6 @@ const TOOL_SCHEMA = {
             },
             required: ["label", "importance"],
           },
-          description: "Competenze mancanti con importanza",
         },
         seniority_match: {
           type: "object",
@@ -118,7 +107,6 @@ const TOOL_SCHEMA = {
             note: { type: "string" },
           },
           required: ["candidate_level", "role_level", "match", "note"],
-          description: "Confronto seniority candidato vs ruolo",
         },
         ats_checks: {
           type: "array",
@@ -132,20 +120,78 @@ const TOOL_SCHEMA = {
             },
             required: ["check", "label", "status"],
           },
-          description: "7 check ATS specifici",
         },
         tailored_cv: {
           type: "object",
-          description: "CV adattato con stessa struttura dell'originale ma contenuto ottimizzato",
+          description: "CV adattato con stessa struttura arricchita dell'originale",
           properties: {
             personal: { type: "object" },
+            photo_base64: { type: "string" },
             summary: { type: "string" },
-            experience: { type: "array", items: { type: "object" } },
-            education: { type: "array", items: { type: "object" } },
-            skills: { type: "array", items: { type: "string" } },
+            experience: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  role: { type: "string" },
+                  company: { type: "string" },
+                  location: { type: "string" },
+                  start: { type: "string" },
+                  end: { type: "string" },
+                  current: { type: "boolean" },
+                  description: { type: "string" },
+                  bullets: { type: "array", items: { type: "string" } },
+                },
+              },
+            },
+            education: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  institution: { type: "string" },
+                  degree: { type: "string" },
+                  field: { type: "string" },
+                  start: { type: "string" },
+                  end: { type: "string" },
+                  grade: { type: "string" },
+                  honors: { type: "string" },
+                  program: { type: "string" },
+                  publication: { type: "string" },
+                },
+              },
+            },
+            skills: {
+              type: "object",
+              properties: {
+                technical: { type: "array", items: { type: "string" } },
+                soft: { type: "array", items: { type: "string" } },
+                tools: { type: "array", items: { type: "string" } },
+                languages: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      language: { type: "string" },
+                      level: { type: "string" },
+                      descriptor: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
             certifications: { type: "array", items: { type: "object" } },
             projects: { type: "array", items: { type: "object" } },
-            languages: { type: "array", items: { type: "object" } },
+            extra_sections: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  items: { type: "array", items: { type: "string" } },
+                },
+              },
+            },
           },
         },
         honest_score: {
@@ -161,7 +207,6 @@ const TOOL_SCHEMA = {
             flags: { type: "array", items: { type: "string" } },
           },
           required: ["confidence", "experiences_added", "skills_invented", "dates_modified", "bullets_repositioned", "bullets_rewritten", "sections_removed", "flags"],
-          description: "Verifica di onestà delle modifiche",
         },
         diff: {
           type: "array",
@@ -176,7 +221,16 @@ const TOOL_SCHEMA = {
             },
             required: ["section", "original", "suggested", "reason"],
           },
-          description: "Lista delle modifiche apportate",
+        },
+        suggestions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              type: { type: "string" },
+              message: { type: "string" },
+            },
+          },
         },
       },
       required: [
@@ -277,6 +331,20 @@ Deno.serve(async (req) => {
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("AI error:", aiResponse.status, errText);
+
+      if (aiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Troppi tentativi. Riprova tra qualche momento." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (aiResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Crediti AI esauriti." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
         JSON.stringify({ error: "Errore durante l'analisi AI." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -304,7 +372,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Include master_cv_id for later saving
     result.master_cv_id = masterCV.id;
 
     return new Response(JSON.stringify(result), {

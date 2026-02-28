@@ -1,10 +1,64 @@
 export type ParsedCV = {
-  personal: { name?: string; email?: string; phone?: string; location?: string; linkedin?: string };
+  personal: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    location?: string;
+    date_of_birth?: string;
+    linkedin?: string;
+    website?: string;
+  };
+  photo_base64?: string;
+
   summary?: string;
-  experience?: { title: string; company: string; period: string; description: string }[];
-  education?: { degree: string; institution: string; period: string }[];
-  skills?: string[];
-  certifications?: { name: string; year: string }[];
-  projects?: { name: string; description: string }[];
-  languages?: { language: string; level: string }[];
+
+  experience?: {
+    role: string;
+    company: string;
+    location?: string;
+    start?: string;
+    end?: string;
+    current?: boolean;
+    description?: string;
+    bullets?: string[];
+  }[];
+
+  education?: {
+    institution: string;
+    degree: string;
+    field?: string;
+    start?: string;
+    end?: string;
+    grade?: string;
+    honors?: string;
+    program?: string;
+    publication?: string;
+  }[];
+
+  skills?: {
+    technical?: string[];
+    soft?: string[];
+    tools?: string[];
+    languages?: {
+      language: string;
+      level?: string;
+      descriptor?: string;
+    }[];
+  };
+
+  certifications?: {
+    name: string;
+    issuer?: string;
+    year?: string;
+  }[];
+
+  projects?: {
+    name: string;
+    description?: string;
+  }[];
+
+  extra_sections?: {
+    title: string;
+    items: string[];
+  }[];
 };
