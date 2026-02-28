@@ -76,6 +76,7 @@ Deno.serve(async (req) => {
       let jobText = "";
       try {
         const pageResponse = await fetch(url, {
+          signal: AbortSignal.timeout(10000),
           headers: {
             "User-Agent": "Mozilla/5.0 (compatible; VersoBot/1.0)",
             Accept: "text/html,application/xhtml+xml",
