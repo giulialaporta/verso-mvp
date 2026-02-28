@@ -1,105 +1,107 @@
 
 
-# Modifica Inline Completa: Edit, Add e Remove nel CV Onboarding
+# Ottimizzazione Token AI -- Piano di Implementazione
 
-## Cosa cambia
+## Panoramica
 
-L'utente nello step "preview" dell'onboarding potra':
-- **Modificare** qualsiasi campo cliccandoci sopra (inline edit)
-- **Aggiungere** nuovi elementi (competenze, strumenti, bullet, certificazioni, ecc.)
-- **Rimuovere** singoli elementi (una competenza, un bullet, una certificazione, una lingua, un item di extra_section) -- ma MAI cancellare un'intera sezione
-- **Ricevere suggerimenti** da Verso su sezioni mancanti da popolare
-
-## Comportamento UX
-
-- **Edit**: click su un campo testuale, diventa input. Enter/blur conferma, Escape annulla. Icona matita al hover.
-- **Add**: mini-input con placeholder "Aggiungi..." in fondo alle liste (skills, bullets, certificazioni, ecc.). Enter per aggiungere. Bottone "+ Esperienza", "+ Certificazione" per aggiungere elementi complessi.
-- **Remove**: icona "X" su ogni elemento rimovibile (chip, bullet, certificazione, progetto, item di extra_section). Click per rimuovere con fade-out. Le sezioni stesse NON si possono cancellare.
-- **Suggerimenti**: pannello sotto la preview che mostra sezioni mancanti (es. "Aggiungi strumenti", "Aggiungi lingue"). Click per creare la sezione con input pronto.
-
-## File coinvolti
-
-| File | Azione |
-|------|--------|
-| `src/components/InlineEdit.tsx` | Nuovo -- componente click-to-edit riutilizzabile |
-| `src/components/EditableSkillChips.tsx` | Nuovo -- chips con add/remove |
-| `src/components/CVSuggestions.tsx` | Nuovo -- pannello suggerimenti sezioni mancanti |
-| `src/components/CVSections.tsx` | Aggiornare -- props `editable`/`onUpdate`, wrappare campi con InlineEdit, aggiungere bottoni add/remove |
-| `src/pages/Onboarding.tsx` | Aggiornare -- passare editable mode + integrare suggerimenti |
-
-Nessuna modifica a DB, edge functions, tipi o routing.
+Tre interventi per ridurre i costi token del 30-40% senza toccare precisione o latenza.
 
 ---
 
-## Dettaglio tecnico
+## 1. scrape-job: modello piu' leggero
 
-### 1. `InlineEdit.tsx`
+**Cosa**: cambiare il modello da `google/gemini-2.5-flash` a `google/gemini-2.5-flash-lite`.
 
-Componente con props: `value`, `onChange`, `multiline?`, `placeholder?`, `className?`
-- Stato interno `editing` + `draft`
-- Non editing: mostra testo + icona `PencilSimple` (Phosphor, 12px) visibile solo al hover (`opacity-0 group-hover:opacity-100`)
-- Editing: input o textarea, focus automatico, bordo `border-primary/50`, background `bg-surface-2`
-- Enter conferma (solo input, non textarea), Escape annulla, blur conferma
+**Perche'**: l'estrazione dati da un annuncio e' un task semplice (classificazione + estrazione campi). Flash-lite costa meno, e' piu' veloce, e la precisione su questo tipo di task e' identica.
 
-### 2. `EditableSkillChips.tsx`
+**Modifica**: una riga in `supabase/functions/scrape-job/index.ts`, campo `model`.
 
-Props: `items: string[]`, `onChange: (items: string[]) => void`, `variant?: "primary" | "outline"`
-- Ogni chip mostra una "X" al hover per rimuoverla (fade 150ms)
-- In fondo: mini-input con placeholder "Aggiungi..." (font-mono, 11px). Enter per aggiungere alla lista
-- La rimozione NON rimuove la sezione: se tutte le chip vengono rimosse, resta solo l'input "Aggiungi..."
+---
 
-### 3. `CVSuggestions.tsx`
+## 2. scrape-job: cache URL
 
-Props: `data: ParsedCV`, `onUpdate: (data: ParsedCV) => void`
-- Analizza `data` e mostra chip per ogni sezione mancante:
+**Cosa**: creare una tabella `job_cache` che salva il risultato del parsing per URL. Se lo stesso annuncio viene analizzato di nuovo (stesso utente o altro), si restituisce il risultato dalla cache senza chiamare l'AI.
 
-| Condizione | Suggerimento |
-|------------|--------------|
-| `summary` vuoto | "Aggiungi un profilo professionale" |
-| `skills.tools` vuoto/assente | "Aggiungi gli strumenti che usi" |
-| `skills.soft` vuoto/assente | "Aggiungi competenze trasversali" |
-| `skills.languages` vuoto/assente | "Aggiungi le lingue" |
-| `certifications` vuoto/assente | "Hai certificazioni?" |
-| `projects` vuoto/assente | "Hai progetti personali?" |
-| no `extra_sections` | "Aggiungi sezione personalizzata" |
-| `personal.linkedin` assente | "Aggiungi LinkedIn" |
+**Dettagli**:
+- Nuova tabella `job_cache`: `id`, `url_hash` (MD5 dell'URL, unique), `job_data` (jsonb), `created_at`
+- TTL di 7 giorni: la edge function ignora risultati piu' vecchi
+- Lookup prima della chiamata AI; insert dopo la risposta AI
+- La cache si applica SOLO quando l'input e' un URL (non testo libero)
+- RLS: lettura pubblica (il dato dell'annuncio non e' sensibile), insert solo da service role (la edge function)
 
-- Ogni chip ha icona `Plus`, bordo dashed, colore `text-primary/60`
-- Click: aggiunge il campo/sezione vuota in `data` e chiama `onUpdate` (la sezione apparira' in CVSections in edit mode)
-- Per "sezione personalizzata": mostra un mini-input per il titolo, poi aggiunge un `extra_section` vuota
+**Impatto**: ogni URL ripetuto = 0 token. Utile per annunci virali o candidature multiple allo stesso ruolo.
 
-### 4. `CVSections.tsx` -- aggiornamento
+---
 
-Nuove props opzionali:
+## 3. ai-tailor: output a patch invece di CV completo
+
+**Cosa**: invece di far generare all'AI l'intero `tailored_cv` (che ripete al 80-90% l'originale), farle restituire solo le **modifiche** come array di patch.
+
+**Come funziona**:
+
+L'AI restituisce:
 ```text
-editable?: boolean
-onUpdate?: (data: ParsedCV) => void
+tailored_patches: [
+  { path: "summary", value: "Nuovo summary adattato..." },
+  { path: "experience[0].bullets", value: ["bullet riscritto 1", "bullet 2"] },
+  { path: "skills.technical", value: ["React", "TypeScript", "Node.js"] }
+]
 ```
 
-Quando `editable=true`:
+La edge function poi applica le patch sul CV originale lato server e restituisce il `tailored_cv` completo al frontend. Il frontend non cambia.
 
-**Campi testo** (personal.name, email, phone, location, date_of_birth, linkedin, website, summary, exp.role, exp.company, exp.location, exp.start, exp.end, exp.description, edu.degree, edu.field, edu.institution, edu.grade, cert.name, cert.issuer, cert.year, proj.name, proj.description):
-- Wrappati in `InlineEdit`
+**Modifiche**:
 
-**Liste di stringhe** (skills.technical, skills.soft, skills.tools, exp.bullets, extra_sections.items):
-- Usano `EditableSkillChips` (o una variante lista per bullets/items)
-- Ogni elemento ha una "X" per rimuoverlo
-- Input "Aggiungi..." in fondo
+1. **`supabase/functions/ai-tailor/index.ts`**:
+   - Sostituire `tailored_cv` nel tool schema con `tailored_patches` (array di `{ path, value }`)
+   - Aggiornare il system prompt: "Restituisci SOLO le sezioni modificate come patch, non l'intero CV"
+   - Aggiungere funzione `applyPatches(originalCV, patches)` che produce il CV completo
+   - Compattare il JSON del CV originale prima di inviarlo (rimuovere campi null/vuoti)
+   - Il response al frontend resta identico (contiene `tailored_cv` completo)
 
-**Lingue** (skills.languages):
-- Ogni lingua mostra language + level come chip con "X" per rimuoverla
-- Input in fondo per aggiungere (formato: "Lingua -- Livello")
+2. **Frontend (`src/pages/Nuova.tsx`)**: nessuna modifica. Il contratto API resta lo stesso.
 
-**Certificazioni, Progetti, Experience, Education**:
-- Ogni elemento ha un'icona trash al hover per rimuoverlo
-- Bottone "+ Aggiungi" in fondo alla sezione per aggiungere un elemento vuoto
+**Impatto stimato**: -40-60% sui token di output di ai-tailor (la chiamata piu' costosa del sistema).
 
-**Regola fondamentale**: si possono rimuovere ELEMENTI dalle sezioni, ma le sezioni stesse restano sempre visibili (anche se vuote, con solo l'input "Aggiungi...").
+---
 
-### 5. `Onboarding.tsx` -- aggiornamento
+## 4. ai-tailor: compattazione input JSON
 
-- Nello step preview, passare `editable={true}` e `onUpdate={setParsedData}` a `CVSections`
-- Aggiungere `CVSuggestions` sotto la card di preview
-- Cambiare sottotesto: "Clicca su qualsiasi campo per modificarlo"
-- Cambiare bottone: "Salva e continua"
+**Cosa**: prima di inviare il CV all'AI, rimuovere:
+- Campi con valore `null`, `undefined`, stringa vuota `""`
+- Array vuoti `[]`
+- `photo_base64` (inutile per l'analisi, puo' pesare migliaia di token)
+
+**Come**: funzione utility `compactCV(parsed_data)` nella edge function. Il `photo_base64` viene salvato a parte e reinserito nel `tailored_cv` finale dopo le patch.
+
+**Impatto**: -10-20% sui token di input.
+
+---
+
+## Riepilogo modifiche
+
+| File | Azione |
+|------|--------|
+| `supabase/functions/scrape-job/index.ts` | Cambiare modello a flash-lite + aggiungere lookup/insert cache |
+| `supabase/functions/ai-tailor/index.ts` | Patch-based output + compattazione input + apply patches |
+| Migrazione DB | Creare tabella `job_cache` |
+
+| Cosa NON cambia |
+|------------------|
+| Frontend (Nuova.tsx, tipi, componenti) |
+| Contratto API (request/response shapes) |
+| Precisione dell'analisi |
+| parse-cv (gia' ottimale) |
+
+---
+
+## Impatto complessivo stimato
+
+| Ottimizzazione | Risparmio token |
+|----------------|----------------|
+| scrape-job flash-lite | ~20% costo per chiamata |
+| scrape-job cache URL | 100% per URL ripetuti |
+| ai-tailor patch output | 40-60% token output |
+| ai-tailor compattazione input | 10-20% token input |
+| **Totale stimato** | **30-40% riduzione costi** |
 
