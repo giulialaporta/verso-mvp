@@ -1,82 +1,151 @@
 
 
-# Fix: Lingua CV e Qualita' Parsing
+# EditItemDrawer -- Dove serve in Verso
 
-## Problema 1: L'AI traduce il CV in italiano
+## Il componente
 
-Il system prompt di `parse-cv` e' scritto interamente in italiano ("Sei un esperto parser di CV..."), e le istruzioni utente dicono "Analizza questo CV". Questo spinge il modello a tradurre i contenuti in italiano anche quando il CV e' in inglese.
+Un drawer (bottom sheet su mobile, overlay su desktop) che mostra tutti i campi di un elemento composto in un form verticale scrollabile con input/textarea a larghezza piena. Un unico componente riutilizzabile ovunque.
 
-**Soluzione**: Riscrivere il system prompt in inglese (lingua neutra per l'AI) e aggiungere una regola esplicita:
+## Dove serve
 
-> "CRITICAL: Preserve the EXACT original language of the CV. If the CV is in English, ALL extracted text MUST remain in English. If in Italian, keep it in Italian. NEVER translate any content."
+### 1. Onboarding (preview CV dopo parsing) -- `CVSections.tsx` in modalita' `editable`
 
-Il prompt utente passa da "Analizza questo CV" a "Extract all structured data from this CV using the extract_cv_data tool. Preserve the original language exactly."
+Questo e' il caso primario gia' identificato. Quando l'utente clicca la matitina su:
+- **Esperienza** (role, company, location, start, end, description)
+- **Formazione** (degree, field, institution, start, end, grade, honors, program, publication)
+- **Certificazioni** (name, issuer, year)
+- **Progetti** (name, description, link)
 
----
+Oggi `onEdit={() => {}}` non fa nulla. Col drawer, ogni campo si vede intero e si modifica comodamente.
 
-## Problema 2: Education — degree vs field mal separati
+### 2. Candidature -- dettaglio card (`Candidature.tsx`)
 
-"Qualification to practice as an Engineer in Civil Engineering" viene spezzato male: il degree prende "Qualification to practice as an Engineer" troncato e il field non cattura "Civil Engineering" correttamente.
+Oggi ogni candidatura e' una card statica senza possibilita' di modifica. Il drawer permetterebbe:
+- **Modificare status** (Inviata -> Contattato -> Follow-up -> KO) con selettore
+- **Aggiungere note** libere
+- **Vedere il dettaglio completo**: company, role, score, ATS score, data
 
-**Soluzione**: Aggiungere nel system prompt istruzioni specifiche per education:
+Si aprirebbe toccando la card della candidatura.
 
-> "For degree: use the FULL qualification title as written (e.g., 'Qualification to practice as an Engineer'). For field: use the specialization/discipline (e.g., 'Civil Engineering'). Do NOT split multi-word degree titles arbitrarily."
+### 3. Nuova Candidatura -- Step 1: Job Data confermata (`Nuova.tsx`)
 
----
+Quando l'utente conferma i dati dell'annuncio e vede la card riassuntiva (company, role, requirements, skills), oggi puo' solo "Modifica" per ricominciare. Col drawer potrebbe **editare singoli campi** del job data (company name, role title, requirements) senza ricominciare lo scraping.
 
-## Problema 3: Erasmus non riconosciuto
+### 4. Home -- CV Card (`Home.tsx`)
 
-Il campo `program` esiste nel tool schema ma l'AI non lo popola. Il prompt menziona "program (Erasmus, ecc.)" ma troppo brevemente.
-
-**Soluzione**: Rafforzare la descrizione del campo `program` nello schema:
-
-```
-program: {
-  type: "string",
-  description: "Exchange or special program name (e.g., Erasmus, Erasmus+, Double Degree, Study Abroad). Include the host institution and city if mentioned."
-}
-```
-
-E aggiungere nel prompt: "If any education entry mentions an exchange program, Erasmus, study abroad, or similar, ALWAYS populate the 'program' field with the full program name and location."
+Il CV nella Home e' in sola lettura (`CVSections` senza `editable`). Si potrebbe aggiungere un pulsante "Modifica CV" che apre il drawer per editare i campi del master CV direttamente dalla Home, salvando su DB.
 
 ---
 
-## Problema 4: Enti certificazioni mancanti
+## Piano implementativo
 
-Il campo `issuer` nello schema non ha description. L'AI lo ignora o lo popola male.
+### File nuovi
 
-**Soluzione**: Aggiungere description esplicita:
+| File | Descrizione |
+|------|-------------|
+| `src/components/EditItemDrawer.tsx` | Componente drawer generico con form verticale |
 
-```
-issuer: {
-  type: "string",
-  description: "The organization or institution that issued the certification (e.g., 'Google', 'AWS', 'PMI', 'Ordine degli Ingegneri'). Extract the EXACT issuer name as written in the CV."
-}
-```
-
----
-
-## Problema 5: Honors/publication non mostrati nella UI
-
-I campi `honors`, `program`, `publication` esistono nel tipo ma `CVSections.tsx` non li visualizza nella sezione Education. L'utente non li vede nemmeno se l'AI li estrae.
-
-**Soluzione**: Aggiungere la visualizzazione di questi campi in CVSections, sotto il voto:
-- `honors` (es. "cum laude")
-- `program` (es. "Erasmus Programme — Universidad de Sevilla")
-- `publication` (es. titolo tesi)
-
----
-
-## Riepilogo modifiche
+### File modificati
 
 | File | Modifica |
 |------|----------|
-| `supabase/functions/parse-cv/index.ts` | Riscrivere system prompt in inglese con regola anti-traduzione; migliorare descrizioni schema per education.program, certifications.issuer; rafforzare istruzioni per degree/field split |
-| `src/components/CVSections.tsx` | Aggiungere visualizzazione di honors, program, publication nella sezione Education |
+| `src/components/CVSections.tsx` | Stato `editingItem`, collegamento `onEdit` al drawer, mappa campi per tipo (experience, education, certifications, projects) |
+| `src/pages/Candidature.tsx` | Click su card apre drawer con dettaglio candidatura + modifica status/note |
+| `src/pages/Nuova.tsx` | Pulsante edit su job data card per modificare campi senza restart |
+| `src/pages/Home.tsx` | Pulsante "Modifica CV" sulla CVCard che abilita editing via drawer |
 
-| Cosa NON cambia |
-|------------------|
-| Tipi TypeScript (i campi esistono gia') |
-| Frontend (Nuova.tsx, Onboarding.tsx) |
-| Altre edge functions |
+### Dettaglio tecnico
+
+**`EditItemDrawer.tsx`** -- Props:
+
+```text
+interface EditItemDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  fields: {
+    key: string;
+    label: string;
+    value: string;
+    multiline?: boolean;
+    placeholder?: string;
+  }[];
+  onSave: (values: Record<string, string>) => void;
+}
+```
+
+Internamente:
+- Usa il componente `Drawer` (vaul) gia' installato
+- Form verticale con `Input` per campi brevi, `Textarea` per multiline
+- Label in `font-mono text-[11px] uppercase` (brand system)
+- Pulsante "Salva" verde (CTA primario) in fondo
+- Su mobile: bottom sheet nativo con handle draggable
+- Su desktop: stesso drawer, max-height 85vh con scroll interno
+
+**`CVSections.tsx`** -- Integrazione:
+
+```text
+// Nuovo stato
+const [editingItem, setEditingItem] = useState<{
+  type: "experience" | "education" | "certification" | "project";
+  index: number;
+} | null>(null);
+
+// onEdit collegato
+<ItemActions
+  onEdit={() => setEditingItem({ type: "experience", index: i })}
+  onRemove={...}
+/>
+
+// Mappa campi
+const fieldMaps = {
+  experience: (exp) => [
+    { key: "role", label: "Ruolo", value: exp.role },
+    { key: "company", label: "Azienda", value: exp.company },
+    { key: "location", label: "Luogo", value: exp.location },
+    { key: "start", label: "Data inizio", value: exp.start },
+    { key: "end", label: "Data fine", value: exp.end },
+    { key: "description", label: "Descrizione", value: exp.description, multiline: true },
+  ],
+  // ... education, certifications, projects
+};
+```
+
+**`Candidature.tsx`** -- Drawer dettaglio:
+
+```text
+// Click su AppCard apre drawer
+<div onClick={() => setSelectedApp(app)}>
+  <AppCard app={app} />
+</div>
+
+// Drawer mostra:
+// - Company, role, date, scores
+// - Status selector (chip cliccabili)
+// - Campo note (textarea)
+// - Pulsante salva
+```
+
+**`Nuova.tsx`** -- Edit job data:
+
+```text
+// Nella card confermata, aggiungere pulsante edit
+// che apre drawer con campi: company_name, role_title, location
+// Al salvataggio aggiorna jobData senza ri-scraping
+```
+
+**`Home.tsx`** -- Edit master CV:
+
+```text
+// Aggiungere prop editable + onUpdate a CVCard
+// Pulsante "Modifica" nella CVCard header
+// Al salvataggio: UPDATE su master_cvs.parsed_data
+```
+
+### Priorita'
+
+1. `EditItemDrawer.tsx` (componente base)
+2. `CVSections.tsx` (caso principale: onboarding)
+3. `Candidature.tsx` (dettaglio + status change)
+4. `Nuova.tsx` e `Home.tsx` (miglioramenti secondari)
 
