@@ -102,7 +102,7 @@ function StatsBar({
         },
       ].map((stat) => (
         <Card key={stat.label} className="border-border/40 bg-card/60">
-          <CardContent className="flex flex-col items-center gap-1 py-4 px-2">
+          <CardContent className="flex flex-col items-center gap-1 py-3 px-1 sm:py-4 sm:px-2">
             <stat.icon
               size={20}
               className={stat.accent ? "text-primary" : "text-muted-foreground"}
@@ -153,7 +153,7 @@ function VirginState() {
   ];
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
+    <div className="mx-auto max-w-xl space-y-6 px-4 sm:px-0">
       <div>
         <h1 className="font-display text-3xl font-bold">
           Benvenuto su Verso
@@ -285,15 +285,15 @@ function CVCard({
 
   return (
     <Card className="border-border/50 bg-card/80">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
           <FileText size={18} className="text-primary" />
           <CardTitle className="text-sm font-medium">Il tuo CV</CardTitle>
         </div>
         {cv.file_name && (
-          <span className="font-mono text-xs text-muted-foreground truncate max-w-[180px]">
+          <p className="font-mono text-xs text-muted-foreground break-all mt-1">
             {cv.file_name}
-          </span>
+          </p>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
@@ -434,7 +434,7 @@ export default function Home() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-xl space-y-6">
+      <div className="mx-auto max-w-xl space-y-6 px-4 sm:px-0">
         <div className="space-y-2">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-4 w-64" />
@@ -457,7 +457,7 @@ export default function Home() {
 
   // Dashboard states (CV-only or full)
   return (
-    <div className="mx-auto max-w-xl space-y-5">
+    <div className="mx-auto max-w-xl space-y-5 px-4 sm:px-0">
       {/* Header */}
       <div>
         <h1 className="font-display text-3xl font-bold">
