@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
+import Onboarding from "./pages/Onboarding";
 import AppShell from "./components/AppShell";
 import Home from "./pages/Home";
 import Nuova from "./pages/Nuova";
@@ -24,6 +25,14 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/app/home" replace />} />
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <Onboarding />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/app"
               element={
