@@ -1,142 +1,106 @@
 
-# Revisione completa Verso -- Bug, Ottimizzazioni, Mancanze
+# Match Score intelligente + eliminazione score_breakdown + lingua domande
 
-## BUG CRITICI
+## Panoramica
 
-### 1. `Nuova.tsx` -- `useEffect` per `decisions` reinizializza lo stato quando non dovrebbe
-**Linea 688-695**: `useEffect` che inizializza `decisions` dipende da `result`, ma `result` cambia anche quando l'utente modifica il CV inline in Step 3 (via `handleTailoredCvChange` che fa `setTailorResult({...tailorResult, tailored_cv: updatedCv})`). Ogni modifica inline resetta tutte le approvazioni.
-
-**Fix**: Usare un ref per tracciare se le decisions sono gia' state inizializzate, oppure usare `useState` con inizializzatore lazy basato sull'ID del result.
-
-### 2. `Nuova.tsx` -- Selective patching non gestisce correttamente le structural_changes
-**Linea 731-735**: Le structural changes vengono correlate alle patch tramite `sc.section` (es. "experience"), ma le patch usano path come "experience" (array intero). Se una structural change e' "condensed" su `experience[0].bullets` e un'altra e' "removed" su `experience`, condividono lo stesso path "experience" ma dovrebbero essere gestite separatamente. La logica attuale le confonde.
-
-**Fix**: Aggiungere un campo `patch_path` esplicito anche alle `structural_changes` nel tool schema, oppure usare indici di correlazione.
-
-### 3. `Nuova.tsx` -- `applyPatchesFrontend` crasha su path con target null/undefined
-**Linea 640-644**: Se un segmento intermedio del path e' null/undefined e si tenta `target[idx]`, restituisce undefined e la riga successiva fallisce con "Cannot set properties of undefined".
-
-**Fix**: Aggiungere un guard `if (!target) return result;` nel loop.
-
-### 4. `Nuova.tsx` -- `useAnimatedCounter` non si resetta tra navigazioni
-**Linea 179-199**: `startedRef.current` non si resetta mai. Se l'utente torna allo Step 2 con un nuovo risultato, il counter non si rianima.
-
-**Fix**: Aggiungere `target` come dipendenza per resettare `startedRef`.
-
-### 5. `Home.tsx` -- `master_cvs` query non ordina per `created_at`
-**Linea 389-392**: La query `select("*").eq("user_id", user.id).limit(1)` non specifica un ordine. Potrebbe restituire un CV vecchio invece dell'ultimo caricato.
-
-**Fix**: Aggiungere `.order("created_at", { ascending: false })`.
-
-### 6. `Candidature.tsx` -- `ats_score` acceduto con `(app as any).ats_score` in Home ma non selezionato nella query di Candidature
-**Linea 103**: La query seleziona `match_score` ma non `ats_score`, pero' il tipo `AppRow` in Home lo include. Inconsistenza tra le due pagine.
-
-**Fix**: Aggiungere `ats_score` al tipo `AppRow` in `Candidature.tsx` e alla query select.
-
-### 7. `Onboarding.tsx` -- Nessuna gestione di CV multipli
-**Linea 95**: `insert` aggiunge sempre un nuovo master_cv senza eliminare il precedente. L'utente puo' accumulare CV multipli, e le edge functions prendono sempre l'ultimo.
-
-**Fix**: Prima di inserire, fare `delete` dei master_cvs esistenti per lo stesso user_id, oppure fare upsert.
-
-### 8. `ExportDrawer.tsx` -- PDF template Classico manca certificazioni nel PDF
-**ClassicoTemplate.tsx**: Il template non renderizza le `certifications` ne' i `projects` dal CV. Informazioni perse nell'export.
-
-**Fix**: Aggiungere sezioni certifications e projects ai template PDF.
+Tre interventi:
+1. Aggiungere post-processing deterministico dello score nel backend con una nota sintetica (mai un breakdown tecnico)
+2. Mostrare solo un commento breve sotto il Match Score (es. "Punteggio ridotto per 2 competenze essenziali mancanti")
+3. Assicurarsi che le follow-up questions di ai-prescreen rispettino la lingua dell'annuncio
 
 ---
 
-## BUG MINORI
+## 1. Backend: `ai-tailor/index.ts`
 
-### 9. `StepCVAdattato` -- doppia fetch del CV originale
-**Linea 1509-1520**: Viene fatto un fetch separato del master CV per la tab "Originale", ma `result.original_cv` e' gia' disponibile nella risposta di `ai-tailor`. Il fetch e' ridondante e puo' fallire.
+### 1a. Aggiungere `score_note` al tool schema
 
-**Fix**: Usare `result.original_cv` se disponibile, con fallback al fetch.
+Aggiungere un campo nel tool schema:
 
-### 10. `CVSections.tsx` -- experience con `role` vuoto mostra stringa vuota
-**Linea 371**: Se `exp.role` e' vuoto (ad es. dopo "Aggiungi esperienza"), viene mostrata una stringa vuota. UX confusa.
+```json
+"score_note": {
+  "type": "string",
+  "description": "1-2 sentence explanation of the match score IN THE SAME LANGUAGE as the job posting. Explain key factors affecting the score."
+}
+```
 
-**Fix**: Mostrare placeholder "Ruolo non specificato" quando role e' vuoto.
+Aggiungerlo anche ai `required`.
 
-### 11. `Nuova.tsx` -- Step 3 bottom bar offset sbagliato su desktop
-**Linea 1585**: `md:bottom-0 md:pl-64` presume una sidebar di 256px (16rem), ma la sidebar e' collassabile. Quando collassata, il padding e' eccessivo.
+### 1b. Post-processing deterministico dopo la risposta AI
 
-**Fix**: Usare un approccio responsive che considera lo stato della sidebar, o rimuovere il padding fisso.
+Dopo aver parsato il risultato AI (linea ~492), aggiungere la funzione `adjustScore`:
 
-### 12. Brand system -- Colori non allineati al design doc
-**index.css**: `--primary: 145 62% 55%` (#3DDC84) non corrisponde al brand system che specifica `--color-accent: #A8FF78`. Il verde usato e' diverso da quello specificato. Anche `--secondary` e' mappato a surface-2 invece di Arctic Blue (#5DBBFF).
+```text
+Logica:
+1. Contare skills_missing con importance === "essential" -> essentialMissing
+2. Se essentialMissing >= 3: cap = 30
+   Se essentialMissing === 2: cap = 40
+   Se essentialMissing === 1: cap = 55
+   Altrimenti: cap = 100
+3. Se seniority_match.match === false:
+   - Differenza di 2+ livelli: penalty = 15
+   - Altrimenti: penalty = 5
+4. Contare ats_checks con status === "fail": atsFails * 3
+5. finalScore = min(AI_score, cap) - seniorityPenalty - atsPenalty
+6. Clamp: min 5, max 98
+7. Se il score e' stato modificato, generare una score_note sintetica
+   (in italiano o inglese in base a detected_language)
+```
 
----
+La `score_note` generata dal backend sovrascrive quella dell'AI solo se il punteggio viene modificato. Se il punteggio resta invariato, usare la nota dell'AI.
 
-## OTTIMIZZAZIONI
+Esempio di note generate:
+- IT: "Punteggio ridotto: mancano 2 competenze essenziali per questo ruolo."
+- EN: "Score reduced: 2 essential skills are missing for this role."
+- IT: "Buon match complessivo, lieve penalita' per disallineamento seniority."
 
-### 13. `Nuova.tsx` -- File monolitico di 1898 righe
-Il file contiene 5 componenti complessi (StepAnnuncio, StepVerifica, StepAnalisi, StepCVAdattato, Nuova) tutti nello stesso file. Difficile da mantenere e debuggare.
+### 1c. NON esporre score_breakdown
 
-**Fix**: Estrarre ogni Step in un file separato sotto `src/components/nuova/`.
-
-### 14. `as any` diffuso ovunque
-Contati 15+ occorrenze di `as any` per aggirare i tipi Supabase. Questo nasconde errori a compile-time.
-
-**Fix**: Usare i tipi generati da Supabase (`Tables`, `TablesInsert`, `TablesUpdate`) dove possibile. Per campi JSONB, fare cast espliciti.
-
-### 15. Duplicazione StatusChip e STATUS_STYLES
-`StatusChip` e `STATUS_STYLES` sono definiti identici in `Home.tsx` e `Candidature.tsx`.
-
-**Fix**: Estrarre in `src/components/StatusChip.tsx`.
-
-### 16. `compactCV` duplicata in 2 edge functions
-La funzione `compactCV` e' identica in `ai-prescreen` e `ai-tailor`.
-
-**Fix**: Creare un modulo condiviso `supabase/functions/_shared/utils.ts` e importarlo in entrambe.
-
-### 17. No error boundary
-Nessun error boundary React nell'app. Un crash in un componente figlio fa cadere l'intera app.
-
-**Fix**: Aggiungere un `ErrorBoundary` wrapper in `App.tsx`.
-
-### 18. `renderCV` e `renderEditableCV` in StepCVAdattato sono quasi identici
-**Linea 1183-1453**: Due funzioni di ~270 righe ciascuna con l'80% di codice duplicato.
-
-**Fix**: Unificare in un singolo componente `CVRenderer` con prop `editable`.
+Non aggiungere nessun campo `score_breakdown` alla risposta. Solo `match_score` (numero) e `score_note` (stringa).
 
 ---
 
-## MANCANZE FUNZIONALI
+## 2. Frontend: `Nuova.tsx`
 
-### 19. Nessun profilo utente editabile
-La pagina profilo non esiste. L'utente non puo' cambiare nome, email, o impostazioni.
+### 2a. Aggiornare `TailorResult`
 
-### 20. Nessun feedback di errore per rate limiting AI
-Quando l'AI restituisce 429, il toast mostra un messaggio generico ma non indica quanto aspettare.
+Aggiungere:
+```typescript
+score_note?: string;
+```
 
-### 21. PDF non include LinkedIn/website/data di nascita
-I template PDF mostrano solo email, telefono, location. Mancano LinkedIn, website, data di nascita se presenti nel CV.
+### 2b. Mostrare la nota sotto il Match Score
 
-### 22. Nessuna validazione lato client sull'annuncio
-L'utente puo' inviare testo non pertinente (es. una ricetta) come annuncio di lavoro. Nessun check minimo.
+Sotto la barra del Match Score (linea ~840, dopo la chiusura del progress bar), aggiungere:
 
-### 23. Certifications e Projects mancanti nei PDF template
-Come menzionato nel bug 8, i template PDF ignorano completamente queste sezioni.
+```text
+{result.score_note && (
+  <p className="text-sm text-muted-foreground mt-2">{result.score_note}</p>
+)}
+```
+
+Nessun breakdown tecnico, nessun dettaglio numerico. Solo il commento sintetico.
 
 ---
 
-## PIANO DI IMPLEMENTAZIONE
+## 3. Lingua delle follow-up questions
 
-Ordine per priorita' (bug critici prima, poi ottimizzazioni):
+Le domande vengono da `ai-prescreen/index.ts` che ha gia' la regola "Detect the language of the JOB POSTING. ALL output MUST be in that language." Questo copre le domande.
 
-| # | Modifica | File |
-|---|----------|------|
-| 1 | Fix reinizializzazione decisions | `src/pages/Nuova.tsx` |
-| 2 | Fix useAnimatedCounter reset | `src/pages/Nuova.tsx` |
-| 3 | Fix applyPatchesFrontend null guard | `src/pages/Nuova.tsx` |
-| 4 | Fix master_cvs ordering in Home | `src/pages/Home.tsx` |
-| 5 | Fix CV multipli in Onboarding | `src/pages/Onboarding.tsx` |
-| 6 | Usare original_cv dal result invece di fetch | `src/pages/Nuova.tsx` |
-| 7 | Aggiungere certifications/projects ai PDF | `src/components/cv-templates/*.tsx` |
-| 8 | Estrarre StatusChip condiviso | `src/components/StatusChip.tsx`, Home, Candidature |
-| 9 | Fix bottom bar padding desktop | `src/pages/Nuova.tsx` |
-| 10 | Aggiungere LinkedIn/website ai PDF | `src/components/cv-templates/*.tsx` |
-| 11 | Aggiungere ats_score alla query Candidature | `src/pages/Candidature.tsx` |
-| 12 | Aggiungere ErrorBoundary | `src/components/ErrorBoundary.tsx`, `src/App.tsx` |
+Per le label statiche del frontend ("Aiutaci a conoscerti meglio", "La tua risposta (facoltativa)..."), queste sono in italiano fisso. Dato che il sito e' in italiano, sono gia' corrette. Se in futuro si vuole i18n, si puo' aggiungere, ma per v1 il sito e' italiano.
 
-Le ottimizzazioni strutturali (split Nuova.tsx, rimozione `as any`, shared utils) possono essere fatte in un secondo momento per non introdurre regressioni.
+Le label dei requisiti ("obbligatorio", "preferito", "gradito") nella sezione requirements_analysis sono hardcoded in italiano. Questo e' coerente col sito in italiano.
+
+---
+
+## File coinvolti
+
+| File | Modifica |
+|------|----------|
+| `supabase/functions/ai-tailor/index.ts` | Aggiungere `score_note` al schema, funzione `adjustScore` post-AI, sovrascrivere score e nota se necessario |
+| `src/pages/Nuova.tsx` | Aggiungere `score_note` al tipo, renderizzare sotto il Match Score |
+
+## Ordine
+
+1. Aggiornare il tool schema di ai-tailor con `score_note` + post-processing deterministico
+2. Aggiornare tipo e UI in Nuova.tsx
+3. Deploy edge function
