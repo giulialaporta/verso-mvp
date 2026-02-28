@@ -7,6 +7,38 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function extractFirstImage(bytes: Uint8Array): { data: Uint8Array; ext: string } | null {
+  // Search for JPEG marker FF D8 FF
+  for (let i = 0; i < bytes.length - 3; i++) {
+    if (bytes[i] === 0xFF && bytes[i + 1] === 0xD8 && bytes[i + 2] === 0xFF) {
+      // Find JPEG end marker FF D9
+      for (let j = i + 3; j < bytes.length - 1; j++) {
+        if (bytes[j] === 0xFF && bytes[j + 1] === 0xD9) {
+          const imgBytes = bytes.slice(i, j + 2);
+          if (imgBytes.length > 2000) { // Skip tiny images (icons, decorations)
+            return { data: imgBytes, ext: "jpg" };
+          }
+        }
+      }
+    }
+  }
+  // Search for PNG marker 89 50 4E 47
+  for (let i = 0; i < bytes.length - 8; i++) {
+    if (bytes[i] === 0x89 && bytes[i + 1] === 0x50 && bytes[i + 2] === 0x4E && bytes[i + 3] === 0x47) {
+      // Find PNG end marker IEND
+      for (let j = i + 8; j < bytes.length - 8; j++) {
+        if (bytes[j] === 0x49 && bytes[j + 1] === 0x45 && bytes[j + 2] === 0x4E && bytes[j + 3] === 0x44) {
+          const imgBytes = bytes.slice(i, j + 8);
+          if (imgBytes.length > 2000) {
+            return { data: imgBytes, ext: "png" };
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -55,53 +87,41 @@ serve(async (req) => {
       console.error("Download error:", downloadError);
       return new Response(
         JSON.stringify({ error: "Impossibile scaricare il file" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Extract text from PDF bytes using a basic approach
-    // We send the raw text content to AI for structuring
     const arrayBuffer = await fileData.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
 
-    // Simple PDF text extraction - extract readable strings
-    let rawText = "";
-    const decoder = new TextDecoder("utf-8", { fatal: false });
-    const fullText = decoder.decode(bytes);
-
-    // Extract text between BT/ET blocks and parentheses (PDF text objects)
-    const textMatches = fullText.match(/\(([^)]+)\)/g);
-    if (textMatches) {
-      rawText = textMatches
-        .map((m) => m.slice(1, -1))
-        .filter((t) => t.length > 1 && /[a-zA-ZÀ-ú0-9]/.test(t))
-        .join(" ");
+    // Convert PDF to base64 for multimodal AI input
+    let binaryStr = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binaryStr += String.fromCharCode(bytes[i]);
     }
+    const pdfBase64 = btoa(binaryStr);
 
-    // Fallback: try extracting any readable text
-    if (rawText.length < 50) {
-      rawText = fullText.replace(/[^\x20-\x7EÀ-ú\n\r\t]/g, " ").replace(/\s+/g, " ").trim();
-      // Trim to reasonable size
-      if (rawText.length > 15000) rawText = rawText.substring(0, 15000);
-    }
-
-    if (rawText.length < 20) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "Non è stato possibile estrarre testo dal PDF. Assicurati che il file contenga testo selezionabile.",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Try to extract profile photo from PDF bytes
+    let photoUrl: string | null = null;
+    try {
+      const img = extractFirstImage(bytes);
+      if (img) {
+        const photoPath = `${user.id}/photo_${Date.now()}.${img.ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("cv-uploads")
+          .upload(photoPath, img.data, {
+            contentType: img.ext === "jpg" ? "image/jpeg" : "image/png",
+          });
+        if (!uploadErr) {
+          const { data: urlData } = supabase.storage.from("cv-uploads").getPublicUrl(photoPath);
+          photoUrl = urlData?.publicUrl || null;
         }
-      );
+      }
+    } catch (e) {
+      console.error("Photo extraction failed (non-blocking):", e);
     }
 
-    // Send to Lovable AI for structured extraction
+    // Send PDF to AI as multimodal input
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY not configured");
@@ -116,26 +136,36 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model: "google/gemini-2.5-flash",
           messages: [
             {
               role: "system",
-              content: `Sei un esperto parser di CV. Estrai i dati dal testo di un CV e restituisci SOLO un JSON valido con questa struttura esatta:
-{
-  "personal": { "name": "", "email": "", "phone": "", "location": "", "linkedin": "" },
-  "summary": "",
-  "experience": [{ "title": "", "company": "", "period": "", "description": "" }],
-  "education": [{ "degree": "", "institution": "", "period": "" }],
-  "skills": ["skill1", "skill2"],
-  "certifications": [{ "name": "", "year": "" }],
-  "projects": [{ "name": "", "description": "" }],
-  "languages": [{ "language": "", "level": "" }]
-}
-Riempi solo i campi per cui trovi informazioni. Per array vuoti usa []. Non inventare dati. Rispondi SOLO con il JSON, senza markdown o spiegazioni.`,
+              content: `Sei un esperto parser di CV. Ricevi un PDF e devi estrarre TUTTI i dati in modo strutturato e completo.
+
+REGOLE:
+- Il campo "summary" è OBBLIGATORIO. Se il CV ha una sezione esplicita (Profilo, Summary, Obiettivo, Chi sono), usala. Se NON esiste, sintetizza un profilo professionale di 2-3 frasi basandoti su: ruolo attuale, anni di esperienza, settore principale, competenze distintive. Non inventare nulla: usa solo informazioni presenti nel CV.
+- Per le esperienze, separa SEMPRE la narrativa (description) dai punti elenco (bullets). Se ci sono solo bullets, lascia description vuoto. Se c'è solo narrativa, lascia bullets vuoto.
+- Per le skills, categorizza in 4 gruppi: technical (competenze di dominio), soft (trasversali), tools (software e strumenti), languages (con livello CEFR se indicato).
+- Per l'education, estrai grade (voto), honors (menzioni, lode), program (Erasmus, ecc.), publication (tesi, pubblicazioni).
+- QUALSIASI sezione del CV che NON rientra nelle categorie standard (experience, education, skills, certifications, projects) DEVE essere catturata in extra_sections con il titolo originale della sezione e i contenuti come array di stringhe. Esempi: Hobby, Volontariato, Pubblicazioni, Awards, Conferenze, Portfolio, Referenze, Interessi, Attività extracurriculari, ecc.
+- has_photo: indica true se il CV contiene visivamente una foto del candidato.
+- Estrai TUTTO. Non perdere nessuna informazione presente nel documento.`,
             },
             {
               role: "user",
-              content: `Ecco il testo estratto dal CV:\n\n${rawText}`,
+              content: [
+                {
+                  type: "file",
+                  file: {
+                    filename: "cv.pdf",
+                    file_data: `data:application/pdf;base64,${pdfBase64}`,
+                  },
+                },
+                {
+                  type: "text",
+                  text: "Analizza questo CV ed estrai tutti i dati strutturati usando il tool extract_cv_data.",
+                },
+              ],
             },
           ],
           tools: [
@@ -143,7 +173,7 @@ Riempi solo i campi per cui trovi informazioni. Per array vuoti usa []. Non inve
               type: "function",
               function: {
                 name: "extract_cv_data",
-                description: "Extract structured CV data from raw text",
+                description: "Extract all structured CV data from the document",
                 parameters: {
                   type: "object",
                   properties: {
@@ -154,20 +184,31 @@ Riempi solo i campi per cui trovi informazioni. Per array vuoti usa []. Non inve
                         email: { type: "string" },
                         phone: { type: "string" },
                         location: { type: "string" },
+                        date_of_birth: { type: "string" },
                         linkedin: { type: "string" },
+                        website: { type: "string" },
                       },
                     },
-                    summary: { type: "string" },
+                    has_photo: { type: "boolean" },
+                    summary: {
+                      type: "string",
+                      description: "REQUIRED. Professional summary extracted or synthesized from CV content.",
+                    },
                     experience: {
                       type: "array",
                       items: {
                         type: "object",
                         properties: {
-                          title: { type: "string" },
+                          role: { type: "string" },
                           company: { type: "string" },
-                          period: { type: "string" },
+                          location: { type: "string" },
+                          start: { type: "string" },
+                          end: { type: "string" },
+                          current: { type: "boolean" },
                           description: { type: "string" },
+                          bullets: { type: "array", items: { type: "string" } },
                         },
+                        required: ["role", "company"],
                       },
                     },
                     education: {
@@ -175,21 +216,49 @@ Riempi solo i campi per cui trovi informazioni. Per array vuoti usa []. Non inve
                       items: {
                         type: "object",
                         properties: {
-                          degree: { type: "string" },
                           institution: { type: "string" },
-                          period: { type: "string" },
+                          degree: { type: "string" },
+                          field: { type: "string" },
+                          start: { type: "string" },
+                          end: { type: "string" },
+                          grade: { type: "string" },
+                          honors: { type: "string" },
+                          program: { type: "string" },
+                          publication: { type: "string" },
+                        },
+                        required: ["institution", "degree"],
+                      },
+                    },
+                    skills: {
+                      type: "object",
+                      properties: {
+                        technical: { type: "array", items: { type: "string" } },
+                        soft: { type: "array", items: { type: "string" } },
+                        tools: { type: "array", items: { type: "string" } },
+                        languages: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              language: { type: "string" },
+                              level: { type: "string" },
+                              descriptor: { type: "string" },
+                            },
+                            required: ["language"],
+                          },
                         },
                       },
                     },
-                    skills: { type: "array", items: { type: "string" } },
                     certifications: {
                       type: "array",
                       items: {
                         type: "object",
                         properties: {
                           name: { type: "string" },
+                          issuer: { type: "string" },
                           year: { type: "string" },
                         },
+                        required: ["name"],
                       },
                     },
                     projects: {
@@ -200,20 +269,23 @@ Riempi solo i campi per cui trovi informazioni. Per array vuoti usa []. Non inve
                           name: { type: "string" },
                           description: { type: "string" },
                         },
+                        required: ["name"],
                       },
                     },
-                    languages: {
+                    extra_sections: {
                       type: "array",
+                      description: "Any CV section that doesn't fit standard categories (hobbies, volunteering, awards, publications, etc.)",
                       items: {
                         type: "object",
                         properties: {
-                          language: { type: "string" },
-                          level: { type: "string" },
+                          title: { type: "string", description: "Original section title from the CV" },
+                          items: { type: "array", items: { type: "string" } },
                         },
+                        required: ["title", "items"],
                       },
                     },
                   },
-                  required: ["personal", "skills"],
+                  required: ["personal", "summary"],
                 },
               },
             },
@@ -252,8 +324,7 @@ Riempi solo i campi per cui trovi informazioni. Per array vuoti usa []. Non inve
 
     const aiData = await aiResponse.json();
 
-    // Extract from tool call response
-    let parsedCV;
+    let parsedCV: any;
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
       parsedCV =
@@ -261,7 +332,6 @@ Riempi solo i campi per cui trovi informazioni. Per array vuoti usa []. Non inve
           ? JSON.parse(toolCall.function.arguments)
           : toolCall.function.arguments;
     } else {
-      // Fallback: try parsing from content
       const content = aiData.choices?.[0]?.message?.content || "";
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -274,9 +344,24 @@ Riempi solo i campi per cui trovi informazioni. Per array vuoti usa []. Non inve
       }
     }
 
-    return new Response(JSON.stringify({ parsed_data: parsedCV }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Remove has_photo from parsed data (it's metadata, not CV content)
+    const hasPhoto = parsedCV.has_photo;
+    delete parsedCV.has_photo;
+
+    // Add photo_base64 placeholder if photo was extracted
+    if (photoUrl) {
+      parsedCV.photo_base64 = photoUrl; // We store the URL, not base64
+    }
+
+    return new Response(
+      JSON.stringify({
+        parsed_data: parsedCV,
+        raw_text: "multimodal",
+        has_photo: hasPhoto || false,
+        photo_url: photoUrl,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (e) {
     console.error("parse-cv error:", e);
     return new Response(

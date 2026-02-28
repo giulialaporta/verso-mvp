@@ -558,9 +558,51 @@ function Step3({
   const renderCV = (cv: Record<string, unknown>) => {
     const personal = cv.personal as Record<string, string> | undefined;
     const summary = cv.summary as string | undefined;
-    const experience = cv.experience as Array<Record<string, string>> | undefined;
-    const education = cv.education as Array<Record<string, string>> | undefined;
-    const skills = cv.skills as string[] | undefined;
+    const experience = cv.experience as Array<Record<string, any>> | undefined;
+    const education = cv.education as Array<Record<string, any>> | undefined;
+    const skills = cv.skills as any;
+    const extraSections = cv.extra_sections as Array<{ title: string; items: string[] }> | undefined;
+
+    // Render skills - handle both flat array (legacy) and structured object
+    const renderSkills = () => {
+      if (!skills) return null;
+      if (Array.isArray(skills)) {
+        return (
+          <div>
+            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Competenze</p>
+            <div className="flex flex-wrap gap-1.5">
+              {skills.map((s: string) => (
+                <span key={s} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-mono text-primary">{s}</span>
+              ))}
+            </div>
+          </div>
+        );
+      }
+      const all = [
+        ...(skills.technical || []),
+        ...(skills.soft || []),
+        ...(skills.tools || []),
+      ];
+      return all.length > 0 ? (
+        <div>
+          <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Competenze</p>
+          <div className="flex flex-wrap gap-1.5">
+            {all.map((s: string) => (
+              <span key={s} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-mono text-primary">{s}</span>
+            ))}
+          </div>
+          {skills.languages && skills.languages.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {skills.languages.map((l: any, i: number) => (
+                <span key={i} className="rounded-full border border-border px-2 py-0.5 text-xs text-foreground">
+                  {l.language}{l.level && ` — ${l.level}`}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null;
+    };
 
     return (
       <div className="space-y-4 text-sm">
@@ -582,9 +624,19 @@ function Step3({
             <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Esperienza</p>
             {experience.map((exp, i) => (
               <div key={i} className="mb-2">
-                <p className="font-medium">{exp.title} — {exp.company}</p>
-                {exp.period && <p className="text-muted-foreground text-xs">{exp.period}</p>}
+                <p className="font-medium">{exp.role || exp.title} — {exp.company}</p>
+                <p className="text-muted-foreground text-xs">
+                  {exp.start || exp.period}
+                  {exp.end && ` – ${exp.end}`}
+                  {exp.current && " – Attuale"}
+                  {exp.location && ` · ${exp.location}`}
+                </p>
                 {exp.description && <p className="mt-1">{exp.description}</p>}
+                {exp.bullets && exp.bullets.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-xs">
+                    {exp.bullets.map((b: string, j: number) => <li key={j}>{b}</li>)}
+                  </ul>
+                )}
               </div>
             ))}
           </div>
@@ -594,22 +646,27 @@ function Step3({
             <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Formazione</p>
             {education.map((ed, i) => (
               <div key={i} className="mb-1">
-                <p className="font-medium">{ed.degree} — {ed.institution}</p>
-                {ed.period && <p className="text-muted-foreground text-xs">{ed.period}</p>}
+                <p className="font-medium">
+                  {ed.degree}{ed.field && ` in ${ed.field}`} — {ed.institution}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {ed.start || ed.period}
+                  {ed.end && ` – ${ed.end}`}
+                </p>
+                {ed.grade && <p className="text-xs text-primary">{ed.grade}</p>}
               </div>
             ))}
           </div>
         )}
-        {skills && skills.length > 0 && (
-          <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Competenze</p>
-            <div className="flex flex-wrap gap-1.5">
-              {skills.map((s) => (
-                <span key={s} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-mono text-primary">{s}</span>
-              ))}
-            </div>
+        {renderSkills()}
+        {extraSections && extraSections.length > 0 && extraSections.map((sec, i) => (
+          <div key={i}>
+            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">{sec.title}</p>
+            <ul className="list-disc list-inside text-xs">
+              {sec.items.map((item, j) => <li key={j}>{item}</li>)}
+            </ul>
           </div>
-        )}
+        ))}
       </div>
     );
   };

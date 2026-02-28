@@ -66,6 +66,9 @@ export type Database = {
           file_url: string | null
           id: string
           parsed_data: Json | null
+          photo_url: string | null
+          raw_text: string | null
+          source: string | null
           updated_at: string
           user_id: string
         }
@@ -75,6 +78,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           parsed_data?: Json | null
+          photo_url?: string | null
+          raw_text?: string | null
+          source?: string | null
           updated_at?: string
           user_id: string
         }
@@ -84,6 +90,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           parsed_data?: Json | null
+          photo_url?: string | null
+          raw_text?: string | null
+          source?: string | null
           updated_at?: string
           user_id?: string
         }
