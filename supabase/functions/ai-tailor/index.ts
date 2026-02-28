@@ -82,6 +82,20 @@ This rule is ABSOLUTE. No exceptions. Report the detected language in the detect
 
 Compare the candidate's CV with the job posting and produce a comprehensive analysis.
 
+## SCORE PENALIZATION FOR MANDATORY GAPS
+If the candidate is missing MANDATORY requirements (especially years of experience, required certifications, required degree):
+- If there are UNBRIDGEABLE mandatory gaps: match_score MUST NOT exceed 40%
+- Each mandatory gap reduces the max achievable score significantly
+- Be honest: a candidate missing critical requirements should see a low score
+- Preferred/nice-to-have gaps should have minor impact
+
+## ADDITIONAL CONTEXT FROM CANDIDATE
+If the user section contains "CANDIDATE FOLLOW-UP ANSWERS", use those answers to:
+- Discover implicit skills or experience not explicit in the CV
+- Improve the match analysis with verified candidate information
+- These answers are VERIFIED by the candidate and can be used to enrich the CV tailoring
+- Adjust the score upward if answers reveal relevant hidden experience
+
 ## REQUIRED OUTPUT
 
 ### 1. MATCH SCORE (0-100)
@@ -253,6 +267,21 @@ const TOOL_SCHEMA = {
             },
           },
         },
+        learning_suggestions: {
+          type: "array",
+          description: "For each essential missing skill, suggest 1-2 learning resources (courses, certifications)",
+          items: {
+            type: "object",
+            properties: {
+              skill: { type: "string" },
+              resource_name: { type: "string" },
+              url: { type: "string" },
+              type: { type: "string", enum: ["course", "certification", "tutorial"] },
+              duration: { type: "string", description: "Estimated duration (e.g. '4 weeks', '2 hours')" },
+            },
+            required: ["skill", "resource_name", "url", "type"],
+          },
+        },
       },
       required: [
         "detected_language",
@@ -300,7 +329,7 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    const { job_data } = await req.json();
+    const { job_data, user_answers } = await req.json();
 
     if (!job_data) {
       return new Response(JSON.stringify({ error: "Dati annuncio mancanti" }), {
@@ -350,7 +379,11 @@ Deno.serve(async (req) => {
           { role: "system", content: SYSTEM_PROMPT },
           {
             role: "user",
-            content: `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}`,
+            content: `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}${
+              user_answers && Array.isArray(user_answers) && user_answers.length > 0
+                ? `\n\nCANDIDATE FOLLOW-UP ANSWERS:\n${user_answers.map((a: { question: string; answer: string }) => `Q: ${a.question}\nA: ${a.answer}`).join("\n\n")}`
+                : ""
+            }`,
           },
         ],
         tools: [TOOL_SCHEMA],
