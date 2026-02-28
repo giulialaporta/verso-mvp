@@ -1,84 +1,49 @@
 
 
-# Supporto Bullets e Progetti nel Drawer di Editing
+# Singola icona matita per editare tutta l'esperienza
 
-## Problema
+## Problema attuale
 
-Quando l'utente clicca la matitina su un'esperienza, il drawer mostra solo i campi base (ruolo, azienda, date, descrizione). I **bullets** -- cioe' le attivita' principali svolte nel ruolo (es. "New Customer Journey Strategy...") -- restano come chip piccole troncate, non visibili per intero. Lo stesso vale per i progetti che hanno descrizioni lunghe.
+Ogni esperienza ha DUE meccanismi di modifica in conflitto:
+1. **Inline editing** (`<E>` / `InlineEdit`) su ogni singolo campo (ruolo, azienda, luogo, date, descrizione) -- funziona solo per testo breve
+2. **Drawer** via icona matita -- apre il form completo ma l'utente non capisce che esiste perche' i campi sono gia' editabili inline
+
+I bullets sono editabili come chip (`EditableSkillChips`) ma sono troncati e non si leggono per intero.
 
 ## Soluzione
 
-### 1. Estendere `EditItemDrawer` per supportare campi lista (array di stringhe)
+Rimuovere l'inline editing dai blocchi strutturati (experience, education, certifications, projects). In modalita' `editable`, ogni blocco mostra i dati come **testo normale** (read-only) con una **singola icona matita** che apre il drawer per editare tutto il gruppo di campi insieme.
 
-Aggiungere un nuovo tipo di campo `list` al drawer. Oltre a `string` (Input) e `multiline` (Textarea), il drawer supportera' un campo di tipo lista dove ogni elemento e' una Textarea a larghezza piena, con possibilita' di aggiungere/rimuovere elementi.
+### Modifiche a `src/components/CVSections.tsx`
 
-**Modifica a `DrawerField`:**
+**Experience (righe 357-407):** Sostituire tutte le `<E>` con testo statico. Mantenere solo `ItemActions` con `onEdit` (matita) e `onRemove` (cestino). I bullets si mostrano come lista puntata (non come chip editabili).
 
+Prima:
 ```text
-export type DrawerField = {
-  key: string;
-  label: string;
-  value: string;       // per campi singoli
-  values?: string[];   // per campi lista (bullets)
-  multiline?: boolean;
-  list?: boolean;      // attiva la modalita' lista
-  placeholder?: string;
-};
+<p><E value={exp.role} path={...} /></p>
+<p><E value={exp.company} path={...} /></p>
+<EditableSkillChips items={exp.bullets} ... />
 ```
 
-**Rendering nel drawer per campi `list: true`:**
-- Ogni elemento come Textarea (2-3 righe) con pulsante X per rimuoverlo
-- Pulsante "+ Aggiungi" in fondo alla lista
-- Label mono uppercase come gli altri campi
-
-### 2. Aggiungere bullets ai campi experience nel drawer
-
-Nel `drawerFields` per le esperienze in `CVSections.tsx`, aggiungere in fondo:
-
+Dopo:
 ```text
-{ key: "bullets", label: "Attivita' principali", values: exp.bullets || [], list: true, placeholder: "Descrivi un'attivita'..." }
+<p>{exp.role}</p>
+<p>{exp.company} · {exp.location}</p>
+<ul>{exp.bullets.map(b => <li>{b}</li>)}</ul>
+// Solo la matita apre il drawer con TUTTI i campi
 ```
 
-### 3. Aggiornare `handleDrawerSave` in CVSections
+**Education (righe 430+):** Stesso approccio -- rimuovere inline editing, solo matita per il drawer.
 
-Il salvataggio deve gestire sia valori stringa (`Record<string, string>`) sia valori lista (`Record<string, string | string[]>`). Quando il campo e' di tipo lista, il valore salvato sara' un array.
+**Certifications e Projects:** Stesso approccio.
 
-**Modifica del tipo di ritorno di `onSave`:**
+**Dati personali e Summary:** Restano con inline editing (`<E>`) perche' sono campi singoli non raggruppati, dove l'editing diretto ha senso.
 
-```text
-onSave: (values: Record<string, string | string[]>) => void;
-```
-
-### 4. Aggiungere description ai campi project nel drawer
-
-I progetti gia' hanno il campo `description` come multiline, ma se hanno bullets o sotto-attivita' in futuro, la struttura e' pronta.
-
----
-
-## File modificati
+### Riepilogo cambiamenti
 
 | File | Modifica |
 |------|----------|
-| `src/components/EditItemDrawer.tsx` | Aggiungere supporto per campi `list` (array di textarea con add/remove). Aggiornare tipo `DrawerField` con `values?: string[]` e `list?: boolean`. Aggiornare stato interno e `onSave` per gestire array. |
-| `src/components/CVSections.tsx` | Aggiungere campo `bullets` (list) nel `drawerFields` per experience. Aggiornare `handleDrawerSave` per gestire valori array. |
+| `src/components/CVSections.tsx` | Rimuovere `<E>` e `EditableSkillChips` dai blocchi experience, education, certifications, projects in modalita' editable. Mostrare testo statico + singola matita per il drawer. |
 
-## UX del campo lista nel drawer
+Nessun file nuovo. Il drawer (`EditItemDrawer`) e i suoi campi (`drawerFields`) restano invariati -- sono gia' completi di tutti i campi necessari.
 
-```text
-ATTIVITA' PRINCIPALI
-+--------------------------------------------------+
-| New Customer Journey Strategy definition and      |
-| implementation across all digital touchpoints     |
-+--------------------------------------------------+  [X]
-+--------------------------------------------------+
-| Led cross-functional team of 12 engineers on      |
-| platform migration project                        |
-+--------------------------------------------------+  [X]
-+--------------------------------------------------+
-| Budget management for EUR 2.5M annual portfolio   |
-+--------------------------------------------------+  [X]
-
-[+ Aggiungi attivita']
-```
-
-Ogni textarea si espande automaticamente col contenuto. Il pulsante X rimuove l'elemento. Il pulsante + aggiunge un nuovo campo vuoto in fondo.
