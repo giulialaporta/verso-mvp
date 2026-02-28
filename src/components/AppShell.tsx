@@ -91,51 +91,57 @@ function MobileTabBar() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const isActive = (path: string) => location.pathname === path;
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-14 items-center justify-center gap-8 border-t border-border bg-background/80 backdrop-blur-xl">
-      {/* Home tab */}
-      <button
-        onClick={() => navigate("/app/home")}
-        className="relative flex flex-col items-center gap-0.5 text-xs"
-      >
-        <House
-          size={22}
-          weight={location.pathname === "/app/home" ? "fill" : "regular"}
-          className={location.pathname === "/app/home" ? "text-primary" : "text-muted-foreground"}
-        />
-        <span className={location.pathname === "/app/home" ? "text-primary" : "text-muted-foreground"}>
-          Home
-        </span>
-        {location.pathname === "/app/home" && (
-          <span className="absolute -bottom-1 h-1 w-1 rounded-full bg-primary" />
-        )}
-      </button>
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
+      <div className="flex h-14 items-end justify-around px-4">
+        {/* Home tab */}
+        <button
+          onClick={() => navigate("/app/home")}
+          className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2"
+        >
+          <House
+            size={22}
+            weight={isActive("/app/home") ? "fill" : "regular"}
+            className={isActive("/app/home") ? "text-primary" : "text-muted-foreground"}
+          />
+          <span className={`text-[10px] font-medium ${isActive("/app/home") ? "text-primary" : "text-muted-foreground"}`}>
+            Home
+          </span>
+          {isActive("/app/home") && (
+            <span className="absolute bottom-[calc(env(safe-area-inset-bottom)+2px)] h-1 w-1 rounded-full bg-primary" />
+          )}
+        </button>
 
-      {/* FAB + */}
-      <button
-        onClick={() => navigate("/app/nuova")}
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg -mt-4 transition-transform hover:scale-105 active:scale-95"
-      >
-        <Plus size={24} weight="bold" />
-      </button>
+        {/* FAB + */}
+        <div className="flex flex-col items-center justify-center px-3 -mt-5">
+          <button
+            onClick={() => navigate("/app/nuova")}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-105 active:scale-95"
+          >
+            <Plus size={22} weight="bold" />
+          </button>
+        </div>
 
-      {/* Candidature tab */}
-      <button
-        onClick={() => navigate("/app/candidature")}
-        className="relative flex flex-col items-center gap-0.5 text-xs"
-      >
-        <Briefcase
-          size={22}
-          weight={location.pathname === "/app/candidature" ? "fill" : "regular"}
-          className={location.pathname === "/app/candidature" ? "text-primary" : "text-muted-foreground"}
-        />
-        <span className={location.pathname === "/app/candidature" ? "text-primary" : "text-muted-foreground"}>
-          Candidature
-        </span>
-        {location.pathname === "/app/candidature" && (
-          <span className="absolute -bottom-1 h-1 w-1 rounded-full bg-primary" />
-        )}
-      </button>
+        {/* Candidature tab */}
+        <button
+          onClick={() => navigate("/app/candidature")}
+          className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2"
+        >
+          <Briefcase
+            size={22}
+            weight={isActive("/app/candidature") ? "fill" : "regular"}
+            className={isActive("/app/candidature") ? "text-primary" : "text-muted-foreground"}
+          />
+          <span className={`text-[10px] font-medium ${isActive("/app/candidature") ? "text-primary" : "text-muted-foreground"}`}>
+            Candidature
+          </span>
+          {isActive("/app/candidature") && (
+            <span className="absolute bottom-[calc(env(safe-area-inset-bottom)+2px)] h-1 w-1 rounded-full bg-primary" />
+          )}
+        </button>
+      </div>
     </nav>
   );
 }
@@ -145,7 +151,7 @@ export default function AppShell() {
 
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-background pb-16 pt-6">
+      <div className="min-h-screen bg-background pb-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] pt-4">
         <Outlet />
         <MobileTabBar />
       </div>
