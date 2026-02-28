@@ -146,7 +146,7 @@ function Step1({
   }, [tab, url, text, companyName]);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6 px-4">
       <div>
         <h2 className="font-display text-2xl font-bold">L'annuncio</h2>
         <p className="text-muted-foreground mt-1">Incolla il link o il testo dell'offerta di lavoro.</p>
@@ -321,7 +321,7 @@ function Step2({
 }) {
   if (loading) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-2xl space-y-6 px-4">
         <div>
           <h2 className="font-display text-2xl font-bold">Analisi in corso</h2>
           <p className="text-muted-foreground mt-1">Verso sta confrontando il tuo CV con l'annuncio...</p>
@@ -358,7 +358,7 @@ function Step2({
   if (!result) return null;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6 px-4">
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft size={20} />
@@ -585,7 +585,7 @@ function Step3({
   }, [result.master_cv_id]);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-24">
+    <div className="mx-auto max-w-4xl space-y-6 pb-24 px-4">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
