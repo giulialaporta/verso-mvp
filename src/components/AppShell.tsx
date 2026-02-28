@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { House, PlusCircle, Briefcase, SignOut, List } from "@phosphor-icons/react";
+import { House, Briefcase, SignOut, List } from "@phosphor-icons/react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -19,7 +19,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const navItems = [
   { title: "Home", url: "/app/home", icon: House },
-  { title: "Nuova", url: "/app/nuova", icon: PlusCircle },
   { title: "Candidature", url: "/app/candidature", icon: Briefcase },
 ];
 
@@ -91,20 +90,6 @@ function MobileTabBar() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-border bg-background/80 backdrop-blur-xl">
       {navItems.map((item) => {
         const isActive = location.pathname === item.url;
-        const isNew = item.url === "/app/nuova";
-
-        if (isNew) {
-          return (
-            <button
-              key={item.title}
-              onClick={() => navigate(item.url)}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-            >
-              <PlusCircle size={24} weight="bold" />
-            </button>
-          );
-        }
-
         return (
           <button
             key={item.title}
