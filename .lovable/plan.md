@@ -1,69 +1,82 @@
 
 
-# Fix: Troppe Matitine e Coerenza Lingua
+# Fix: Lingua CV e Qualita' Parsing
 
-## Problema
+## Problema 1: L'AI traduce il CV in italiano
 
-Ogni campo dentro un elemento composto (es. formazione: titolo, campo, istituto, date, voto) mostra la propria matitina tramite `InlineEdit`. Risultato: 5-6 matitine per ogni titolo di studio. L'utente ne vuole UNA per elemento.
+Il system prompt di `parse-cv` e' scritto interamente in italiano ("Sei un esperto parser di CV..."), e le istruzioni utente dicono "Analizza questo CV". Questo spinge il modello a tradurre i contenuti in italiano anche quando il CV e' in inglese.
 
-## Soluzione
+**Soluzione**: Riscrivere il system prompt in inglese (lingua neutra per l'AI) e aggiungere una regola esplicita:
 
-### 1. `InlineEdit.tsx` -- aggiungere prop `showIcon`
+> "CRITICAL: Preserve the EXACT original language of the CV. If the CV is in English, ALL extracted text MUST remain in English. If in Italian, keep it in Italian. NEVER translate any content."
 
-Aggiungere `showIcon?: boolean` (default `true`). Quando `false`, il campo resta cliccabile (hover bg change + cursor pointer) ma non mostra la matitina. Usato per i sotto-campi di elementi composti.
+Il prompt utente passa da "Analizza questo CV" a "Extract all structured data from this CV using the extract_cv_data tool. Preserve the original language exactly."
 
-### 2. `CVSections.tsx` -- rimuovere matitine duplicate
+---
 
-**Regola**: ogni elemento cancellabile ha UNA matitina + UNA X, entrambe in `ItemActions`. I sotto-campi usano `InlineEdit` con `showIcon={false}`.
+## Problema 2: Education — degree vs field mal separati
 
-Modifiche specifiche:
-- Helper `E`: aggiungere prop `showIcon` (default `false` quando dentro un elemento composto)
-- **Experience**: `ItemActions` mostra matitina + trash. Campi role, company, location, date usano `E` senza icona
-- **Education**: idem -- UNA matitina in `ItemActions`, i campi degree, field, institution, date, grade senza icona
-- **Certifications**: idem
-- **Projects**: idem
-- **Lingue**: ogni chip ha UNA matitina + UNA X (gia' ok, ma verificare)
-- **Campi standalone** (summary, personal fields): mantengono `showIcon={true}` perche' non hanno `ItemActions`
+"Qualification to practice as an Engineer in Civil Engineering" viene spezzato male: il degree prende "Qualification to practice as an Engineer" troncato e il field non cattura "Civil Engineering" correttamente.
 
-### 3. Coerenza lingua
+**Soluzione**: Aggiungere nel system prompt istruzioni specifiche per education:
 
-Verificare e uniformare tutti i placeholder e label in italiano:
-- "Clicca per modificare..." gia' ok
-- Controllare che nessun placeholder sia in inglese
-- Uniformare "Aggiungi..." ovunque
+> "For degree: use the FULL qualification title as written (e.g., 'Qualification to practice as an Engineer'). For field: use the specialization/discipline (e.g., 'Civil Engineering'). Do NOT split multi-word degree titles arbitrarily."
 
-## File coinvolti
+---
 
-| File | Modifica |
-|------|----------|
-| `src/components/InlineEdit.tsx` | Aggiungere prop `showIcon` (default `true`) |
-| `src/components/CVSections.tsx` | Passare `showIcon={false}` ai campi dentro elementi composti; aggiungere `onEdit` a `ItemActions` per experience/education/certifications/projects |
+## Problema 3: Erasmus non riconosciuto
 
-## Dettaglio tecnico
+Il campo `program` esiste nel tool schema ma l'AI non lo popola. Il prompt menziona "program (Erasmus, ecc.)" ma troppo brevemente.
 
-### `InlineEdit.tsx`
+**Soluzione**: Rafforzare la descrizione del campo `program` nello schema:
 
-```text
-interface InlineEditProps {
-  ...existing...
-  showIcon?: boolean;  // default true
+```
+program: {
+  type: "string",
+  description: "Exchange or special program name (e.g., Erasmus, Erasmus+, Double Degree, Study Abroad). Include the host institution and city if mentioned."
 }
 ```
 
-Quando `showIcon={false}`, il `<PencilSimple>` non viene renderizzato. Il campo resta cliccabile con hover `bg-muted/30`.
+E aggiungere nel prompt: "If any education entry mentions an exchange program, Erasmus, study abroad, or similar, ALWAYS populate the 'program' field with the full program name and location."
 
-### `CVSections.tsx`
+---
 
-Il helper `E` cambia signature:
+## Problema 4: Enti certificazioni mancanti
 
-```text
-const E = ({ value, path, multiline, placeholder, className, showIcon = false }: ...)
+Il campo `issuer` nello schema non ha description. L'AI lo ignora o lo popola male.
+
+**Soluzione**: Aggiungere description esplicita:
+
+```
+issuer: {
+  type: "string",
+  description: "The organization or institution that issued the certification (e.g., 'Google', 'AWS', 'PMI', 'Ordine degli Ingegneri'). Extract the EXACT issuer name as written in the CV."
+}
 ```
 
-Default `showIcon=false` cosi' tutti i campi dentro elementi composti non mostrano matitina.
+---
 
-Per i campi standalone (summary, personal name/email/phone/etc.) si passa esplicitamente `showIcon={true}` oppure si usa `InlineEdit` direttamente.
+## Problema 5: Honors/publication non mostrati nella UI
 
-`ItemActions` per experience, education, certifications e projects include sempre `onEdit` (la matitina appare accanto alla X). Il click su onEdit non fa nulla di speciale -- i campi sono gia' cliccabili individualmente -- serve solo come indicatore visivo.
+I campi `honors`, `program`, `publication` esistono nel tipo ma `CVSections.tsx` non li visualizza nella sezione Education. L'utente non li vede nemmeno se l'AI li estrae.
 
-Nessuna modifica al backend, ai tipi, o ad altri componenti.
+**Soluzione**: Aggiungere la visualizzazione di questi campi in CVSections, sotto il voto:
+- `honors` (es. "cum laude")
+- `program` (es. "Erasmus Programme — Universidad de Sevilla")
+- `publication` (es. titolo tesi)
+
+---
+
+## Riepilogo modifiche
+
+| File | Modifica |
+|------|----------|
+| `supabase/functions/parse-cv/index.ts` | Riscrivere system prompt in inglese con regola anti-traduzione; migliorare descrizioni schema per education.program, certifications.issuer; rafforzare istruzioni per degree/field split |
+| `src/components/CVSections.tsx` | Aggiungere visualizzazione di honors, program, publication nella sezione Education |
+
+| Cosa NON cambia |
+|------------------|
+| Tipi TypeScript (i campi esistono gia') |
+| Frontend (Nuova.tsx, Onboarding.tsx) |
+| Altre edge functions |
+
