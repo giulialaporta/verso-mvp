@@ -175,11 +175,18 @@ async function callAI(jobText: string) {
       messages: [
         {
           role: "system",
-          content: `Estrai i dati chiave da un annuncio di lavoro. Rispondi SOLO con JSON valido, senza markdown.`,
+          content: `Extract key data from a job posting. Respond ONLY via the tool call.
+
+## CRITICAL RULE — LANGUAGE IN = LANGUAGE OUT
+Detect the language of the job posting text. ALL extracted fields (role_title, description, key_requirements, required_skills, nice_to_have) MUST be in the SAME language as the job posting.
+- English job posting → English output
+- Italian job posting → Italian output
+- German job posting → German output
+This rule is ABSOLUTE. No exceptions. Never translate content.`,
         },
         {
           role: "user",
-          content: `Ecco il testo dell'annuncio:\n\n${jobText}`,
+          content: `Here is the job posting text:\n\n${jobText}`,
         },
       ],
       tools: [
@@ -187,29 +194,29 @@ async function callAI(jobText: string) {
           type: "function",
           function: {
             name: "extract_job_data",
-            description: "Extract structured job posting data",
+            description: "Extract structured job posting data preserving the original language",
             parameters: {
               type: "object",
               properties: {
-                company_name: { type: "string", description: "Nome dell'azienda" },
-                role_title: { type: "string", description: "Titolo del ruolo" },
-                location: { type: "string", description: "Sede di lavoro" },
-                job_type: { type: "string", description: "Tipo contratto (full-time, part-time, stage, ecc.)" },
-                description: { type: "string", description: "Descrizione completa del ruolo (max 500 parole)" },
+                company_name: { type: "string", description: "Company name" },
+                role_title: { type: "string", description: "Job title (in the original language of the posting)" },
+                location: { type: "string", description: "Work location" },
+                job_type: { type: "string", description: "Contract type (full-time, part-time, internship, etc.)" },
+                description: { type: "string", description: "Full role description (max 500 words, in the original language)" },
                 key_requirements: {
                   type: "array",
                   items: { type: "string" },
-                  description: "3-7 requisiti chiave del candidato ideale",
+                  description: "3-7 key requirements for the ideal candidate (in the original language)",
                 },
                 required_skills: {
                   type: "array",
                   items: { type: "string" },
-                  description: "Competenze tecniche e soft skills richieste",
+                  description: "Required technical and soft skills (in the original language)",
                 },
                 nice_to_have: {
                   type: "array",
                   items: { type: "string" },
-                  description: "Competenze opzionali o preferenziali",
+                  description: "Optional or preferred skills (in the original language)",
                 },
               },
               required: ["company_name", "role_title", "description", "key_requirements", "required_skills"],
