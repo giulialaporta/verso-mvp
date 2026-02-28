@@ -47,6 +47,7 @@ type AppRow = {
   company_name: string;
   role_title: string;
   match_score: number | null;
+  ats_score: number | null;
   status: string;
   created_at: string;
 };
@@ -250,11 +251,18 @@ function RecentApplications({ apps }: { apps: AppRow[] }) {
                 {app.company_name}
               </p>
             </div>
-            {app.match_score !== null && (
-              <span className="font-mono text-sm font-bold text-primary">
-                {app.match_score}%
-              </span>
-            )}
+            <div className="flex gap-1.5 shrink-0">
+              {app.match_score !== null && (
+                <span className="font-mono text-xs font-bold text-primary">
+                  {app.match_score}%
+                </span>
+              )}
+              {(app as any).ats_score !== null && (app as any).ats_score !== undefined && (
+                <span className="font-mono text-xs font-bold text-secondary">
+                  ATS {(app as any).ats_score}%
+                </span>
+              )}
+            </div>
             <StatusChip status={app.status} />
           </div>
         ))}
@@ -385,7 +393,7 @@ export default function Home() {
             .limit(1),
           supabase
             .from("applications")
-            .select("id, company_name, role_title, match_score, status, created_at")
+            .select("id, company_name, role_title, match_score, ats_score, status, created_at")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
             .limit(20),
