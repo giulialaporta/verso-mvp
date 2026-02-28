@@ -129,14 +129,16 @@ function getDomainHint(url: string): string | null {
 // --- Step 1: Job Input ---
 function Step1({
   onConfirm,
+  initialJobData,
 }: {
   onConfirm: (data: JobData, jobUrl?: string, jobText?: string) => void;
+  initialJobData?: JobData | null;
 }) {
   const [tab, setTab] = useState<string>("text");
   const [guideOpen, setGuideOpen] = useState(false);
   const [url, setUrl] = useState("");
-  const [text, setText] = useState("");
-  const [companyName, setCompanyName] = useState("");
+  const [text, setText] = useState(initialJobData?.description || "");
+  const [companyName, setCompanyName] = useState(initialJobData?.company_name || "");
   const [loading, setLoading] = useState(false);
   const [jobData, setJobData] = useState<JobData | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -722,8 +724,14 @@ function Step3({
 
       if (appErr) throw appErr;
 
-      // Create tailored CV with all new fields
-      const { error: cvErr } = await supabase.from("tailored_cvs").insert([{
+      // Upsert tailored CV: check if one already exists for this application
+      const { data: existingTc } = await supabase
+        .from("tailored_cvs")
+        .select("id")
+        .eq("application_id", applicationId)
+        .maybeSingle();
+
+      const tcPayload = {
         user_id: user.id,
         application_id: applicationId,
         master_cv_id: result.master_cv_id,
@@ -738,7 +746,11 @@ function Step3({
         seniority_match: result.seniority_match as unknown as import("@/integrations/supabase/types").Json,
         honest_score: result.honest_score as unknown as import("@/integrations/supabase/types").Json,
         diff: result.diff as unknown as import("@/integrations/supabase/types").Json,
-      } as any]);
+      };
+
+      const { error: cvErr } = existingTc
+        ? await supabase.from("tailored_cvs").update(tcPayload as any).eq("id", existingTc.id)
+        : await supabase.from("tailored_cvs").insert([tcPayload as any]);
 
       if (cvErr) throw cvErr;
 
@@ -829,7 +841,7 @@ function Step3({
       </div>
 
       {/* Fixed bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-md p-4 md:pl-64">
+      <div className="fixed bottom-14 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-md p-4 md:bottom-0 md:pl-64">
         <div className="mx-auto max-w-4xl flex gap-3">
           <Button variant="outline" className="flex-1 gap-2" onClick={() => setExportOpen(true)}>
             <DownloadSimple size={16} /> Scarica PDF
@@ -876,7 +888,7 @@ export default function Nuova() {
   const [applicationId, setApplicationId] = useState<string | null>(
     searchParams.get("draft")
   );
-  const draftLoaded = useRef(false);
+  const draftLoadedId = useRef<string | null>(null);
 
   // Sync step to URL for persistence across desktop/mobile remounts
   const updateStep = useCallback((newStep: number) => {
@@ -904,8 +916,8 @@ export default function Nuova() {
   // Draft resumption: load application + tailored_cv from DB
   useEffect(() => {
     const draftId = searchParams.get("draft");
-    if (!draftId || !user || draftLoaded.current) return;
-    draftLoaded.current = true;
+    if (!draftId || !user || draftLoadedId.current === draftId) return;
+    draftLoadedId.current = draftId;
 
     (async () => {
       // Load the application
@@ -1085,7 +1097,7 @@ export default function Nuova() {
           exit={{ opacity: 0, y: -16 }}
           transition={{ duration: 0.25 }}
         >
-          {step === 0 && <Step1 onConfirm={handleStep1Confirm} />}
+          {step === 0 && <Step1 onConfirm={handleStep1Confirm} initialJobData={jobData} />}
           {step === 1 && (
             <Step2
               result={tailorResult}
