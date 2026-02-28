@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { ParsedCV } from "@/types/cv";
+import { EditItemDrawer, type DrawerField } from "@/components/EditItemDrawer";
 import {
   User,
   Briefcase,
@@ -159,8 +160,78 @@ export function CVSections({
   editable?: boolean;
   onUpdate?: (data: ParsedCV) => void;
 }) {
+  const [editingItem, setEditingItem] = useState<{
+    type: "experience" | "education" | "certification" | "project";
+    index: number;
+  } | null>(null);
+
   const update = (path: string, value: any) => {
     if (onUpdate) onUpdate(updateData(data, path, value));
+  };
+
+  // Field maps for the drawer
+  const drawerFields: DrawerField[] = useMemo(() => {
+    if (!editingItem) return [];
+    const { type, index } = editingItem;
+    if (type === "experience" && data.experience?.[index]) {
+      const exp = data.experience[index];
+      return [
+        { key: "role", label: "Ruolo", value: exp.role || "", placeholder: "Ruolo" },
+        { key: "company", label: "Azienda", value: exp.company || "", placeholder: "Azienda" },
+        { key: "location", label: "Luogo", value: exp.location || "", placeholder: "Luogo" },
+        { key: "start", label: "Data inizio", value: exp.start || "", placeholder: "es. Gen 2020" },
+        { key: "end", label: "Data fine", value: exp.end || (exp.current ? "Attuale" : ""), placeholder: "es. Dic 2023" },
+        { key: "description", label: "Descrizione", value: exp.description || "", multiline: true, placeholder: "Descrizione del ruolo..." },
+      ];
+    }
+    if (type === "education" && data.education?.[index]) {
+      const edu = data.education[index];
+      return [
+        { key: "degree", label: "Titolo", value: edu.degree || "", placeholder: "Titolo di studio" },
+        { key: "field", label: "Campo", value: edu.field || "", placeholder: "Campo di studio" },
+        { key: "institution", label: "Istituto", value: edu.institution || "", placeholder: "Istituto" },
+        { key: "start", label: "Data inizio", value: edu.start || "", placeholder: "es. 2016" },
+        { key: "end", label: "Data fine", value: edu.end || "", placeholder: "es. 2020" },
+        { key: "grade", label: "Voto", value: edu.grade || "", placeholder: "es. 110/110" },
+        { key: "honors", label: "Menzioni", value: edu.honors || "", placeholder: "es. cum laude" },
+        { key: "program", label: "Programma", value: edu.program || "", placeholder: "es. Erasmus" },
+        { key: "publication", label: "Tesi / Pubblicazione", value: edu.publication || "", multiline: true, placeholder: "Titolo tesi..." },
+      ];
+    }
+    if (type === "certification" && data.certifications?.[index]) {
+      const cert = data.certifications[index];
+      return [
+        { key: "name", label: "Nome", value: cert.name || "", placeholder: "Nome certificazione" },
+        { key: "issuer", label: "Ente", value: cert.issuer || "", placeholder: "Ente certificatore" },
+        { key: "year", label: "Anno", value: cert.year || "", placeholder: "es. 2023" },
+      ];
+    }
+    if (type === "project" && data.projects?.[index]) {
+      const proj = data.projects[index];
+      return [
+        { key: "name", label: "Nome", value: proj.name || "", placeholder: "Nome progetto" },
+        { key: "description", label: "Descrizione", value: proj.description || "", multiline: true, placeholder: "Descrizione..." },
+        { key: "link", label: "Link", value: proj.link || "", placeholder: "https://..." },
+      ];
+    }
+    return [];
+  }, [editingItem, data]);
+
+  const drawerTitle = editingItem
+    ? { experience: "Modifica esperienza", education: "Modifica formazione", certification: "Modifica certificazione", project: "Modifica progetto" }[editingItem.type]
+    : "";
+
+  const handleDrawerSave = (values: Record<string, string>) => {
+    if (!editingItem || !onUpdate) return;
+    const { type, index } = editingItem;
+    const copy = JSON.parse(JSON.stringify(data));
+    const arrayKey = type === "certification" ? "certifications" : type === "project" ? "projects" : type === "experience" ? "experience" : "education";
+    if (copy[arrayKey]?.[index]) {
+      Object.entries(values).forEach(([k, v]) => {
+        copy[arrayKey][index][k] = v;
+      });
+      onUpdate(copy);
+    }
   };
 
   const skills = data.skills;
@@ -283,7 +354,7 @@ export function CVSections({
                 {editable && (
                   <div className="absolute right-0 top-0">
                     <ItemActions
-                      onEdit={() => {}}
+                      onEdit={() => setEditingItem({ type: "experience", index: i })}
                       onRemove={() => {
                         const updated = [...data.experience!];
                         updated.splice(i, 1);
@@ -356,7 +427,7 @@ export function CVSections({
                 {editable && (
                   <div className="absolute right-0 top-0">
                     <ItemActions
-                      onEdit={() => {}}
+                      onEdit={() => setEditingItem({ type: "education", index: i })}
                       onRemove={() => {
                         const updated = [...data.education!];
                         updated.splice(i, 1);
@@ -561,7 +632,7 @@ export function CVSections({
                 </p>
                 {editable && (
                   <ItemActions
-                    onEdit={() => {}}
+                    onEdit={() => setEditingItem({ type: "certification", index: i })}
                     onRemove={() => {
                       const updated = data.certifications!.filter((_, j) => j !== i);
                       onUpdate?.({ ...data, certifications: updated });
@@ -619,7 +690,7 @@ export function CVSections({
                 </div>
                 {editable && (
                   <ItemActions
-                    onEdit={() => {}}
+                    onEdit={() => setEditingItem({ type: "project", index: i })}
                     onRemove={() => {
                       const updated = data.projects!.filter((_, j) => j !== i);
                       onUpdate?.({ ...data, projects: updated });
@@ -683,6 +754,16 @@ export function CVSections({
             ))}
           </div>
         </Section>
+      )}
+
+      {editable && (
+        <EditItemDrawer
+          open={editingItem !== null}
+          onClose={() => setEditingItem(null)}
+          title={drawerTitle}
+          fields={drawerFields}
+          onSave={handleDrawerSave}
+        />
       )}
     </div>
   );
