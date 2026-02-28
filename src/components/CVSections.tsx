@@ -182,6 +182,7 @@ export function CVSections({
         { key: "start", label: "Data inizio", value: exp.start || "", placeholder: "es. Gen 2020" },
         { key: "end", label: "Data fine", value: exp.end || (exp.current ? "Attuale" : ""), placeholder: "es. Dic 2023" },
         { key: "description", label: "Descrizione", value: exp.description || "", multiline: true, placeholder: "Descrizione del ruolo..." },
+        { key: "bullets", label: "Attività principali", values: exp.bullets || [], list: true, placeholder: "Descrivi un'attività..." },
       ];
     }
     if (type === "education" && data.education?.[index]) {
@@ -221,14 +222,18 @@ export function CVSections({
     ? { experience: "Modifica esperienza", education: "Modifica formazione", certification: "Modifica certificazione", project: "Modifica progetto" }[editingItem.type]
     : "";
 
-  const handleDrawerSave = (values: Record<string, string>) => {
+  const handleDrawerSave = (values: Record<string, string | string[]>) => {
     if (!editingItem || !onUpdate) return;
     const { type, index } = editingItem;
     const copy = JSON.parse(JSON.stringify(data));
     const arrayKey = type === "certification" ? "certifications" : type === "project" ? "projects" : type === "experience" ? "experience" : "education";
     if (copy[arrayKey]?.[index]) {
       Object.entries(values).forEach(([k, v]) => {
-        copy[arrayKey][index][k] = v;
+        if (Array.isArray(v)) {
+          copy[arrayKey][index][k] = v.filter((s: string) => s.trim() !== "");
+        } else {
+          copy[arrayKey][index][k] = v;
+        }
       });
       onUpdate(copy);
     }
