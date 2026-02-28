@@ -84,8 +84,8 @@ export function EditItemDrawer({
 
   return (
     <Drawer open={open} onOpenChange={(o) => !o && onClose()}>
-      <DrawerContent className="max-h-[85vh]">
-        <DrawerHeader className="flex items-center justify-between">
+      <DrawerContent className="max-h-[85vh] flex flex-col">
+        <DrawerHeader className="flex items-center justify-between shrink-0">
           <DrawerTitle className="font-display text-lg font-bold">
             {title}
           </DrawerTitle>
@@ -96,7 +96,7 @@ export function EditItemDrawer({
           </DrawerClose>
         </DrawerHeader>
 
-        <ScrollArea className="flex-1 px-4 pb-2">
+        <ScrollArea className="flex-1 overflow-auto px-4 pb-2">
           <div className="space-y-4">
             {fields.map((field) => (
               <div key={field.key} className="space-y-1.5">
