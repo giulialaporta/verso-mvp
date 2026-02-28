@@ -12,7 +12,8 @@ Font.register({
 const styles = StyleSheet.create({
   page: { fontFamily: "Inter", fontSize: 10, color: "#1a1a1a", paddingHorizontal: 62, paddingVertical: 48 },
   name: { fontSize: 24, fontWeight: 700, marginBottom: 4 },
-  contact: { fontSize: 9, color: "#666", marginBottom: 16 },
+  contact: { fontSize: 9, color: "#666", marginBottom: 4 },
+  links: { fontSize: 9, color: "#3366cc", marginBottom: 16 },
   divider: { borderBottomWidth: 0.5, borderBottomColor: "#d4d4d4", marginVertical: 12 },
   sectionTitle: { fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#333", marginBottom: 6 },
   summary: { fontSize: 10, lineHeight: 1.5, marginBottom: 4 },
@@ -24,6 +25,13 @@ const styles = StyleSheet.create({
   eduTitle: { fontSize: 10, fontWeight: 500 },
   eduMeta: { fontSize: 9, color: "#666" },
   skillsRow: { fontSize: 9.5, lineHeight: 1.6 },
+  certBlock: { marginBottom: 6 },
+  certTitle: { fontSize: 10, fontWeight: 500 },
+  certMeta: { fontSize: 9, color: "#666" },
+  projBlock: { marginBottom: 8 },
+  projName: { fontSize: 10, fontWeight: 500 },
+  projDesc: { fontSize: 9.5, lineHeight: 1.5, marginTop: 1 },
+  projLink: { fontSize: 9, color: "#3366cc", marginTop: 1 },
 });
 
 const ensureArray = (val: unknown): string[] => {
@@ -38,9 +46,15 @@ export function MinimalTemplate({ cv }: { cv: Record<string, any> }) {
   const experience = cv.experience || [];
   const education = cv.education || [];
   const skills = cv.skills;
+  const certifications = cv.certifications || [];
+  const projects = cv.projects || [];
   const extraSections = cv.extra_sections || [];
 
-  const contactParts = [personal.email, personal.phone, personal.location].filter(Boolean);
+  const contactParts = [personal.email, personal.phone, personal.location, personal.date_of_birth].filter(Boolean);
+  const linkParts = [
+    personal.linkedin ? `LinkedIn: ${personal.linkedin}` : null,
+    personal.website ? `Web: ${personal.website}` : null,
+  ].filter(Boolean);
 
   const allSkills = skills
     ? Array.isArray(skills)
@@ -53,6 +67,7 @@ export function MinimalTemplate({ cv }: { cv: Record<string, any> }) {
       <Page size="A4" style={styles.page}>
         <Text style={styles.name}>{personal.name || "Nome Cognome"}</Text>
         <Text style={styles.contact}>{contactParts.join("  |  ")}</Text>
+        {linkParts.length > 0 && <Text style={styles.links}>{linkParts.join("  |  ")}</Text>}
 
         {summary && (
           <>
@@ -119,6 +134,35 @@ export function MinimalTemplate({ cv }: { cv: Record<string, any> }) {
             <Text style={styles.skillsRow}>
               {skills.languages.map((l: any) => `${l.language}${l.level ? ` (${l.level})` : ""}`).join("  ·  ")}
             </Text>
+          </>
+        )}
+
+        {certifications.length > 0 && (
+          <>
+            <View style={styles.divider} />
+            <Text style={styles.sectionTitle}>Certificazioni</Text>
+            {certifications.map((cert: any, i: number) => (
+              <View key={i} style={styles.certBlock}>
+                <Text style={styles.certTitle}>
+                  {cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}
+                </Text>
+                {cert.year && <Text style={styles.certMeta}>{cert.year}</Text>}
+              </View>
+            ))}
+          </>
+        )}
+
+        {projects.length > 0 && (
+          <>
+            <View style={styles.divider} />
+            <Text style={styles.sectionTitle}>Progetti</Text>
+            {projects.map((proj: any, i: number) => (
+              <View key={i} style={styles.projBlock}>
+                <Text style={styles.projName}>{proj.name}</Text>
+                {proj.description && <Text style={styles.projDesc}>{proj.description}</Text>}
+                {proj.link && <Text style={styles.projLink}>{proj.link}</Text>}
+              </View>
+            ))}
           </>
         )}
 

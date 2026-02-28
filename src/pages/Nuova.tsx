@@ -178,16 +178,18 @@ function getDomainHint(url: string): string | null {
 // --- Animated Counter Hook ---
 function useAnimatedCounter(target: number, duration = 800) {
   const [value, setValue] = useState(0);
-  const startedRef = useRef(false);
+  const prevTargetRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (target <= 0 || startedRef.current) return;
-    startedRef.current = true;
+    if (target <= 0) return;
+    // Reset when target changes (e.g. new analysis result)
+    if (prevTargetRef.current === target) return;
+    prevTargetRef.current = target;
+    setValue(0);
     const start = performance.now();
     const animate = (now: number) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setValue(Math.round(eased * target));
       if (progress < 1) requestAnimationFrame(animate);
@@ -650,7 +652,9 @@ function applyPatchesFrontend(
         }
         target = target[seg];
       }
+      if (target === undefined || target === null) break;
     }
+    if (target === undefined || target === null) continue;
     const lastSeg = segments[segments.length - 1];
     const lastIdx = Number(lastSeg);
     if (!isNaN(lastIdx)) {
@@ -682,12 +686,16 @@ function StepAnalisi({
   const diffCount = result?.diff?.length ?? 0;
   const totalChanges = structCount + diffCount;
 
-  // All approved by default
+  // All approved by default — initialize once per result identity
+  const decisionsInitRef = useRef<string | null>(null);
   const [decisions, setDecisions] = useState<Record<string, "approved" | "rejected">>({});
 
-  // Initialize decisions when result loads
+  // Initialize decisions only once when a new result loads (not on inline CV edits)
   useEffect(() => {
     if (!result) return;
+    const resultId = `${result.match_score}_${result.ats_score}_${result.diff?.length}_${result.structural_changes?.length}`;
+    if (decisionsInitRef.current === resultId) return;
+    decisionsInitRef.current = resultId;
     const init: Record<string, "approved" | "rejected"> = {};
     (result.structural_changes ?? []).forEach((_, i) => { init[`s_${i}`] = "approved"; });
     (result.diff ?? []).forEach((_, i) => { init[`d_${i}`] = "approved"; });
@@ -1506,9 +1514,13 @@ function StepCVAdattato({
     }
   };
 
-  const [originalCV, setOriginalCV] = useState<Record<string, unknown> | null>(null);
+  // Use original_cv from result if available (avoids redundant fetch)
+  const [originalCV, setOriginalCV] = useState<Record<string, unknown> | null>(
+    result.original_cv ?? null
+  );
 
   useEffect(() => {
+    if (originalCV) return; // Already have it
     supabase
       .from("master_cvs")
       .select("parsed_data")
@@ -1517,7 +1529,7 @@ function StepCVAdattato({
       .then(({ data }) => {
         if (data?.parsed_data) setOriginalCV(data.parsed_data as Record<string, unknown>);
       });
-  }, [result.master_cv_id]);
+  }, [result.master_cv_id, originalCV]);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-24 px-4">
@@ -1582,7 +1594,7 @@ function StepCVAdattato({
       </div>
 
       {/* Fixed bottom bar */}
-      <div className="fixed bottom-14 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-md p-4 md:bottom-0 md:pl-64">
+      <div className="fixed bottom-14 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-md p-4 md:bottom-0 md:left-16">
         <div className="mx-auto max-w-4xl flex gap-3">
           <Button variant="outline" className="flex-1 gap-2" onClick={() => setExportOpen(true)}>
             <DownloadSimple size={16} /> Scarica PDF

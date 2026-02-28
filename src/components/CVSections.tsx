@@ -368,7 +368,7 @@ export function CVSections({
                     />
                   </div>
                 )}
-                <p className="font-medium text-sm pr-14">{exp.role || ""}</p>
+                <p className="font-medium text-sm pr-14">{exp.role || "Ruolo non specificato"}</p>
                 <p className="text-xs text-muted-foreground">
                   {exp.company || ""}{exp.location ? ` · ${exp.location}` : ""}
                 </p>
