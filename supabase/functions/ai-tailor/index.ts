@@ -82,6 +82,26 @@ This rule is ABSOLUTE. No exceptions. Report the detected language in the detect
 
 Compare the candidate's CV with the job posting and produce a comprehensive analysis.
 
+## TWO-LEVEL TAILORING
+
+### Level 1 — STRUCTURAL (what to keep/remove/reorder)
+- REMOVE experiences completely irrelevant to the target role (e.g. waiter job for a software engineering position)
+- REORDER experiences by relevance to the job (most relevant first)
+- CONDENSE verbose bullet lists (max 4-5 bullets per experience, keep only impactful ones)
+- REMOVE irrelevant projects, certifications, or extra sections
+- If education is not the candidate's strength for this role, keep it minimal
+
+### Level 2 — CONTENT (how to rewrite what remains)
+- Summary: 2-3 sentences maximum, specific to this role
+- Bullets: action verb + measurable result, one line each
+- Skills: ordered by relevance, remove generic/obvious ones
+
+## CONCISENESS RULE
+Be as concise and effective as possible.
+A well-targeted 1-page CV beats a generic 3-page CV.
+Every word must earn its place. Remove filler, cliches, and redundancy.
+If a section adds no value for THIS specific role, remove it entirely.
+
 ## SCORE PENALIZATION FOR MANDATORY GAPS
 If the candidate is missing MANDATORY requirements (especially years of experience, required certifications, required degree):
 - If there are UNBRIDGEABLE mandatory gaps: match_score MUST NOT exceed 40%
@@ -118,26 +138,35 @@ ATS compatibility score. Evaluate 7 specific checks:
 ### 4. SENIORITY MATCH
 Compare the candidate's seniority level with what the role requires.
 
-### 5. TAILORED PATCHES
+### 5. STRUCTURAL CHANGES
+List all structural modifications made (removals, reorders, condensations).
+For each change, specify the action, affected section, item description, and reason.
+
+### 6. TAILORED PATCHES
 Return ONLY the CV sections you modified, as an array of patches.
 Each patch has:
-- path: JSON path in the CV (e.g. "summary", "experience[0].bullets", "skills.technical")
+- path: JSON path in the CV (e.g. "summary", "experience[0].bullets", "skills.technical", "experience", "education")
 - value: the new value for that field
 
 Do NOT return the entire CV. Return ONLY the fields you actually changed.
-Valid paths: "summary", "experience[N].description", "experience[N].bullets", "skills.technical", "skills.soft", "skills.tools"
-
-### 6. HONEST SCORE
-Honesty verification of the modifications made.
+Valid paths include full arrays: "experience", "education", "certifications", "projects", "extra_sections"
+As well as individual fields: "summary", "experience[N].description", "experience[N].bullets", "skills.technical", "skills.soft", "skills.tools"
+When removing or reordering entries, return the entire array with entries removed/reordered.
 
 ### 7. DIFF
-List of changes made.
+List of changes made. Each entry MUST include a patch_path that corresponds to the matching entry in tailored_patches.
+
+### 8. HONEST SCORE
+Honesty verification of the modifications made.
 
 ## FUNDAMENTAL RULES
-- NEVER invent experiences, skills, or certifications
-- NEVER modify dates, company names, degree titles, grades, photos
-- NEVER touch extra_sections, personal data, photo_base64
-- You may ONLY modify: summary, description/bullets of experiences, skill ordering
+- You CAN remove entire experience/education/project entries if irrelevant to the target role
+- You CAN reorder entries by relevance
+- You CAN reduce the number of bullets per experience
+- You CAN remove entire extra_sections if not relevant
+- You CANNOT invent new experiences, degrees, or certifications
+- You CANNOT modify dates, company names, degree titles, grades
+- You CANNOT touch personal data or photo_base64
 - Every patch path MUST correspond to an existing field in the original CV (except new skills)
 
 ## EUROPEAN MARKET CALIBRATION
@@ -212,15 +241,29 @@ const TOOL_SCHEMA = {
             required: ["check", "label", "status"],
           },
         },
+        structural_changes: {
+          type: "array",
+          description: "List of structural changes made (removals, reorders, condensations)",
+          items: {
+            type: "object",
+            properties: {
+              action: { type: "string", enum: ["removed", "reordered", "condensed"] },
+              section: { type: "string" },
+              item: { type: "string", description: "What was affected" },
+              reason: { type: "string" },
+            },
+            required: ["action", "section", "item", "reason"],
+          },
+        },
         tailored_patches: {
           type: "array",
-          description: "Array of patches to apply to the original CV. Only fields that were actually changed.",
+          description: "Array of patches to apply to the original CV. Only fields that were actually changed. Valid paths include full arrays and individual fields.",
           items: {
             type: "object",
             properties: {
               path: {
                 type: "string",
-                description: "JSON path in the CV (e.g. 'summary', 'experience[0].bullets', 'skills.technical')",
+                description: "JSON path in the CV (e.g. 'summary', 'experience[0].bullets', 'skills.technical', 'experience', 'education')",
               },
               value: {
                 description: "New value for the field (string, array, or object)",
@@ -253,8 +296,9 @@ const TOOL_SCHEMA = {
               original: { type: "string" },
               suggested: { type: "string" },
               reason: { type: "string" },
+              patch_path: { type: "string", description: "Corresponding path in tailored_patches for this change" },
             },
-            required: ["section", "original", "suggested", "reason"],
+            required: ["section", "original", "suggested", "reason", "patch_path"],
           },
         },
         suggestions: {
@@ -291,6 +335,7 @@ const TOOL_SCHEMA = {
         "skills_missing",
         "seniority_match",
         "ats_checks",
+        "structural_changes",
         "tailored_patches",
         "honest_score",
         "diff",
@@ -454,10 +499,13 @@ Deno.serve(async (req) => {
       (tailoredCV as any).photo_base64 = photoBase64;
     }
 
-    // Replace tailored_patches with tailored_cv for frontend compatibility
-    delete result.tailored_patches;
+    // Keep tailored_patches in the response for selective approval
+    // Also add tailored_cv and original_cv (without photo_base64)
     result.tailored_cv = tailoredCV;
     result.master_cv_id = masterCV.id;
+    const originalCvClean = JSON.parse(JSON.stringify(originalCV));
+    delete originalCvClean.photo_base64;
+    result.original_cv = originalCvClean;
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
