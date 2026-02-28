@@ -1,49 +1,41 @@
 
+# Fix: Language In = Language Out
 
-# Singola icona matita per editare tutta l'esperienza
+## Problema
+Il system prompt e il tool schema sono interamente in italiano. Questo crea un bias fortissimo che spinge il modello a generare output in italiano anche quando l'annuncio e' in inglese.
 
-## Problema attuale
-
-Ogni esperienza ha DUE meccanismi di modifica in conflitto:
-1. **Inline editing** (`<E>` / `InlineEdit`) su ogni singolo campo (ruolo, azienda, luogo, date, descrizione) -- funziona solo per testo breve
-2. **Drawer** via icona matita -- apre il form completo ma l'utente non capisce che esiste perche' i campi sono gia' editabili inline
-
-I bullets sono editabili come chip (`EditableSkillChips`) ma sono troncati e non si leggono per intero.
+Punti critici:
+1. **System prompt** tutto in italiano (istruzioni, esempi, sezione "CALIBRAZIONE MERCATO ITALIANO")
+2. **Tool schema descriptions** in italiano ("Punteggio di match", "Percorso nel JSON", "Nuovo valore per il campo")
+3. **Enum values** in italiano: `"essenziale"`, `"importante"`, `"utile"` -- forzano output italiano
+4. **Nessuna istruzione esplicita** sulla lingua da usare per i contenuti del CV vs la lingua delle istruzioni
 
 ## Soluzione
 
-Rimuovere l'inline editing dai blocchi strutturati (experience, education, certifications, projects). In modalita' `editable`, ogni blocco mostra i dati come **testo normale** (read-only) con una **singola icona matita** che apre il drawer per editare tutto il gruppo di campi insieme.
+Riscrivere il system prompt e il tool schema in **inglese**, e aggiungere un'istruzione esplicita di rilevamento lingua come primo passo del ragionamento.
 
-### Modifiche a `src/components/CVSections.tsx`
+### Modifiche in `supabase/functions/ai-tailor/index.ts`
 
-**Experience (righe 357-407):** Sostituire tutte le `<E>` con testo statico. Mantenere solo `ItemActions` con `onEdit` (matita) e `onRemove` (cestino). I bullets si mostrano come lista puntata (non come chip editabili).
+**1. System prompt in inglese**
+- Tutte le istruzioni passano in inglese per eliminare il bias
+- La regola LANGUAGE IN = LANGUAGE OUT viene rafforzata e messa in cima, come primissima istruzione
+- Aggiunta di un campo `detected_language` nel tool output per forzare il modello a dichiarare esplicitamente la lingua rilevata prima di generare i contenuti
+- La sezione "Calibrazione mercato italiano" resta ma viene riformulata come "European market calibration" (informazione utile, non bias linguistico)
 
-Prima:
-```text
-<p><E value={exp.role} path={...} /></p>
-<p><E value={exp.company} path={...} /></p>
-<EditableSkillChips items={exp.bullets} ... />
-```
+**2. Tool schema in inglese**
+- Tutte le `description` passano in inglese
+- Le enum `importance` passano da `["essenziale", "importante", "utile"]` a `["essential", "important", "nice_to_have"]`
+- Aggiunta del campo `detected_language` (stringa) come campo required nel tool output
 
-Dopo:
-```text
-<p>{exp.role}</p>
-<p>{exp.company} · {exp.location}</p>
-<ul>{exp.bullets.map(b => <li>{b}</li>)}</ul>
-// Solo la matita apre il drawer con TUTTI i campi
-```
+**3. Messaggio utente invariato**
+- Il messaggio utente continua a passare il CV e l'annuncio cosi' come sono -- la lingua dell'annuncio guida l'output
 
-**Education (righe 430+):** Stesso approccio -- rimuovere inline editing, solo matita per il drawer.
+### Impatto sul frontend
+- Il campo `importance` nelle skills_missing passa da valori italiani a inglesi. Verificare che `Nuova.tsx` e `Candidature.tsx` gestiscano i nuovi valori (o li mostrino direttamente senza traduzione).
 
-**Certifications e Projects:** Stesso approccio.
-
-**Dati personali e Summary:** Restano con inline editing (`<E>`) perche' sono campi singoli non raggruppati, dove l'editing diretto ha senso.
-
-### Riepilogo cambiamenti
+### File coinvolti
 
 | File | Modifica |
 |------|----------|
-| `src/components/CVSections.tsx` | Rimuovere `<E>` e `EditableSkillChips` dai blocchi experience, education, certifications, projects in modalita' editable. Mostrare testo statico + singola matita per il drawer. |
-
-Nessun file nuovo. Il drawer (`EditItemDrawer`) e i suoi campi (`drawerFields`) restano invariati -- sono gia' completi di tutti i campi necessari.
-
+| `supabase/functions/ai-tailor/index.ts` | Riscrittura prompt + schema in inglese, aggiunta `detected_language` |
+| `src/pages/Nuova.tsx` | Aggiornare eventuali riferimenti a "essenziale"/"importante"/"utile" |
