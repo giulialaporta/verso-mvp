@@ -1,222 +1,105 @@
 
 
-# Fix Completo: parse-cv Flessibile + Estrazione Foto + Schema CV Arricchito
+# Modifica Inline Completa: Edit, Add e Remove nel CV Onboarding
 
-## Problema
+## Cosa cambia
 
-Il parser attuale ha 3 difetti critici:
+L'utente nello step "preview" dell'onboarding potra':
+- **Modificare** qualsiasi campo cliccandoci sopra (inline edit)
+- **Aggiungere** nuovi elementi (competenze, strumenti, bullet, certificazioni, ecc.)
+- **Rimuovere** singoli elementi (una competenza, un bullet, una certificazione, una lingua, un item di extra_section) -- ma MAI cancellare un'intera sezione
+- **Ricevere suggerimenti** da Verso su sezioni mancanti da popolare
 
-1. **Estrazione regex inaffidabile** -- il parsing usa regex sui byte grezzi del PDF, che fallisce su qualsiasi CV non banale (Canva, Word export, LinkedIn, Europass). Il test con il CV di Giulia ha restituito solo un'email.
+## Comportamento UX
 
-2. **Schema troppo rigido** -- il tipo `ParsedCV` assume sezioni fisse con nomi specifici. Ma i CV reali hanno sezioni custom ("Volontariato", "Pubblicazioni", "Awards", "Conferenze", "Hobby", "Portfolio"), campi mancanti o extra (data di nascita, voto, lode, CEFR, tools). Tutto cio' che non rientra nello schema viene perso.
+- **Edit**: click su un campo testuale, diventa input. Enter/blur conferma, Escape annulla. Icona matita al hover.
+- **Add**: mini-input con placeholder "Aggiungi..." in fondo alle liste (skills, bullets, certificazioni, ecc.). Enter per aggiungere. Bottone "+ Esperienza", "+ Certificazione" per aggiungere elementi complessi.
+- **Remove**: icona "X" su ogni elemento rimovibile (chip, bullet, certificazione, progetto, item di extra_section). Click per rimuovere con fade-out. Le sezioni stesse NON si possono cancellare.
+- **Suggerimenti**: pannello sotto la preview che mostra sezioni mancanti (es. "Aggiungi strumenti", "Aggiungi lingue"). Click per creare la sezione con input pronto.
 
-3. **Nessuna estrazione immagini** -- se il CV contiene una foto profilo (molto comune in Italia/Europa), questa viene persa. Per ricostruire il CV nell'Epic 5, la foto e' indispensabile.
+## File coinvolti
+
+| File | Azione |
+|------|--------|
+| `src/components/InlineEdit.tsx` | Nuovo -- componente click-to-edit riutilizzabile |
+| `src/components/EditableSkillChips.tsx` | Nuovo -- chips con add/remove |
+| `src/components/CVSuggestions.tsx` | Nuovo -- pannello suggerimenti sezioni mancanti |
+| `src/components/CVSections.tsx` | Aggiornare -- props `editable`/`onUpdate`, wrappare campi con InlineEdit, aggiungere bottoni add/remove |
+| `src/pages/Onboarding.tsx` | Aggiornare -- passare editable mode + integrare suggerimenti |
+
+Nessuna modifica a DB, edge functions, tipi o routing.
 
 ---
 
-## Soluzione
+## Dettaglio tecnico
 
-### Principio: schema "core + extra_sections"
+### 1. `InlineEdit.tsx`
 
-Invece di un tipo monolitico che cerca di prevedere ogni possibile sezione, useremo uno schema con:
-- **Campi strutturati per le sezioni universali** (personal, experience, education, skills)
-- **Un array `extra_sections`** che cattura QUALSIASI altra sezione del CV (hobby, volontariato, pubblicazioni, awards, conferenze, portfolio, ecc.) senza perderla
-- **Un campo `photo_base64`** per la foto profilo estratta dal PDF
+Componente con props: `value`, `onChange`, `multiline?`, `placeholder?`, `className?`
+- Stato interno `editing` + `draft`
+- Non editing: mostra testo + icona `PencilSimple` (Phosphor, 12px) visibile solo al hover (`opacity-0 group-hover:opacity-100`)
+- Editing: input o textarea, focus automatico, bordo `border-primary/50`, background `bg-surface-2`
+- Enter conferma (solo input, non textarea), Escape annulla, blur conferma
 
-### 1. Nuovo tipo `ParsedCV` (src/types/cv.ts)
+### 2. `EditableSkillChips.tsx`
 
-```typescript
-export type ParsedCV = {
-  personal: {
-    name?: string;
-    email?: string;
-    phone?: string;
-    location?: string;
-    date_of_birth?: string;
-    linkedin?: string;
-    website?: string;
-  };
-  photo_base64?: string; // foto profilo estratta, data URI o base64
+Props: `items: string[]`, `onChange: (items: string[]) => void`, `variant?: "primary" | "outline"`
+- Ogni chip mostra una "X" al hover per rimuoverla (fade 150ms)
+- In fondo: mini-input con placeholder "Aggiungi..." (font-mono, 11px). Enter per aggiungere alla lista
+- La rimozione NON rimuove la sezione: se tutte le chip vengono rimosse, resta solo l'input "Aggiungi..."
 
-  summary: string; // OBBLIGATORIO: estratto se esplicito, sintetizzato se assente
+### 3. `CVSuggestions.tsx`
 
-  experience?: {
-    role: string;
-    company: string;
-    location?: string;
-    start?: string;
-    end?: string;
-    current?: boolean;
-    description?: string;  // narrativa
-    bullets?: string[];    // punti elenco separati
-  }[];
+Props: `data: ParsedCV`, `onUpdate: (data: ParsedCV) => void`
+- Analizza `data` e mostra chip per ogni sezione mancante:
 
-  education?: {
-    institution: string;
-    degree: string;
-    field?: string;
-    start?: string;
-    end?: string;
-    grade?: string;        // "110/110 con lode"
-    honors?: string;
-    program?: string;      // "Erasmus"
-    publication?: string;
-  }[];
+| Condizione | Suggerimento |
+|------------|--------------|
+| `summary` vuoto | "Aggiungi un profilo professionale" |
+| `skills.tools` vuoto/assente | "Aggiungi gli strumenti che usi" |
+| `skills.soft` vuoto/assente | "Aggiungi competenze trasversali" |
+| `skills.languages` vuoto/assente | "Aggiungi le lingue" |
+| `certifications` vuoto/assente | "Hai certificazioni?" |
+| `projects` vuoto/assente | "Hai progetti personali?" |
+| no `extra_sections` | "Aggiungi sezione personalizzata" |
+| `personal.linkedin` assente | "Aggiungi LinkedIn" |
 
-  skills?: {
-    technical?: string[];
-    soft?: string[];
-    tools?: string[];
-    languages?: {
-      language: string;
-      level?: string;       // "B2"
-      descriptor?: string;  // "Upper intermediate"
-    }[];
-  };
+- Ogni chip ha icona `Plus`, bordo dashed, colore `text-primary/60`
+- Click: aggiunge il campo/sezione vuota in `data` e chiama `onUpdate` (la sezione apparira' in CVSections in edit mode)
+- Per "sezione personalizzata": mostra un mini-input per il titolo, poi aggiunge un `extra_section` vuota
 
-  certifications?: {
-    name: string;
-    issuer?: string;
-    year?: string;
-  }[];
+### 4. `CVSections.tsx` -- aggiornamento
 
-  projects?: {
-    name: string;
-    description?: string;
-  }[];
-
-  extra_sections?: {
-    title: string;          // nome sezione originale ("Hobby", "Volontariato", ecc.)
-    items: string[];        // contenuti come array di stringhe
-  }[];
-};
-```
-
-Il campo `extra_sections` e' la chiave della flessibilita': qualsiasi sezione non standard viene catturata con il suo titolo originale e i suoi contenuti, senza perderla.
-
-### 2. Migrazione DB
-
-Aggiungere 3 colonne a `master_cvs`:
-- `raw_text text` -- testo grezzo per debug e re-parsing
-- `source text default 'upload'` -- origine del CV
-- `photo_url text` -- URL della foto profilo salvata in storage
-
-### 3. Riscrivere `parse-cv` Edge Function
-
-#### 3a. Eliminare regex, usare multimodale
-Sostituire completamente le righe 65-101 (regex + fallback) con:
-1. Convertire i byte del PDF in base64
-2. Inviarli a Gemini 2.5 Flash come input file multimodale
-3. Il modello "vede" il PDF e ne estrae TUTTO il contenuto
-
-#### 3b. Estrazione foto profilo
-Il prompt AI deve istruire il modello a:
-- Identificare se il CV contiene una foto/immagine del candidato
-- Se presente, descriverla (il modello non puo' estrarre bytes di immagini embedded)
-
-Per l'estrazione vera della foto, useremo un approccio in due fasi:
-1. Il modello AI segnala `has_photo: true` se rileva una foto
-2. La Edge Function cerca gli stream immagine nel PDF (marker JPEG `FFD8` / PNG `89504E47`) ed estrae il primo blob immagine trovato
-3. La foto viene salvata nel bucket `cv-uploads` come `{userId}/photo_{timestamp}.jpg`
-4. L'URL viene restituito come `photo_url` nella risposta
-
-#### 3c. System prompt flessibile
-Il prompt deve specificare:
-- I campi strutturati (personal, experience, education, skills, certifications, projects)
-- Il campo `summary` e' **obbligatorio**: se non c'e' una sezione esplicita, sintetizzare 2-3 frasi
-- **Qualsiasi sezione non standard** (Hobby, Volontariato, Pubblicazioni, Awards, Referenze, Conferenze, Portfolio, ecc.) va catturata in `extra_sections` con titolo originale e contenuti
-- Separare `description` (narrativa) da `bullets` (punti elenco) nelle esperienze
-- Categorizzare skills in 4 gruppi: technical, soft, tools, languages (con livello CEFR)
-- Estrarre gradi, lode, pubblicazioni dall'education
-- `has_photo: true/false` per segnalare la presenza di una foto
-
-#### 3d. Modello
-Usare `google/gemini-2.5-flash` (multimodale stabile, legge PDF nativamente).
-
-#### 3e. Risposta arricchita
-La response JSON includera':
+Nuove props opzionali:
 ```text
-{
-  parsed_data: { ... nuovo schema completo ... },
-  raw_text: "multimodal",
-  has_photo: true/false,
-  photo_url: "path/to/photo.jpg" // se estratta
-}
+editable?: boolean
+onUpdate?: (data: ParsedCV) => void
 ```
 
-### 4. Aggiornare `ai-tailor` -- Schema tailored_cv
+Quando `editable=true`:
 
-Il `tailored_cv` in output (righe 137-149) usa ancora la vecchia struttura. Deve riflettere il nuovo schema:
-- `experience` con `role`, `bullets[]`, `start`/`end`
-- `skills` come oggetto con 4 categorie
-- `extra_sections` preservate intatte (l'AI non deve toccarle)
-- `photo_base64` / `photo_url` passati through senza modifiche
+**Campi testo** (personal.name, email, phone, location, date_of_birth, linkedin, website, summary, exp.role, exp.company, exp.location, exp.start, exp.end, exp.description, edu.degree, edu.field, edu.institution, edu.grade, cert.name, cert.issuer, cert.year, proj.name, proj.description):
+- Wrappati in `InlineEdit`
 
-Aggiungere al system prompt:
-- Il `tailored_cv` deve contenere TUTTE le sezioni, incluse `extra_sections`
-- L'AI puo' modificare SOLO: summary, description/bullets, ordine skills
-- L'AI NON puo' modificare: date, nomi, gradi, foto, extra_sections, dati personali
+**Liste di stringhe** (skills.technical, skills.soft, skills.tools, exp.bullets, extra_sections.items):
+- Usano `EditableSkillChips` (o una variante lista per bullets/items)
+- Ogni elemento ha una "X" per rimuoverlo
+- Input "Aggiungi..." in fondo
 
-### 5. Aggiornare `CVSections.tsx`
+**Lingue** (skills.languages):
+- Ogni lingua mostra language + level come chip con "X" per rimuoverla
+- Input in fondo per aggiungere (formato: "Lingua -- Livello")
 
-Adattare il rendering ai nuovi campi:
-- **Summary**: mostrare sempre, come paragrafo sotto i dati personali
-- **Photo**: mostrare foto profilo se presente (thumbnail circolare)
-- **Personal**: data di nascita, LinkedIn come link, website
-- **Experience**: `role` @ `company` (location), start-end/Current, narrativa + lista bullets
-- **Education**: degree in field, institution, year, grade, honors, publication
-- **Skills**: 4 gruppi (Tecniche, Trasversali, Strumenti, Lingue con CEFR)
-- **Extra sections**: rendering dinamico -- per ogni sezione in `extra_sections`, mostrare titolo e items
-- Rimuovere la vecchia sezione `languages` separata
+**Certificazioni, Progetti, Experience, Education**:
+- Ogni elemento ha un'icona trash al hover per rimuoverlo
+- Bottone "+ Aggiungi" in fondo alla sezione per aggiungere un elemento vuoto
 
-### 6. Aggiornare `Onboarding.tsx`
+**Regola fondamentale**: si possono rimuovere ELEMENTI dalle sezioni, ma le sezioni stesse restano sempre visibili (anche se vuote, con solo l'input "Aggiungi...").
 
-Nel `handleSave`, aggiungere:
-- `raw_text` e `source: "upload"` all'insert in `master_cvs`
-- `photo_url` se presente nella risposta del parser
-- Salvare la foto nel bucket se arriva come base64
+### 5. `Onboarding.tsx` -- aggiornamento
 
-### 7. Aggiornare `Nuova.tsx`
-
-- I riferimenti a `skills` devono passare da `string[]` a `skills.technical/soft/tools/languages`
-- Il `renderCV` nello Step 3 deve usare il nuovo schema (role, bullets, skills categorizzate, extra_sections)
-- La foto deve apparire nel CV preview
-
----
-
-## Riepilogo file coinvolti
-
-| File | Modifica |
-|------|----------|
-| Migrazione DB | +3 colonne su master_cvs (raw_text, source, photo_url) |
-| `src/types/cv.ts` | Nuovo schema flessibile con extra_sections e photo |
-| `supabase/functions/parse-cv/index.ts` | PDF multimodale + estrazione foto + schema flessibile |
-| `supabase/functions/ai-tailor/index.ts` | Schema tailored_cv allineato + preservazione extra_sections |
-| `src/components/CVSections.tsx` | Rendering completo (photo, summary, role/bullets, skills 4 gruppi, extra_sections dinamiche) |
-| `src/pages/Onboarding.tsx` | Salvataggio raw_text, source, photo_url |
-| `src/pages/Nuova.tsx` | Rendering CV con nuovo schema + foto |
-
-## Strategia estrazione foto dal PDF
-
-L'estrazione di immagini embedded in un PDF e' complessa. La strategia proposta:
-
-1. **Ricerca marker JPEG/PNG nei byte del PDF**: cercare le sequenze `FF D8 FF` (JPEG) o `89 50 4E 47` (PNG) nei byte raw
-2. **Estrazione del primo blob trovato**: in un CV, la prima (e spesso unica) immagine e' la foto profilo
-3. **Salvataggio in storage**: upload nel bucket `cv-uploads` sotto `{userId}/photo_{timestamp}.{ext}`
-4. **Fallback**: se l'estrazione fallisce, il campo `photo_url` resta null -- nessun errore bloccante
-
-Questa strategia funziona per la maggior parte dei PDF con immagini non compresse (JPEG inline). Per PDF con immagini in stream Flate/DCT, potrebbe non funzionare, ma copre il caso piu' comune dei CV con foto.
-
----
-
-## Risultato atteso
-
-Con qualsiasi CV (semplice o complesso), il sistema estrarra':
-- Tutti i dati strutturati standard (personal, experience, education, skills, certifications)
-- Il summary (estratto o sintetizzato)
-- La foto profilo (se presente)
-- Tutte le sezioni custom (hobby, volontariato, pubblicazioni, awards, ecc.) senza perderle
-- Dati granulari (voti, lode, CEFR, tools, bullets separati dalla narrativa)
-
-Tutto pronto per la ricostruzione PDF nell'Epic 5.
+- Nello step preview, passare `editable={true}` e `onUpdate={setParsedData}` a `CVSections`
+- Aggiungere `CVSuggestions` sotto la card di preview
+- Cambiare sottotesto: "Clicca su qualsiasi campo per modificarlo"
+- Cambiare bottone: "Salva e continua"
 
