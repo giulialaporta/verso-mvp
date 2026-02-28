@@ -90,6 +90,7 @@ type StructuralChange = {
 
 type TailorResult = {
   match_score: number;
+  score_note?: string;
   ats_score: number;
   skills_present: { label: string; has: boolean }[];
   skills_missing: { label: string; importance: string }[];
@@ -838,6 +839,9 @@ function StepAnalisi({
                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>
+            {result.score_note && (
+              <p className="text-sm text-muted-foreground mt-2">{result.score_note}</p>
+            )}
           </CardContent>
         </Card>
       </motion.div>
