@@ -119,10 +119,10 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-xl space-y-6">
+    <div className="flex min-h-[100dvh] items-start justify-center bg-background px-3 py-6 sm:px-4 sm:py-12 sm:items-center">
+      <div className="w-full max-w-xl space-y-4 sm:space-y-6">
         <div className="text-center">
-          <h1 className="font-display text-4xl font-extrabold tracking-tight">
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
             VERS<span className="text-primary">O</span>
           </h1>
         </div>
@@ -137,11 +137,11 @@ export default function Onboarding() {
               transition={{ duration: 0.25 }}
             >
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardContent className="pt-6 space-y-6">
+                <CardContent className="pt-5 pb-5 px-4 sm:pt-6 sm:px-6 space-y-5 sm:space-y-6">
                   <div className="text-center">
-                    <h2 className="font-display text-2xl font-bold">Carica il tuo CV</h2>
+                    <h2 className="font-display text-xl sm:text-2xl font-bold">Carica il tuo CV</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Carica un PDF e Verso estrarrà automaticamente le informazioni.
+                      Carica un PDF e Verso estrarrà le informazioni.
                     </p>
                   </div>
 
@@ -159,12 +159,12 @@ export default function Onboarding() {
                       };
                       input.click();
                     }}
-                    className={`flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed p-10 transition-colors ${
+                    className={`flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed p-8 sm:p-10 transition-colors ${
                       dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                     }`}
                   >
-                    <FileArrowUp size={48} weight="duotone" className={dragOver ? "text-primary" : "text-muted-foreground"} />
-                    <p className="text-sm text-muted-foreground">
+                    <FileArrowUp size={40} weight="duotone" className={dragOver ? "text-primary" : "text-muted-foreground"} />
+                    <p className="text-sm text-muted-foreground text-center">
                       Trascina il tuo CV qui o <span className="text-primary underline">sfoglia</span>
                     </p>
                     <p className="text-xs text-muted-foreground/60">Solo PDF, max 10 MB</p>
@@ -176,14 +176,14 @@ export default function Onboarding() {
                       animate={{ opacity: 1, height: "auto" }}
                       className="flex items-center gap-3 rounded-lg border border-border bg-surface-2 p-3"
                     >
-                      <FileText size={24} className="text-primary" />
+                      <FileText size={24} className="text-primary shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-sm font-medium">{file.name}</p>
                         <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        className="text-muted-foreground hover:text-destructive transition-colors p-1"
                       >
                         <X size={18} />
                       </button>
@@ -207,11 +207,11 @@ export default function Onboarding() {
               transition={{ duration: 0.25 }}
             >
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardContent className="pt-6 space-y-6">
+                <CardContent className="pt-5 pb-5 px-4 sm:pt-6 sm:px-6 space-y-5 sm:space-y-6">
                   <div className="text-center space-y-3">
-                    <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <h2 className="font-display text-xl font-bold">Verso sta leggendo il tuo CV...</h2>
-                    <p className="text-sm text-muted-foreground">Stiamo estraendo le informazioni dal tuo documento.</p>
+                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <h2 className="font-display text-lg sm:text-xl font-bold">Verso sta leggendo il tuo CV...</h2>
+                    <p className="text-sm text-muted-foreground">Stiamo estraendo le informazioni.</p>
                   </div>
                   <Progress value={undefined} className="h-1" />
                   <div className="space-y-4">
@@ -237,20 +237,22 @@ export default function Onboarding() {
               transition={{ duration: 0.25 }}
             >
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardContent className="pt-6 space-y-6">
+                <CardContent className="pt-5 pb-5 px-3 sm:pt-6 sm:px-6 space-y-4 sm:space-y-6">
                   <div className="text-center">
-                    <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/15">
-                      <Check size={24} className="text-primary" weight="bold" />
+                    <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-primary/15">
+                      <Check size={20} className="text-primary" weight="bold" />
                     </div>
-                    <h2 className="font-display text-xl font-bold">CV analizzato</h2>
-                    <p className="text-sm text-muted-foreground">Clicca su qualsiasi campo per modificarlo.</p>
+                    <h2 className="font-display text-lg sm:text-xl font-bold">CV analizzato</h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                      Tocca qualsiasi campo per modificarlo. Usa ✏️ per editare e ✕ per rimuovere.
+                    </p>
                   </div>
 
                   <CVSections data={parsedData} editable onUpdate={setParsedData} />
 
                   <CVSuggestions data={parsedData} onUpdate={setParsedData} />
 
-                  <p className="text-center text-xs text-muted-foreground/60 italic">
+                  <p className="text-center text-[11px] text-muted-foreground/50 italic">
                     Verso conosce solo quello che hai scritto nel tuo CV. Nessuna informazione inventata.
                   </p>
 

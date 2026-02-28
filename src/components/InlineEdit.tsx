@@ -52,7 +52,7 @@ export function InlineEdit({
 
   if (editing) {
     const sharedClasses =
-      "w-full rounded-md border border-primary/50 bg-surface-2 px-2 py-1 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary/30 transition-colors";
+      "w-full rounded-md border border-primary/50 bg-surface-2 px-2 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary/30 transition-colors";
 
     return multiline ? (
       <textarea
@@ -81,14 +81,15 @@ export function InlineEdit({
   return (
     <span
       onClick={() => setEditing(true)}
-      className={`group/edit inline-flex items-center gap-1 cursor-pointer rounded px-1 -mx-1 hover:bg-muted/30 transition-colors ${className}`}
+      className={`group/edit inline-flex items-center gap-1 cursor-pointer rounded px-1 -mx-1 hover:bg-muted/30 active:bg-muted/40 transition-colors min-h-[28px] ${className}`}
     >
       <span className={value ? "" : "text-muted-foreground italic"}>
         {value || placeholder}
       </span>
       <PencilSimple
         size={12}
-        className="text-muted-foreground opacity-0 group-hover/edit:opacity-100 transition-opacity shrink-0"
+        weight="bold"
+        className="text-primary/60 opacity-100 md:opacity-0 md:group-hover/edit:opacity-100 transition-opacity shrink-0"
       />
     </span>
   );

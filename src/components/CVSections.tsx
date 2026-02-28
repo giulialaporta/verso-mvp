@@ -16,6 +16,8 @@ import {
   LinkedinLogo,
   Plus,
   Trash,
+  Link as LinkIcon,
+  PencilSimple,
 } from "@phosphor-icons/react";
 import {
   Collapsible,
@@ -95,15 +97,26 @@ function SkillChips({ items, variant = "primary" }: { items: string[]; variant?:
   );
 }
 
-function RemoveButton({ onClick, label }: { onClick: () => void; label: string }) {
+function ItemActions({ onEdit, onRemove }: { onEdit?: () => void; onRemove: () => void }) {
   return (
-    <button
-      onClick={onClick}
-      className="opacity-0 group-hover/item:opacity-100 transition-opacity text-destructive hover:text-destructive/80 shrink-0"
-      aria-label={label}
-    >
-      <Trash size={14} />
-    </button>
+    <div className="flex items-center gap-1 shrink-0">
+      {onEdit && (
+        <button
+          onClick={onEdit}
+          className="p-1 rounded text-primary/50 hover:text-primary hover:bg-primary/10 transition-colors"
+          aria-label="Modifica"
+        >
+          <PencilSimple size={14} weight="bold" />
+        </button>
+      )}
+      <button
+        onClick={onRemove}
+        className="p-1 rounded text-destructive/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+        aria-label="Rimuovi"
+      >
+        <Trash size={14} />
+      </button>
+    </div>
   );
 }
 
@@ -111,7 +124,7 @@ function AddButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-1 font-mono text-[11px] uppercase text-muted-foreground hover:border-primary hover:text-primary transition-colors mt-1"
+      className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2.5 py-1.5 font-mono text-[11px] uppercase text-muted-foreground hover:border-primary hover:text-primary transition-colors mt-2"
     >
       <Plus size={12} weight="bold" />
       {label}
@@ -174,67 +187,71 @@ export function CVSections({
   };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-3">
       {/* Personal */}
       {(data.personal?.name || editable) && (
         <Section icon={User} title="Dati personali" collapsible={collapsible} summary={data.personal?.name}>
           <div className="flex items-start gap-3">
             {data.photo_base64 && (
-              <Avatar className="h-14 w-14 shrink-0">
+              <Avatar className="h-12 w-12 shrink-0">
                 <AvatarImage src={data.photo_base64} alt={data.personal?.name || ""} />
                 <AvatarFallback>{data.personal?.name?.charAt(0)}</AvatarFallback>
               </Avatar>
             )}
-            <div className="space-y-0.5">
+            <div className="space-y-1 min-w-0 flex-1">
               {(data.personal?.name || editable) && (
                 <p className="text-sm font-medium">
                   <E value={data.personal?.name || ""} path="personal.name" placeholder="Nome completo" />
                 </p>
               )}
-              {(data.personal?.email || editable) && (
-                <p className="text-sm text-muted-foreground">
-                  <E value={data.personal?.email || ""} path="personal.email" placeholder="Email" />
-                </p>
-              )}
-              {(data.personal?.phone || editable) && (
-                <p className="text-sm text-muted-foreground">
-                  <E value={data.personal?.phone || ""} path="personal.phone" placeholder="Telefono" />
-                </p>
-              )}
-              {(data.personal?.location || editable) && (
-                <p className="text-sm text-muted-foreground">
-                  <E value={data.personal?.location || ""} path="personal.location" placeholder="Località" />
-                </p>
-              )}
-              {(data.personal?.date_of_birth || editable) && (
-                <p className="text-sm text-muted-foreground">
-                  <E value={data.personal?.date_of_birth || ""} path="personal.date_of_birth" placeholder="Data di nascita" />
-                </p>
-              )}
-              {data.personal?.linkedin !== undefined && (
-                editable ? (
-                  <p className="inline-flex items-center gap-1 text-sm text-secondary">
-                    <LinkedinLogo size={14} />
-                    <E value={data.personal.linkedin || ""} path="personal.linkedin" placeholder="URL LinkedIn" />
+              <div className="grid grid-cols-1 gap-0.5">
+                {(data.personal?.email || editable) && (
+                  <p className="text-sm text-muted-foreground truncate">
+                    <E value={data.personal?.email || ""} path="personal.email" placeholder="Email" />
                   </p>
-                ) : data.personal.linkedin ? (
-                  <a href={data.personal.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-secondary hover:underline">
-                    <LinkedinLogo size={14} /> LinkedIn
-                  </a>
-                ) : null
-              )}
-              {data.personal?.website !== undefined && (
-                editable ? (
-                  <p className="inline-flex items-center gap-1 text-sm text-secondary">
-                    <Globe size={14} />
-                    <E value={data.personal.website || ""} path="personal.website" placeholder="URL Website" />
+                )}
+                {(data.personal?.phone || editable) && (
+                  <p className="text-sm text-muted-foreground">
+                    <E value={data.personal?.phone || ""} path="personal.phone" placeholder="Telefono" />
                   </p>
-                ) : data.personal.website ? (
-                  <a href={data.personal.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-secondary hover:underline">
-                    <Globe size={14} /> Website
-                  </a>
-                ) : null
-              )}
+                )}
+                {(data.personal?.location || editable) && (
+                  <p className="text-sm text-muted-foreground">
+                    <E value={data.personal?.location || ""} path="personal.location" placeholder="Località" />
+                  </p>
+                )}
+                {(data.personal?.date_of_birth || editable) && (
+                  <p className="text-sm text-muted-foreground">
+                    <E value={data.personal?.date_of_birth || ""} path="personal.date_of_birth" placeholder="Data di nascita" />
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5">
+                {data.personal?.linkedin !== undefined && (
+                  editable ? (
+                    <p className="inline-flex items-center gap-1 text-sm text-secondary">
+                      <LinkedinLogo size={14} />
+                      <E value={data.personal.linkedin || ""} path="personal.linkedin" placeholder="URL LinkedIn" />
+                    </p>
+                  ) : data.personal.linkedin ? (
+                    <a href={data.personal.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-secondary hover:underline">
+                      <LinkedinLogo size={14} /> LinkedIn
+                    </a>
+                  ) : null
+                )}
+                {data.personal?.website !== undefined && (
+                  editable ? (
+                    <p className="inline-flex items-center gap-1 text-sm text-secondary">
+                      <Globe size={14} />
+                      <E value={data.personal.website || ""} path="personal.website" placeholder="URL Website" />
+                    </p>
+                  ) : data.personal.website ? (
+                    <a href={data.personal.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-secondary hover:underline">
+                      <Globe size={14} /> Website
+                    </a>
+                  ) : null
+                )}
+              </div>
             </div>
           </div>
         </Section>
@@ -259,54 +276,59 @@ export function CVSections({
           collapsible={collapsible}
           summary={`${data.experience.length} posizion${data.experience.length === 1 ? "e" : "i"}`}
         >
-          {data.experience.map((exp, i) => (
-            <div key={i} className="group/item border-l-2 border-primary/30 pl-3 mb-3 last:mb-0 relative">
-              {editable && (
-                <div className="absolute right-0 top-0">
-                  <RemoveButton onClick={() => {
-                    const updated = [...data.experience!];
-                    updated.splice(i, 1);
-                    onUpdate?.({ ...data, experience: updated });
-                  }} label="Rimuovi esperienza" />
-                </div>
-              )}
-              <p className="font-medium text-sm">
-                <E value={exp.role || ""} path={`experience.${i}.role`} placeholder="Ruolo" />
-              </p>
-              <p className="text-xs text-muted-foreground">
-                <E value={exp.company || ""} path={`experience.${i}.company`} placeholder="Azienda" />
-                {" · "}
-                <E value={exp.location || ""} path={`experience.${i}.location`} placeholder="Luogo" />
-                {" · "}
-                <E value={exp.start || ""} path={`experience.${i}.start`} placeholder="Inizio" />
-                {" – "}
-                <E value={exp.end || (exp.current ? "Attuale" : "")} path={`experience.${i}.end`} placeholder="Fine" />
-              </p>
-              {(exp.description || editable) && (
-                <p className="text-xs text-foreground/70 mt-1">
-                  <E value={exp.description || ""} path={`experience.${i}.description`} multiline placeholder="Descrizione..." />
+          <div className="space-y-3">
+            {data.experience.map((exp, i) => (
+              <div key={i} className="border-l-2 border-primary/30 pl-3 relative">
+                {editable && (
+                  <div className="absolute right-0 top-0">
+                    <ItemActions
+                      onRemove={() => {
+                        const updated = [...data.experience!];
+                        updated.splice(i, 1);
+                        onUpdate?.({ ...data, experience: updated });
+                      }}
+                    />
+                  </div>
+                )}
+                <p className="font-medium text-sm pr-14">
+                  <E value={exp.role || ""} path={`experience.${i}.role`} placeholder="Ruolo" />
                 </p>
-              )}
-              {editable ? (
-                <div className="mt-1">
-                  <EditableSkillChips
-                    items={exp.bullets || []}
-                    onChange={(bullets) => update(`experience.${i}.bullets`, bullets)}
-                    variant="outline"
-                    placeholder="Aggiungi bullet..."
-                  />
-                </div>
-              ) : (
-                exp.bullets && exp.bullets.length > 0 && (
-                  <ul className="mt-1 space-y-0.5 list-disc list-inside">
-                    {exp.bullets.map((b, j) => (
-                      <li key={j} className="text-xs text-foreground/70">{b}</li>
-                    ))}
-                  </ul>
-                )
-              )}
-            </div>
-          ))}
+                <p className="text-xs text-muted-foreground">
+                  <E value={exp.company || ""} path={`experience.${i}.company`} placeholder="Azienda" />
+                  {" · "}
+                  <E value={exp.location || ""} path={`experience.${i}.location`} placeholder="Luogo" />
+                </p>
+                <p className="text-xs text-muted-foreground/60">
+                  <E value={exp.start || ""} path={`experience.${i}.start`} placeholder="Inizio" />
+                  {" – "}
+                  <E value={exp.end || (exp.current ? "Attuale" : "")} path={`experience.${i}.end`} placeholder="Fine" />
+                </p>
+                {(exp.description || editable) && (
+                  <p className="text-xs text-foreground/70 mt-1">
+                    <E value={exp.description || ""} path={`experience.${i}.description`} multiline placeholder="Descrizione..." />
+                  </p>
+                )}
+                {editable ? (
+                  <div className="mt-1.5">
+                    <EditableSkillChips
+                      items={exp.bullets || []}
+                      onChange={(bullets) => update(`experience.${i}.bullets`, bullets)}
+                      variant="outline"
+                      placeholder="Aggiungi bullet..."
+                    />
+                  </div>
+                ) : (
+                  exp.bullets && exp.bullets.length > 0 && (
+                    <ul className="mt-1 space-y-0.5 list-disc list-inside">
+                      {exp.bullets.map((b, j) => (
+                        <li key={j} className="text-xs text-foreground/70">{b}</li>
+                      ))}
+                    </ul>
+                  )
+                )}
+              </div>
+            ))}
+          </div>
           {editable && (
             <AddButton onClick={() => {
               onUpdate?.({
@@ -326,40 +348,45 @@ export function CVSections({
           collapsible={collapsible}
           summary={`${data.education.length} titol${data.education.length === 1 ? "o" : "i"}`}
         >
-          {data.education.map((edu, i) => (
-            <div key={i} className="group/item mb-2 last:mb-0 relative">
-              {editable && (
-                <div className="absolute right-0 top-0">
-                  <RemoveButton onClick={() => {
-                    const updated = [...data.education!];
-                    updated.splice(i, 1);
-                    onUpdate?.({ ...data, education: updated });
-                  }} label="Rimuovi formazione" />
-                </div>
-              )}
-              <p className="font-medium text-sm">
-                <E value={edu.degree || ""} path={`education.${i}.degree`} placeholder="Titolo" />
-                {(edu.field || editable) && (
-                  <>
-                    {" in "}
-                    <E value={edu.field || ""} path={`education.${i}.field`} placeholder="Campo" />
-                  </>
+          <div className="space-y-3">
+            {data.education.map((edu, i) => (
+              <div key={i} className="relative">
+                {editable && (
+                  <div className="absolute right-0 top-0">
+                    <ItemActions
+                      onRemove={() => {
+                        const updated = [...data.education!];
+                        updated.splice(i, 1);
+                        onUpdate?.({ ...data, education: updated });
+                      }}
+                    />
+                  </div>
                 )}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                <E value={edu.institution || ""} path={`education.${i}.institution`} placeholder="Istituto" />
-                {" · "}
-                <E value={edu.start || ""} path={`education.${i}.start`} placeholder="Inizio" />
-                {" – "}
-                <E value={edu.end || ""} path={`education.${i}.end`} placeholder="Fine" />
-              </p>
-              {(edu.grade || editable) && (
-                <p className="text-xs text-primary mt-0.5">
-                  <E value={edu.grade || ""} path={`education.${i}.grade`} placeholder="Voto" />
+                <p className="font-medium text-sm pr-14">
+                  <E value={edu.degree || ""} path={`education.${i}.degree`} placeholder="Titolo" />
+                  {(edu.field || editable) && (
+                    <>
+                      {" in "}
+                      <E value={edu.field || ""} path={`education.${i}.field`} placeholder="Campo" />
+                    </>
+                  )}
                 </p>
-              )}
-            </div>
-          ))}
+                <p className="text-xs text-muted-foreground">
+                  <E value={edu.institution || ""} path={`education.${i}.institution`} placeholder="Istituto" />
+                </p>
+                <p className="text-xs text-muted-foreground/60">
+                  <E value={edu.start || ""} path={`education.${i}.start`} placeholder="Inizio" />
+                  {" – "}
+                  <E value={edu.end || ""} path={`education.${i}.end`} placeholder="Fine" />
+                </p>
+                {(edu.grade || editable) && (
+                  <p className="text-xs text-primary mt-0.5">
+                    <E value={edu.grade || ""} path={`education.${i}.grade`} placeholder="Voto" />
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
           {editable && (
             <AddButton onClick={() => {
               onUpdate?.({
@@ -423,7 +450,7 @@ export function CVSections({
             >
               <div className="flex flex-wrap gap-2">
                 {(skills?.languages || []).map((lang, i) => (
-                  <span key={i} className="group/item inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs text-foreground">
+                  <span key={i} className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs text-foreground">
                     {editable ? (
                       <>
                         <InlineEdit
@@ -450,7 +477,7 @@ export function CVSections({
                             const langs = (skills?.languages || []).filter((_, j) => j !== i);
                             onUpdate?.({ ...data, skills: { ...data.skills, languages: langs } });
                           }}
-                          className="opacity-0 group-hover/item:opacity-100 transition-opacity text-destructive -mr-1"
+                          className="text-destructive/50 hover:text-destructive transition-colors -mr-1"
                         >
                           <Trash size={12} />
                         </button>
@@ -493,32 +520,34 @@ export function CVSections({
       {/* Certifications */}
       {data.certifications && data.certifications.length > 0 && (
         <Section icon={Certificate} title="Certificazioni" collapsible={collapsible} summary={`${data.certifications.length}`}>
-          {data.certifications.map((cert, i) => (
-            <div key={i} className="group/item flex items-start gap-2">
-              <p className="text-sm flex-1">
-                <E value={cert.name} path={`certifications.${i}.name`} placeholder="Nome certificazione" />
-                {(cert.issuer || editable) && (
-                  <span className="text-muted-foreground">
-                    {" — "}
-                    <E value={cert.issuer || ""} path={`certifications.${i}.issuer`} placeholder="Ente" />
-                  </span>
+          <div className="space-y-2">
+            {data.certifications.map((cert, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <p className="text-sm flex-1 min-w-0">
+                  <E value={cert.name} path={`certifications.${i}.name`} placeholder="Nome certificazione" />
+                  {(cert.issuer || editable) && (
+                    <span className="text-muted-foreground">
+                      {" — "}
+                      <E value={cert.issuer || ""} path={`certifications.${i}.issuer`} placeholder="Ente" />
+                    </span>
+                  )}
+                  {(cert.year || editable) && (
+                    <span className="text-muted-foreground">
+                      {" ("}
+                      <E value={cert.year || ""} path={`certifications.${i}.year`} placeholder="Anno" />
+                      {")"}
+                    </span>
+                  )}
+                </p>
+                {editable && (
+                  <ItemActions onRemove={() => {
+                    const updated = data.certifications!.filter((_, j) => j !== i);
+                    onUpdate?.({ ...data, certifications: updated });
+                  }} />
                 )}
-                {(cert.year || editable) && (
-                  <span className="text-muted-foreground">
-                    {" ("}
-                    <E value={cert.year || ""} path={`certifications.${i}.year`} placeholder="Anno" />
-                    {")"}
-                  </span>
-                )}
-              </p>
-              {editable && (
-                <RemoveButton onClick={() => {
-                  const updated = data.certifications!.filter((_, j) => j !== i);
-                  onUpdate?.({ ...data, certifications: updated });
-                }} label="Rimuovi certificazione" />
-              )}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
           {editable && (
             <AddButton onClick={() => {
               onUpdate?.({ ...data, certifications: [...(data.certifications || []), { name: "" }] });
@@ -530,29 +559,52 @@ export function CVSections({
       {/* Projects */}
       {data.projects && data.projects.length > 0 && (
         <Section icon={Lightbulb} title="Progetti" collapsible={collapsible} summary={`${data.projects.length}`}>
-          {data.projects.map((proj, i) => (
-            <div key={i} className="group/item mb-1 last:mb-0 flex items-start gap-2">
-              <div className="flex-1">
-                <p className="font-medium text-sm">
-                  <E value={proj.name} path={`projects.${i}.name`} placeholder="Nome progetto" />
-                </p>
-                {(proj.description || editable) && (
-                  <p className="text-xs text-foreground/70">
-                    <E value={proj.description || ""} path={`projects.${i}.description`} multiline placeholder="Descrizione..." />
+          <div className="space-y-3">
+            {data.projects.map((proj, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">
+                    <E value={proj.name} path={`projects.${i}.name`} placeholder="Nome progetto" />
                   </p>
+                  {(proj.description || editable) && (
+                    <p className="text-xs text-foreground/70 mt-0.5">
+                      <E value={proj.description || ""} path={`projects.${i}.description`} multiline placeholder="Descrizione..." />
+                    </p>
+                  )}
+                  {editable ? (
+                    <div className="inline-flex items-center gap-1 text-xs mt-0.5">
+                      <LinkIcon size={12} className="text-secondary shrink-0" />
+                      <InlineEdit
+                        value={proj.link || ""}
+                        onChange={(v) => update(`projects.${i}.link`, v)}
+                        placeholder="https://..."
+                      />
+                    </div>
+                  ) : (
+                    proj.link && (
+                      <a
+                        href={proj.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-secondary hover:underline mt-0.5"
+                      >
+                        <LinkIcon size={12} /> {proj.link}
+                      </a>
+                    )
+                  )}
+                </div>
+                {editable && (
+                  <ItemActions onRemove={() => {
+                    const updated = data.projects!.filter((_, j) => j !== i);
+                    onUpdate?.({ ...data, projects: updated });
+                  }} />
                 )}
               </div>
-              {editable && (
-                <RemoveButton onClick={() => {
-                  const updated = data.projects!.filter((_, j) => j !== i);
-                  onUpdate?.({ ...data, projects: updated });
-                }} label="Rimuovi progetto" />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
           {editable && (
             <AddButton onClick={() => {
-              onUpdate?.({ ...data, projects: [...(data.projects || []), { name: "" }] });
+              onUpdate?.({ ...data, projects: [...(data.projects || []), { name: "", link: "" }] });
             }} label="Progetto" />
           )}
         </Section>

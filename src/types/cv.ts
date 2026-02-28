@@ -55,6 +55,7 @@ export type ParsedCV = {
   projects?: {
     name: string;
     description?: string;
+    link?: string;
   }[];
 
   extra_sections?: {
