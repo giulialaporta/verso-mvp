@@ -1,88 +1,49 @@
 
 
-# Stato "Draft" per le candidature + Verifica flusso di salvataggio
+# Fix CV Card in Home: rimuovere ridondanze e rendere utile
 
-## Situazione attuale
+## Il problema
 
-Il salvataggio avviene **solo** nello Step 3, con `status: "inviata"`. Se l'utente chiude il browser o torna indietro durante l'analisi AI, perde tutto. Non esiste uno stato draft.
+1. **Nome ripetuto 2 volte**: la sezione "Dati personali" mostra il nome come summary del collapsible ("Dati personali — Mario Rossi") E poi lo ripete dentro il contenuto espanso come testo bold. Inutile.
 
-Il flusso attuale:
-1. Step 1: inserisci annuncio --> nessun salvataggio
-2. Step 2: analisi AI --> nessun salvataggio
-3. Step 3: visualizza CV adattato --> unico punto di salvataggio (status: "inviata")
+2. **Non si capisce quale CV e' caricato**: il filename ("CV_Giulia_La_Porta.pdf") non dice nulla sul contenuto. Serve un riassunto rapido del CV: ultimo ruolo, competenze principali, qualcosa che aiuti a riconoscerlo.
 
 ## Soluzione
 
-### 1. Salvataggio draft automatico dopo Step 1
+### `src/components/CVSections.tsx` — Fix nome ripetuto
 
-Quando l'utente conferma l'annuncio (Step 1 -> Step 2), creiamo subito una `application` con `status: "draft"`. Questo garantisce che i dati dell'annuncio non vadano persi.
+Nella sezione "Dati personali" in modalita' collapsible, il nome appare gia' come `summary` nel trigger. Dentro il contenuto espanso, mostrare solo email, telefono, location — **rimuovere la riga `<p className="font-medium">{data.personal.name}</p>`** che duplica il nome.
 
-Flusso nuovo:
-1. Step 1: conferma annuncio --> **salva application come draft** (company, role, job_description, job_url)
-2. Step 2: analisi AI completata --> **aggiorna application** con match_score
-3. Step 3: "Salva candidatura" --> **aggiorna status a "inviata"** + salva tailored_cv
+### `src/pages/Home.tsx` — CV Card piu' informativa
 
-### 2. Aggiornare Step3 per usare update invece di insert
+Sostituire l'header generico "Il tuo CV" + filename con un riassunto significativo:
 
-Invece di creare una nuova application in Step3, aggiorniamo quella draft esistente. Il `tailored_cv` viene creato come prima, ma linkato all'application gia' esistente.
+- **Titolo**: nome completo dal parsed_data (es. "Giulia La Porta") invece di "Il tuo CV"
+- **Sotto-titolo**: ultimo ruolo + azienda dall'esperienza piu' recente (es. "Product Manager · Acme Corp"), oppure il filename come fallback se non ci sono dati estratti
+- **Rimuovere** la riga del filename raw — non serve piu'
 
-### 3. Dashboard Home: escludere i draft dal conteggio "attive"
+Layout risultante della CV Card:
 
-I draft non vanno contati nelle candidature attive. Il filtro attuale esclude solo "ko" -- aggiungiamo anche "draft".
-
-### 4. Pagina Candidature: mostrare i draft separatamente
-
-La pagina Candidature (attualmente vuota/placeholder) deve:
-- Caricare le application dal database
-- Mostrare i draft in una sezione separata "Bozze" con possibilita' di riprendere o eliminare
-- Mostrare le candidature attive nella lista principale
-
----
-
-## File coinvolti
-
-### `src/pages/Nuova.tsx`
-
-**handleStep1Confirm** (riga ~695):
-- Dopo aver chiamato `scrape-job`, prima di invocare `ai-tailor`, inserisce una riga in `applications` con status `"draft"`
-- Salva l'`applicationId` nello state del wizard
-- Quando l'AI completa (Step 2), aggiorna la riga con `match_score`
-
-**Step3 handleSave** (riga ~535):
-- Cambia da `insert` a `update` sulla application esistente (draft -> inviata)
-- Inserisce il `tailored_cv` come prima, ma con l'`application_id` gia' noto
-
-Nuovo state nel wizard:
-```
-const [applicationId, setApplicationId] = useState<string | null>(null);
+```text
++------------------------------------------+
+| [icon] Giulia La Porta                   |
+| Product Manager · Acme Corp              |
++------------------------------------------+
+| > Dati personali — Giulia La Porta       |
+|   email, telefono, citta'                |
+| > Esperienza — 3 posizioni              |
+| > Competenze — 12                        |
+| ...                                      |
++------------------------------------------+
+| [Elimina CV]  [Carica nuovo CV]          |
++------------------------------------------+
 ```
 
-### `src/pages/Home.tsx`
+## Riepilogo modifiche
 
-**activeApps filter** (riga ~284 circa):
-- Aggiungere `"draft"` alla lista degli stati esclusi dal conteggio attive
-- Da: `a.status.toLowerCase() !== "ko"`
-- A: `!["ko", "draft"].includes(a.status.toLowerCase())`
+| File | Cosa cambia |
+|------|-------------|
+| `src/components/CVSections.tsx` | Rimuovere `<p>{data.personal.name}</p>` dentro la sezione Dati personali (il nome e' gia' nel summary) |
+| `src/pages/Home.tsx` | CV Card: titolo = nome dal CV, sottotitolo = ultimo ruolo + azienda, rimuovere filename raw |
 
-### `src/pages/Candidature.tsx`
-
-Riscrittura completa della pagina placeholder:
-- Fetch delle application dal database (tutte)
-- Sezione "Bozze" in alto se ci sono draft, con bottoni "Riprendi" e "Elimina"
-- Lista principale con le candidature non-draft
-- Ogni card mostra: company, role, score, status chip, data
-- "Riprendi" su un draft naviga a `/app/nuova` (per ora senza pre-fill, feature futura)
-- "Elimina" cancella la riga con conferma AlertDialog
-
----
-
-## Riepilogo
-
-| File | Modifica |
-|------|----------|
-| `src/pages/Nuova.tsx` | Salvataggio draft in Step 1, update in Step 3 invece di insert |
-| `src/pages/Home.tsx` | Escludere draft dal conteggio attive |
-| `src/pages/Candidature.tsx` | Riscrittura: lista candidature + sezione bozze |
-
-Nessuna modifica al database (lo status e' gia' un campo text, "draft" e' gia' il default nella tabella `applications`).
-
+Nessuna modifica backend, nessun nuovo file.
