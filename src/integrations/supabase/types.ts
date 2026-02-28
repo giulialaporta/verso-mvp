@@ -59,6 +59,27 @@ export type Database = {
         }
         Relationships: []
       }
+      job_cache: {
+        Row: {
+          created_at: string
+          id: string
+          job_data: Json
+          url_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_data: Json
+          url_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_data?: Json
+          url_hash?: string
+        }
+        Relationships: []
+      }
       master_cvs: {
         Row: {
           created_at: string
