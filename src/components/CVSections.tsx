@@ -387,6 +387,21 @@ export function CVSections({
                     <E value={edu.grade || ""} path={`education.${i}.grade`} placeholder="Voto" />
                   </p>
                 )}
+                {(edu.honors) && (
+                  <p className="text-xs text-primary/80 mt-0.5 italic">
+                    <E value={edu.honors || ""} path={`education.${i}.honors`} placeholder="Menzioni" />
+                  </p>
+                )}
+                {(edu.program) && (
+                  <p className="text-xs text-secondary mt-0.5">
+                    <E value={edu.program || ""} path={`education.${i}.program`} placeholder="Programma" />
+                  </p>
+                )}
+                {(edu.publication) && (
+                  <p className="text-xs text-foreground/60 mt-0.5">
+                    <E value={edu.publication || ""} path={`education.${i}.publication`} placeholder="Tesi / Pubblicazione" />
+                  </p>
+                )}
               </div>
             ))}
           </div>

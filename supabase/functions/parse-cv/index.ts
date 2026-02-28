@@ -140,16 +140,24 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `Sei un esperto parser di CV. Ricevi un PDF e devi estrarre TUTTI i dati in modo strutturato e completo.
+              content: `You are an expert CV/resume parser. You receive a PDF and must extract ALL data in a structured and complete way.
 
-REGOLE:
-- Il campo "summary" è OBBLIGATORIO. Se il CV ha una sezione esplicita (Profilo, Summary, Obiettivo, Chi sono), usala. Se NON esiste, sintetizza un profilo professionale di 2-3 frasi basandoti su: ruolo attuale, anni di esperienza, settore principale, competenze distintive. Non inventare nulla: usa solo informazioni presenti nel CV.
-- Per le esperienze, separa SEMPRE la narrativa (description) dai punti elenco (bullets). Se ci sono solo bullets, lascia description vuoto. Se c'è solo narrativa, lascia bullets vuoto.
-- Per le skills, categorizza in 4 gruppi: technical (competenze di dominio), soft (trasversali), tools (software e strumenti), languages (con livello CEFR se indicato).
-- Per l'education, estrai grade (voto), honors (menzioni, lode), program (Erasmus, ecc.), publication (tesi, pubblicazioni).
-- QUALSIASI sezione del CV che NON rientra nelle categorie standard (experience, education, skills, certifications, projects) DEVE essere catturata in extra_sections con il titolo originale della sezione e i contenuti come array di stringhe. Esempi: Hobby, Volontariato, Pubblicazioni, Awards, Conferenze, Portfolio, Referenze, Interessi, Attività extracurriculari, ecc.
-- has_photo: indica true se il CV contiene visivamente una foto del candidato.
-- Estrai TUTTO. Non perdere nessuna informazione presente nel documento.`,
+CRITICAL LANGUAGE RULE: Preserve the EXACT original language of the CV. If the CV is written in English, ALL extracted text MUST remain in English. If in Italian, keep it in Italian. If in any other language, keep that language. NEVER translate any content. This applies to every single field: summary, role titles, descriptions, bullets, skills, degree names, certifications — everything.
+
+RULES:
+- The "summary" field is REQUIRED. If the CV has an explicit section (Profile, Summary, Objective, About Me, Profilo, Chi sono), use it verbatim. If NO such section exists, synthesize a 2-3 sentence professional profile based on: current role, years of experience, main sector, distinctive skills. Do not invent anything: use only information present in the CV.
+- For experience, ALWAYS separate narrative text (description) from bullet points (bullets). If there are only bullets, leave description empty. If there is only narrative, leave bullets empty.
+- For skills, categorize into 4 groups: technical (domain competencies), soft (transferable skills), tools (software and tools), languages (with CEFR level if indicated).
+- For education:
+  - degree: use the FULL qualification title exactly as written in the CV (e.g., "Qualification to practice as an Engineer", "Master of Science", "Laurea Magistrale"). Do NOT split or truncate multi-word degree titles.
+  - field: use the specialization or discipline (e.g., "Civil Engineering", "Computer Science"). This is the subject area, separate from the degree title.
+  - grade: extract the grade/score (e.g., "110/110", "3.8 GPA").
+  - honors: extract distinctions (e.g., "cum laude", "with honours", "Dean's List").
+  - program: If any education entry mentions an exchange program, Erasmus, Erasmus+, study abroad, double degree, or similar, ALWAYS populate this field with the full program name, host institution, and city/country if mentioned.
+  - publication: thesis title or related publication if mentioned.
+- ANY CV section that does NOT fit standard categories (experience, education, skills, certifications, projects) MUST be captured in extra_sections with the original section title and contents as an array of strings. Examples: Hobbies, Volunteering, Publications, Awards, Conferences, Portfolio, References, Interests, Extracurricular Activities, etc.
+- has_photo: set to true if the CV visually contains a photo of the candidate.
+- Extract EVERYTHING. Do not lose any information present in the document.`,
             },
             {
               role: "user",
@@ -163,7 +171,7 @@ REGOLE:
                 },
                 {
                   type: "text",
-                  text: "Analizza questo CV ed estrai tutti i dati strutturati usando il tool extract_cv_data.",
+                  text: "Extract all structured data from this CV using the extract_cv_data tool. Preserve the original language exactly — do NOT translate any content.",
                 },
               ],
             },
@@ -217,14 +225,14 @@ REGOLE:
                         type: "object",
                         properties: {
                           institution: { type: "string" },
-                          degree: { type: "string" },
-                          field: { type: "string" },
+                          degree: { type: "string", description: "The FULL qualification title exactly as written (e.g., 'Qualification to practice as an Engineer', 'Master of Science'). Do NOT truncate." },
+                          field: { type: "string", description: "The specialization or discipline (e.g., 'Civil Engineering', 'Computer Science'). Separate from degree title." },
                           start: { type: "string" },
                           end: { type: "string" },
-                          grade: { type: "string" },
-                          honors: { type: "string" },
-                          program: { type: "string" },
-                          publication: { type: "string" },
+                          grade: { type: "string", description: "Grade or score (e.g., '110/110', '3.8 GPA')" },
+                          honors: { type: "string", description: "Distinctions such as 'cum laude', 'with honours', 'Dean\\'s List'" },
+                          program: { type: "string", description: "Exchange or special program name (e.g., 'Erasmus', 'Erasmus+', 'Double Degree', 'Study Abroad'). Include the host institution and city if mentioned." },
+                          publication: { type: "string", description: "Thesis title or related publication if mentioned" },
                         },
                         required: ["institution", "degree"],
                       },
@@ -255,7 +263,7 @@ REGOLE:
                         type: "object",
                         properties: {
                           name: { type: "string" },
-                          issuer: { type: "string" },
+                          issuer: { type: "string", description: "The organization or institution that issued the certification (e.g., 'Google', 'AWS', 'PMI', 'Ordine degli Ingegneri'). Extract the EXACT issuer name as written in the CV." },
                           year: { type: "string" },
                         },
                         required: ["name"],
