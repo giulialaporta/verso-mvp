@@ -2,3 +2,9 @@ project_id = "omazcdcyqrdvyyxzvmyx"
 
 [functions.parse-cv]
 verify_jwt = false
+
+[functions.scrape-job]
+verify_jwt = false
+
+[functions.ai-tailor]
+verify_jwt = false
