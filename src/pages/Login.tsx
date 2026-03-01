@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,13 +74,6 @@ export default function Login() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleGoogleLogin = async () => {
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (error) toast.error(error.message);
   };
 
   // Forgot password view
@@ -207,22 +200,6 @@ export default function Login() {
               </Button>
             </form>
 
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">oppure</span>
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleLogin}
-            >
-              Continua con Google
-            </Button>
 
             <p className="mt-4 text-center text-sm text-muted-foreground">
               {isSignUp ? "Hai già un account?" : "Non hai un account?"}{" "}
