@@ -1,0 +1,1 @@
+ALTER TABLE master_cvs ADD COLUMN is_active boolean NOT NULL DEFAULT true;

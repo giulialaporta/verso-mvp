@@ -92,6 +92,7 @@ export type Database = {
           file_name: string | null
           file_url: string | null
           id: string
+          is_active: boolean
           parsed_data: Json | null
           photo_url: string | null
           raw_text: string | null
@@ -104,6 +105,7 @@ export type Database = {
           file_name?: string | null
           file_url?: string | null
           id?: string
+          is_active?: boolean
           parsed_data?: Json | null
           photo_url?: string | null
           raw_text?: string | null
@@ -116,6 +118,7 @@ export type Database = {
           file_name?: string | null
           file_url?: string | null
           id?: string
+          is_active?: boolean
           parsed_data?: Json | null
           photo_url?: string | null
           raw_text?: string | null

@@ -27,7 +27,10 @@ import {
   ChartLineUp,
   CheckCircle,
   Briefcase,
+  CaretDown,
+  ArrowClockwise,
 } from "@phosphor-icons/react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { CVSections } from "@/components/CVSections";
@@ -40,6 +43,8 @@ type MasterCV = {
   parsed_data: ParsedCV | null;
   file_name: string | null;
   file_url: string | null;
+  created_at: string;
+  is_active: boolean;
 };
 
 type AppRow = {
@@ -316,11 +321,9 @@ function CVCard({
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Eliminare il CV?</AlertDialogTitle>
+                <AlertDialogTitle>Archiviare il CV?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Il tuo CV e tutti i dati estratti verranno eliminati
-                  permanentemente. Potrai caricarne uno nuovo in qualsiasi
-                  momento.
+                  Il CV verrà archiviato e potrai riattivarlo in qualsiasi momento dallo storico.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -355,6 +358,7 @@ export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [cv, setCv] = useState<MasterCV | null | undefined>(undefined);
+  const [inactiveCvs, setInactiveCvs] = useState<MasterCV[]>([]);
   const [apps, setApps] = useState<AppRow[] | undefined>(undefined);
   const [profileName, setProfileName] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -363,7 +367,7 @@ export default function Home() {
     if (!user) return;
 
     const fetchData = async () => {
-      const [{ data: profile }, { data: cvs }, { data: appRows }] =
+      const [{ data: profile }, { data: activeCvs }, { data: oldCvs }, { data: appRows }] =
         await Promise.all([
           supabase
             .from("profiles")
@@ -374,8 +378,15 @@ export default function Home() {
             .from("master_cvs")
             .select("*")
             .eq("user_id", user.id)
+            .eq("is_active", true)
             .order("created_at", { ascending: false })
             .limit(1),
+          supabase
+            .from("master_cvs")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("is_active", false)
+            .order("created_at", { ascending: false }),
           supabase
             .from("applications")
             .select("id, company_name, role_title, match_score, ats_score, status, created_at")
@@ -385,7 +396,8 @@ export default function Home() {
         ]);
 
       setProfileName(profile?.full_name || "");
-      setCv(cvs && cvs.length > 0 ? (cvs[0] as unknown as MasterCV) : null);
+      setCv(activeCvs && activeCvs.length > 0 ? (activeCvs[0] as unknown as MasterCV) : null);
+      setInactiveCvs((oldCvs as unknown as MasterCV[]) ?? []);
       setApps((appRows as unknown as AppRow[]) ?? []);
     };
 
@@ -396,20 +408,56 @@ export default function Home() {
     if (!cv || !user) return;
     setDeleting(true);
     try {
-      if (cv.file_url) {
-        await supabase.storage.from("cv-uploads").remove([cv.file_url]);
-      }
       const { error } = await supabase
         .from("master_cvs")
-        .delete()
+        .update({ is_active: false } as any)
         .eq("id", cv.id);
       if (error) throw error;
+      setInactiveCvs((prev) => [{ ...cv, is_active: false } as MasterCV, ...prev]);
       setCv(null);
-      toast.success("CV eliminato con successo.");
+      toast.success("CV archiviato.");
     } catch (e: any) {
-      toast.error(e.message || "Errore durante l'eliminazione.");
+      toast.error(e.message || "Errore durante l'archiviazione.");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleReactivate = async (oldCv: MasterCV) => {
+    if (!user) return;
+    try {
+      // Deactivate current CV
+      if (cv) {
+        await supabase.from("master_cvs").update({ is_active: false } as any).eq("id", cv.id);
+      }
+      // Activate selected CV
+      const { error } = await supabase.from("master_cvs").update({ is_active: true } as any).eq("id", oldCv.id);
+      if (error) throw error;
+
+      const reactivated = { ...oldCv, is_active: true } as MasterCV;
+      setInactiveCvs((prev) => {
+        const updated = prev.filter((c) => c.id !== oldCv.id);
+        if (cv) updated.unshift({ ...cv, is_active: false } as MasterCV);
+        return updated;
+      });
+      setCv(reactivated);
+      toast.success("CV riattivato.");
+    } catch (e: any) {
+      toast.error(e.message || "Errore durante la riattivazione.");
+    }
+  };
+
+  const handleHardDelete = async (oldCv: MasterCV) => {
+    try {
+      if (oldCv.file_url) {
+        await supabase.storage.from("cv-uploads").remove([oldCv.file_url]);
+      }
+      const { error } = await supabase.from("master_cvs").delete().eq("id", oldCv.id);
+      if (error) throw error;
+      setInactiveCvs((prev) => prev.filter((c) => c.id !== oldCv.id));
+      toast.success("CV eliminato definitivamente.");
+    } catch (e: any) {
+      toast.error(e.message || "Errore durante l'eliminazione.");
     }
   };
 
@@ -509,6 +557,85 @@ export default function Home() {
           transition={{ delay: 0.2, duration: 0.25 }}
         >
           <CVCard cv={cv} onDelete={handleDelete} deleting={deleting} />
+        </motion.div>
+      )}
+
+      {/* CV precedenti */}
+      {inactiveCvs.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.25 }}
+        >
+          <Collapsible>
+            <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-2">
+              <FileText size={16} />
+              <span>CV precedenti ({inactiveCvs.length})</span>
+              <CaretDown size={14} className="ml-auto" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="space-y-2 mt-2">
+                {inactiveCvs.map((oldCv) => (
+                  <div
+                    key={oldCv.id}
+                    className="flex items-center gap-3 rounded-lg border border-border/40 bg-card/60 px-3 py-2.5"
+                  >
+                    <FileText size={18} className="text-muted-foreground shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {oldCv.file_name || "CV"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(oldCv.created_at).toLocaleDateString("it-IT", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </div>
+                    <div className="flex gap-1.5 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-xs h-7"
+                        onClick={() => handleReactivate(oldCv)}
+                      >
+                        <ArrowClockwise size={14} /> Riattiva
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash size={14} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Eliminare definitivamente?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Questo CV verrà eliminato permanentemente. Le candidature associate manterranno i loro dati.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annulla</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleHardDelete(oldCv)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Elimina
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </motion.div>
       )}
 
