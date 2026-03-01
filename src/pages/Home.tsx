@@ -29,8 +29,13 @@ import {
   Briefcase,
   CaretDown,
   ArrowClockwise,
+  CurrencyEur,
+  PencilSimple,
+  Check,
+  X,
 } from "@phosphor-icons/react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { CVSections } from "@/components/CVSections";
@@ -269,14 +274,100 @@ function RecentApplications({ apps }: { apps: AppRow[] }) {
 }
 
 // ─── CV Card (collapsible) ───────────────────────────────────
+function SalaryDisplay({
+  salary,
+  onSave,
+}: {
+  salary: { current_ral: number | null; desired_ral: number | null } | null;
+  onSave: (data: { current_ral: number | null; desired_ral: number | null }) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [currentVal, setCurrentVal] = useState(salary?.current_ral?.toString() || "");
+  const [desiredVal, setDesiredVal] = useState(salary?.desired_ral?.toString() || "");
+  const [saving, setSaving] = useState(false);
+
+  const fmt = (n: number | null) =>
+    n !== null ? `€ ${n.toLocaleString("it-IT")}` : "—";
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        current_ral: currentVal ? parseInt(currentVal, 10) : null,
+        desired_ral: desiredVal ? parseInt(desiredVal, 10) : null,
+      });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+        <CurrencyEur size={16} className="text-primary shrink-0" />
+        <Input
+          placeholder="RAL attuale"
+          value={currentVal}
+          onChange={(e) => setCurrentVal(e.target.value.replace(/\D/g, ""))}
+          className="h-7 text-xs font-mono w-24"
+          inputMode="numeric"
+        />
+        <span className="text-muted-foreground text-xs">→</span>
+        <Input
+          placeholder="Desiderata"
+          value={desiredVal}
+          onChange={(e) => setDesiredVal(e.target.value.replace(/\D/g, ""))}
+          className="h-7 text-xs font-mono w-24"
+          inputMode="numeric"
+        />
+        <button onClick={handleSave} disabled={saving} className="text-primary hover:text-primary/80 p-0.5">
+          <Check size={16} weight="bold" />
+        </button>
+        <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground p-0.5">
+          <X size={14} />
+        </button>
+      </div>
+    );
+  }
+
+  const hasSalary = salary?.current_ral || salary?.desired_ral;
+
+  return (
+    <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+      <CurrencyEur size={16} className={hasSalary ? "text-primary" : "text-muted-foreground"} />
+      {hasSalary ? (
+        <>
+          <span className="text-xs text-muted-foreground">RAL:</span>
+          <span className="font-mono text-xs">{fmt(salary?.current_ral ?? null)}</span>
+          <span className="text-muted-foreground text-xs">→</span>
+          <span className="font-mono text-xs text-primary">{fmt(salary?.desired_ral ?? null)}</span>
+        </>
+      ) : (
+        <span className="text-xs text-muted-foreground">Aggiungi aspettative RAL</span>
+      )}
+      <button
+        onClick={() => setEditing(true)}
+        className="ml-auto text-muted-foreground hover:text-primary transition-colors p-0.5"
+      >
+        <PencilSimple size={14} />
+      </button>
+    </div>
+  );
+}
+
 function CVCard({
   cv,
   onDelete,
   deleting,
+  salary,
+  onSaveSalary,
 }: {
   cv: MasterCV;
   onDelete: () => void;
   deleting: boolean;
+  salary: { current_ral: number | null; desired_ral: number | null } | null;
+  onSaveSalary: (data: { current_ral: number | null; desired_ral: number | null }) => Promise<void>;
 }) {
   const navigate = useNavigate();
 
@@ -307,6 +398,8 @@ function CVCard({
             Nessun dato estratto disponibile.
           </p>
         )}
+
+        <SalaryDisplay salary={salary} onSave={onSaveSalary} />
 
         <div className="flex flex-wrap gap-3 pt-2 border-t border-border/50">
           <AlertDialog>
@@ -361,6 +454,7 @@ export default function Home() {
   const [inactiveCvs, setInactiveCvs] = useState<MasterCV[]>([]);
   const [apps, setApps] = useState<AppRow[] | undefined>(undefined);
   const [profileName, setProfileName] = useState("");
+  const [salaryExpectations, setSalaryExpectations] = useState<{ current_ral: number | null; desired_ral: number | null } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -371,7 +465,7 @@ export default function Home() {
         await Promise.all([
           supabase
             .from("profiles")
-            .select("full_name")
+            .select("full_name, salary_expectations")
             .eq("user_id", user.id)
             .single(),
           supabase
@@ -396,6 +490,7 @@ export default function Home() {
         ]);
 
       setProfileName(profile?.full_name || "");
+      setSalaryExpectations((profile as any)?.salary_expectations || null);
       setCv(activeCvs && activeCvs.length > 0 ? (activeCvs[0] as unknown as MasterCV) : null);
       setInactiveCvs((oldCvs as unknown as MasterCV[]) ?? []);
       setApps((appRows as unknown as AppRow[]) ?? []);
@@ -556,7 +651,20 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.25 }}
         >
-          <CVCard cv={cv} onDelete={handleDelete} deleting={deleting} />
+          <CVCard
+            cv={cv}
+            onDelete={handleDelete}
+            deleting={deleting}
+            salary={salaryExpectations}
+            onSaveSalary={async (data) => {
+              await supabase
+                .from("profiles")
+                .update({ salary_expectations: data } as any)
+                .eq("user_id", user!.id);
+              setSalaryExpectations(data);
+              toast.success("Aspettative RAL aggiornate.");
+            }}
+          />
         </motion.div>
       )}
 

@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,12 +15,14 @@ import {
   X,
   Check,
   ArrowRight,
+  ArrowLeft,
+  CurrencyEur,
 } from "@phosphor-icons/react";
 import { CVSections } from "@/components/CVSections";
 import { CVSuggestions } from "@/components/CVSuggestions";
 import type { ParsedCV } from "@/types/cv";
 
-type Step = "upload" | "parsing" | "preview";
+type Step = "upload" | "parsing" | "preview" | "salary";
 
 export default function Onboarding() {
   const { user } = useAuth();
@@ -31,6 +35,10 @@ export default function Onboarding() {
   const [filePath, setFilePath] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [rawText, setRawText] = useState<string | null>(null);
+
+  // Salary expectations
+  const [currentRal, setCurrentRal] = useState<string>("");
+  const [desiredRal, setDesiredRal] = useState<string>("");
 
   const handleFile = useCallback((f: File) => {
     if (f.type !== "application/pdf") {
@@ -106,6 +114,22 @@ export default function Onboarding() {
       } as any);
 
       if (error) throw error;
+
+      // Save salary expectations if provided
+      const currentVal = currentRal ? parseInt(currentRal, 10) : null;
+      const desiredVal = desiredRal ? parseInt(desiredRal, 10) : null;
+      if (currentVal !== null || desiredVal !== null) {
+        await supabase
+          .from("profiles")
+          .update({
+            salary_expectations: {
+              current_ral: currentVal,
+              desired_ral: desiredVal,
+            },
+          } as any)
+          .eq("user_id", user.id);
+      }
+
       toast.success("CV salvato con successo!");
       navigate("/app/home");
     } catch (e: any) {
@@ -119,6 +143,20 @@ export default function Onboarding() {
     if (bytes < 1024) return bytes + " B";
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  };
+
+  const formatRal = (value: string) => {
+    const num = parseInt(value.replace(/\D/g, ""), 10);
+    if (isNaN(num)) return "";
+    return num.toLocaleString("it-IT");
+  };
+
+  const handleRalInput = (
+    value: string,
+    setter: (v: string) => void
+  ) => {
+    const clean = value.replace(/\D/g, "");
+    setter(clean);
   };
 
   return (
@@ -259,10 +297,99 @@ export default function Onboarding() {
                     Verso conosce solo quello che hai scritto nel tuo CV. Nessuna informazione inventata.
                   </p>
 
-                  <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
-                    {saving ? "Salvataggio..." : "Salva e continua"}
-                    <ArrowRight size={16} />
+                  <Button onClick={() => setStep("salary")} className="w-full gap-2">
+                    Continua <ArrowRight size={16} />
                   </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {step === "salary" && (
+            <motion.div
+              key="salary"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.25 }}
+            >
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <CardContent className="pt-5 pb-5 px-4 sm:pt-6 sm:px-6 space-y-5 sm:space-y-6">
+                  <div className="text-center">
+                    <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-primary/15">
+                      <CurrencyEur size={20} className="text-primary" weight="bold" />
+                    </div>
+                    <h2 className="font-display text-lg sm:text-xl font-bold">
+                      Aspettative economiche
+                    </h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                      Opzionale. Verso le userà per confrontare il range dell'offerta.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="current-ral" className="text-sm text-muted-foreground">
+                        RAL attuale (€)
+                      </Label>
+                      <div className="relative">
+                        <CurrencyEur
+                          size={16}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        />
+                        <Input
+                          id="current-ral"
+                          placeholder="es. 45.000"
+                          value={currentRal ? formatRal(currentRal) : ""}
+                          onChange={(e) => handleRalInput(e.target.value, setCurrentRal)}
+                          className="pl-9 font-mono"
+                          inputMode="numeric"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="desired-ral" className="text-sm text-muted-foreground">
+                        RAL desiderata (€)
+                      </Label>
+                      <div className="relative">
+                        <CurrencyEur
+                          size={16}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        />
+                        <Input
+                          id="desired-ral"
+                          placeholder="es. 55.000"
+                          value={desiredRal ? formatRal(desiredRal) : ""}
+                          onChange={(e) => handleRalInput(e.target.value, setDesiredRal)}
+                          className="pl-9 font-mono"
+                          inputMode="numeric"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-center text-[11px] text-muted-foreground/50 italic">
+                    Questi dati restano privati e non vengono mai inseriti nel CV.
+                  </p>
+
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setStep("preview")}
+                      className="gap-2"
+                    >
+                      <ArrowLeft size={16} /> Indietro
+                    </Button>
+                    <Button
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="flex-1 gap-2"
+                    >
+                      {saving ? "Salvataggio..." : "Salva e continua"}
+                      <ArrowRight size={16} />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
