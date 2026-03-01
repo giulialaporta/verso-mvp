@@ -3,9 +3,9 @@ import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/
 Font.register({
   family: "DM Sans",
   fonts: [
-    { src: "https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHTWEBlw.ttf", fontWeight: 400 },
-    { src: "https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZ-IHTWEBlwp.ttf", fontWeight: 500 },
-    { src: "https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHTWEBlw.ttf", fontWeight: 700, fontStyle: "normal" },
+    { src: "https://cdn.jsdelivr.net/fontsource/fonts/dm-sans@latest/latin-400-normal.ttf", fontWeight: 400 },
+    { src: "https://cdn.jsdelivr.net/fontsource/fonts/dm-sans@latest/latin-500-normal.ttf", fontWeight: 500 },
+    { src: "https://cdn.jsdelivr.net/fontsource/fonts/dm-sans@latest/latin-700-normal.ttf", fontWeight: 700 },
   ],
 });
 
