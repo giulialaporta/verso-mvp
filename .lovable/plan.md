@@ -1,137 +1,67 @@
 
 
-# Test automatici con CV e annunci di lavoro reali
+# Fix: schermata bianca allo step "Verifica" quando si apre un draft da DevTest
 
-## Obiettivo
+## Problema
 
-Creare una pagina di test interna (`/app/dev-test`) accessibile solo in ambiente di sviluppo, che permette di:
-1. Lanciare test end-to-end del flusso principale (onboarding + nuova candidatura)
-2. Usare il CV di Giulia La Porta come fixture
-3. Usare 3 annunci di lavoro realistici come fixture
+Quando DevTest crea una bozza e naviga a `/app/nuova?draft=ID`, il wizard:
+1. Carica i dati della bozza dal database
+2. Trova `job_description` popolata, quindi imposta `updateStep(1)` (Verifica)
+3. Ma **non lancia** la chiamata `ai-prescreen`
+4. Lo step Verifica riceve `prescreenResult=null` e `loading=false`
+5. La riga 493 (`if (!prescreenResult) return null`) restituisce **nulla** = schermata bianca
 
-## Cosa viene creato
+## Soluzione
 
-### 1. File fixture con dati di test
+Modificare la logica di caricamento del draft in `Nuova.tsx` (intorno alla riga 1751-1753): quando il wizard si posiziona sullo step 1 perche' c'e' un `job_description` ma nessun `tailored_cvs`, deve **lanciare automaticamente il pre-screening** con i dati dell'annuncio gia' disponibili.
 
-**`src/test/fixtures/test-cv.ts`** -- Il CV di Giulia La Porta gia' parsato nel formato `ParsedCV`, pronto per essere inserito direttamente in `master_cvs.parsed_data`. Include:
-- Dati anagrafici (nome, email, telefono, citta')
-- Esperienze: HYPE (Head of AI), Illimity (PO), Intesa Sanpaolo (CRM), Deloitte (Consultant)
-- Istruzione: Executive Master ABI, Laurea Magistrale Palermo 110/110L
-- Skill: Fintech, Product Management, AI, CRM, Analytics, etc.
-- Tools: Figma, Dynamics 365, Azure, Notion, etc.
+### Modifiche in `src/pages/Nuova.tsx`
 
-**`src/test/fixtures/test-jobs.ts`** -- 3 annunci di lavoro realistici costruiti a partire da annunci reali trovati online:
+Nel blocco `useEffect` che carica il draft (righe ~1700-1755):
 
-| # | Ruolo | Azienda | Match atteso |
-|---|-------|---------|-------------|
-| 1 | Senior Product Manager Claims AI | Prima Assicurazioni, Milano | Alto (~80-85%) -- fintech + AI + PM |
-| 2 | Product Manager Fintech | Satispay, Milano | Alto (~75-80%) -- fintech + PM ma diverso dominio |
-| 3 | Data Analyst | Startup generica, Roma | Basso (~40-50%) -- ruolo diverso, mismatch seniority |
-
-Ogni annuncio include: `company_name`, `role_title`, `description` (testo completo dei requisiti), `location`, `key_requirements`, `required_skills`.
-
-### 2. Pagina di test `/app/dev-test`
-
-**`src/pages/DevTest.tsx`** -- Pagina con 4 azioni rapide:
-
-| Azione | Cosa fa |
-|--------|---------|
-| **Carica CV di test** | Inserisce il CV fixture in `master_cvs` (salta upload PDF + parsing) |
-| **Test annuncio 1** | Crea una bozza in `applications` con l'annuncio 1, poi naviga a `/app/nuova?draft=ID` |
-| **Test annuncio 2** | Idem con annuncio 2 |
-| **Test annuncio 3** | Idem con annuncio 3 |
-| **Pulisci dati di test** | Elimina tutte le applications e master_cvs dell'utente corrente |
-
-Ogni azione mostra un toast di conferma e lo stato (in corso / completato / errore).
-
-### 3. Route e navigazione
-
-- Aggiunta route `/app/dev-test` in `App.tsx` dentro l'AppShell
-- Visibile solo se `import.meta.env.DEV` e' true (non appare in produzione)
-- Link nella sidebar/bottom nav solo in dev mode
-
-## Riepilogo file
-
-| File | Azione |
-|------|--------|
-| `src/test/fixtures/test-cv.ts` | Nuovo -- CV fixture ParsedCV |
-| `src/test/fixtures/test-jobs.ts` | Nuovo -- 3 annunci fixture |
-| `src/pages/DevTest.tsx` | Nuovo -- Pagina di test con azioni rapide |
-| `src/App.tsx` | Modifica -- Aggiunta route `/app/dev-test` |
-| `src/components/AppShell.tsx` | Modifica -- Link dev-test in nav (solo DEV) |
-
-## Dettagli tecnici
-
-### Fixture CV (struttura)
-
+**Attualmente (riga 1751-1753):**
 ```typescript
-export const TEST_CV: ParsedCV = {
-  full_name: "Giulia La Porta",
-  email: "giulialaporta@libero.it",
-  phone: "+39 3293925008",
-  location: "Milano",
-  date_of_birth: "03/12/1987",
-  linkedin: "https://www.linkedin.com/in/giulialaporta",
-  summary: "",
-  experiences: [
-    {
-      role: "Head of Automation and AI / PM Competence Lead",
-      company: "HYPE S.p.A.",
-      location: "Milano",
-      start_date: "01/2021",
-      end_date: "Presente",
-      description: "Lead strategic roadmap for AI products..."
-    },
-    // ... Illimity, Intesa, Deloitte
-  ],
-  education: [...],
-  skills: ["Fintech", "Product Management", "AI", ...],
-  languages: [{ language: "English", level: "B2" }, ...],
-  tools: ["Figma", "Dynamics 365", ...],
-  certifications: [...]
-};
+} else if (app.job_description) {
+  updateStep(1);
+}
 ```
 
-### Azione "Carica CV di test"
-
+**Diventa:**
 ```typescript
-// 1. Disattiva CV esistenti
-await supabase.from("master_cvs")
-  .update({ is_active: false })
-  .eq("user_id", user.id);
+} else if (app.job_description) {
+  // Lancia automaticamente il pre-screening
+  updateStep(1);
+  setPrescreening(true);
+  
+  const jobDataForPrescreen = {
+    company_name: app.company_name,
+    role_title: app.role_title,
+    description: app.job_description,
+    location: "",
+    key_requirements: [],
+    required_skills: [],
+  };
 
-// 2. Inserisci fixture
-await supabase.from("master_cvs").insert({
-  user_id: user.id,
-  parsed_data: TEST_CV,
-  file_name: "CV_Test_Giulia.pdf",
-  source: "test",
-  is_active: true,
-});
+  supabase.functions.invoke("ai-prescreen", {
+    body: { job_data: jobDataForPrescreen },
+  }).then(({ data: result, error }) => {
+    if (error || result?.error) {
+      toast.error("Errore durante il pre-screening");
+      updateStep(0);
+    } else {
+      setPrescreenResult(result);
+    }
+  }).finally(() => {
+    setPrescreening(false);
+  });
+}
 ```
 
-### Azione "Test annuncio N"
+Questo fa si' che quando un draft viene caricato con `job_description` presente ma senza tailored CV:
+- Il wizard va allo step 1 (Verifica)
+- Il pre-screening viene lanciato automaticamente
+- L'utente vede le skeleton card di caricamento ("Classificazione requisiti...", "Analisi gap...", "Generazione domande...")
+- Quando il risultato arriva, la UI si popola normalmente
 
-```typescript
-// 1. Crea bozza application
-const { data } = await supabase.from("applications").insert({
-  user_id: user.id,
-  company_name: job.company_name,
-  role_title: job.role_title,
-  job_description: job.description,
-  status: "draft",
-}).select("id").single();
-
-// 2. Naviga al wizard
-navigate(`/app/nuova?draft=${data.id}`);
-```
-
-### Protezione produzione
-
-```typescript
-// In App.tsx, la route viene aggiunta solo in dev
-{import.meta.env.DEV && (
-  <Route path="dev-test" element={<DevTest />} />
-)}
-```
+Nessuna modifica ad altri file.
 
