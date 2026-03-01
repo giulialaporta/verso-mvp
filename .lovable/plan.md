@@ -1,80 +1,68 @@
 
-# Fix: "Riprendi candidatura" non funziona
 
-## Diagnosi
+# Storico CV — Soft delete + archivio versioni
 
-Ho trovato **due problemi distinti**:
+## Cosa manca
 
-### Problema 1 — Il CV master e' stato cancellato
-L'utente ha eliminato il proprio CV master (visibile nei log di rete: `DELETE /rest/v1/master_cvs`). Quando si clicca "Riprendi", il wizard controlla se esiste un CV caricato (`cvCheck`). Siccome non c'e' piu', mostra un blocco "Carica il tuo CV prima" invece di far riprendere la candidatura.
+Il piano approvato prevedeva soft delete e storico CV, ma non e' stato implementato. Attualmente:
+- La tabella `master_cvs` non ha colonna `is_active`
+- L'eliminazione in `Home.tsx` fa `DELETE` fisico + rimuove il file dallo storage
+- L'onboarding fa `DELETE` dei CV precedenti prima di inserire il nuovo
+- Non esiste nessuna UI per visualizzare i CV passati
 
-### Problema 2 — I dati intermedi non vengono salvati
-Le 3 bozze in database hanno:
-- `job_description`: presente
-- `match_score`, `ats_score`: presenti (85/90, 40/85, 85/85)
-- `tailored_cvs`: **nessun record** (la generazione non e' mai stata completata)
-- `user_answers`: **null** (le risposte al pre-screening non vengono persistite)
-- `prescreenResult`: **non salvato** da nessuna parte
+## Modifiche
 
-Quindi quando si riprende una bozza senza `tailored_data`, il wizard ricomincia dallo step 1 (pre-screening), ma senza il pre-screening originale. Questo e' il comportamento corretto: la bozza e' stata interrotta prima di completare l'analisi, quindi deve rifare il pre-screening.
+### 1. Migrazione database
 
-Il vero blocco e' che **senza un CV master caricato, il wizard non parte affatto**.
+Aggiungere colonna `is_active` (boolean, default true) alla tabella `master_cvs`.
 
-## Soluzione
+```sql
+ALTER TABLE master_cvs ADD COLUMN is_active boolean NOT NULL DEFAULT true;
+```
 
-### 1. Gestire il caso "CV mancante" quando si riprende una bozza
+### 2. `src/pages/Home.tsx`
 
-Quando l'utente clicca "Riprendi" e il CV master non esiste, invece di bloccare tutto, mostrare un messaggio specifico:
-- "Per completare questa candidatura, devi prima ricaricare il tuo CV."
-- Pulsante "Carica CV" che porta all'onboarding
-- Dopo il caricamento, l'utente puo' tornare a riprendere la bozza
+**Soft delete:** La funzione `handleDelete` passa da `DELETE` a `UPDATE ... SET is_active = false`. Il file nello storage viene mantenuto.
 
-**Modifica:** `src/pages/Nuova.tsx` — nella sezione `cvCheck === "missing"`, se c'e' un `?draft=` nell'URL, mostrare un messaggio contestualizzato con il nome dell'azienda/ruolo della bozza, e un pulsante che porta a `/onboarding` (dove si carica il CV).
+**Fetch CV attivo:** Aggiungere `.eq("is_active", true)` alla query del CV.
 
-### 2. Salvare `user_answers` nella bozza
+**Sezione "CV precedenti":** Sotto la card del CV attivo, aggiungere una sezione collassabile che mostra i CV inattivi:
+- Query: `master_cvs` con `is_active = false`, ordinati per `created_at DESC`
+- Ogni riga: nome file, data di caricamento (formattata), pulsante "Riattiva"
+- "Riattiva" = disattiva il CV corrente + attiva quello selezionato
+- I CV senza candidature associate possono essere eliminati definitivamente
 
-Attualmente le risposte al pre-screening vengono salvate solo allo step 2 (`handleVerificaProceed`). Questo e' gia' implementato (linea 1817-1821). Il problema e' che se l'utente abbandona prima dello step 2, le risposte si perdono. Ma questo e' un caso limite accettabile per ora.
+### 3. `src/pages/Onboarding.tsx`
 
-### 3. Migliorare il messaggio di errore per bozze senza dati
+Sostituire il `DELETE` dei CV esistenti (linea 88) con `UPDATE ... SET is_active = false` su tutti i CV dell'utente, poi `INSERT` del nuovo con `is_active = true`.
 
-Se la bozza non ha `job_description`, mostrare un messaggio chiaro invece di un form vuoto.
+### 4. `src/pages/Nuova.tsx`
 
-## Riepilogo modifiche
+Aggiungere `.eq("is_active", true)` al check del CV nel wizard, per prendere solo il CV attivo.
+
+## UI storico CV (nella Home)
+
+Sezione collassabile "CV precedenti" sotto la card del CV attivo:
+
+```text
+CV precedenti (2)
+-----------------------------------------------------
+| curriculum_v2.pdf  | 12 gen 2025 | [Riattiva] [x] |
+| curriculum_v1.pdf  | 5 dic 2024  | [Riattiva]     |
+-----------------------------------------------------
+```
+
+- Card con bordo `border-border/40`, font `DM Sans`, date in formato italiano
+- Pulsante "Riattiva" con icona, scambia il CV attivo
+- Icona eliminazione definitiva solo per CV senza candidature (`tailored_cvs` associate)
+- Stile coerente con il brand system Verso (dark mode, colori accent)
+
+## Riepilogo file modificati
 
 | File | Modifica |
 |------|----------|
-| `src/pages/Nuova.tsx` | Quando `cvCheck === "missing"` e c'e' un draft nell'URL, mostrare messaggio contestualizzato con nome azienda/ruolo e CTA per ricaricare il CV |
-| `src/pages/Nuova.tsx` | Caricare i dati della bozza anche quando il CV e' mancante, per poter mostrare il contesto (azienda, ruolo) nel messaggio di errore |
+| Migrazione DB | `ALTER TABLE master_cvs ADD COLUMN is_active boolean DEFAULT true` |
+| `src/pages/Home.tsx` | Soft delete, fetch con `is_active = true`, sezione storico CV precedenti |
+| `src/pages/Onboarding.tsx` | Disattivare CV precedenti invece di cancellarli |
+| `src/pages/Nuova.tsx` | Filtrare per `is_active = true` nel CV guard |
 
-## Dettagli tecnici
-
-### Modifica al blocco `cvCheck === "missing"`
-
-```typescript
-if (cvCheck === "missing") {
-  // Se c'e' un draft, mostrare contesto
-  const draftId = searchParams.get("draft");
-  return (
-    <div className="mx-auto max-w-md py-16 text-center space-y-6">
-      <FileArrowUp size={48} className="mx-auto text-muted-foreground" />
-      <h2 className="font-display text-xl font-bold">
-        {draftId && jobData
-          ? `Per riprendere "${jobData.role_title}" serve il tuo CV`
-          : "Prima di iniziare, carica il tuo CV"}
-      </h2>
-      <p className="text-muted-foreground">
-        {draftId
-          ? "Il CV master e' stato rimosso. Ricaricalo per continuare."
-          : "Verso ha bisogno del tuo CV per analizzare la compatibilita'."}
-      </p>
-      <Button onClick={() => navigate("/onboarding")} className="gap-2">
-        <FileArrowUp size={16} /> Carica CV
-      </Button>
-    </div>
-  );
-}
-```
-
-### Caricare dati draft PRIMA del CV guard
-
-Spostare la logica di caricamento dei dati della bozza (solo `company_name` e `role_title`) prima del check `cvCheck === "missing"`, in modo da poter mostrare il contesto nel messaggio di errore. Basta che il `useEffect` di draft resumption venga eseguito indipendentemente da `cvCheck`.
