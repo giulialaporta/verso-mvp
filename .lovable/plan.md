@@ -1,117 +1,80 @@
 
+# Fix: "Riprendi candidatura" non funziona
 
-# Fix: Recupero password, Google OAuth e accesso
+## Diagnosi
 
-## Problema 1 — Recupero password bloccato su loading
+Ho trovato **due problemi distinti**:
 
-**Causa**: Race condition in `ResetPassword.tsx`. Il componente aspetta l'evento `PASSWORD_RECOVERY` da `onAuthStateChange`, ma:
-- L'evento puo' scattare PRIMA che il componente si monti (perche' `AuthContext` processa il token hash prima)
-- Il fallback `hash.includes("type=recovery")` non funziona perche' Supabase JS consuma il hash fragment durante l'inizializzazione
+### Problema 1 — Il CV master e' stato cancellato
+L'utente ha eliminato il proprio CV master (visibile nei log di rete: `DELETE /rest/v1/master_cvs`). Quando si clicca "Riprendi", il wizard controlla se esiste un CV caricato (`cvCheck`). Siccome non c'e' piu', mostra un blocco "Carica il tuo CV prima" invece di far riprendere la candidatura.
 
-**Fix**: Riscrivere la logica di `ResetPassword.tsx`:
-1. Usare `supabase.auth.getSession()` per verificare se c'e' gia' una sessione recovery attiva
-2. Ascoltare `PASSWORD_RECOVERY` come prima, ma anche `SIGNED_IN` (che scatta dopo il recovery)
-3. Aggiungere un timeout di 5 secondi: se nessun evento arriva, mostrare un messaggio di errore con link per riprovare invece di restare in loading infinito
-4. Se l'utente ha una sessione attiva (il recovery ha funzionato ma l'evento e' stato perso), mostrare direttamente il form
+### Problema 2 — I dati intermedi non vengono salvati
+Le 3 bozze in database hanno:
+- `job_description`: presente
+- `match_score`, `ats_score`: presenti (85/90, 40/85, 85/85)
+- `tailored_cvs`: **nessun record** (la generazione non e' mai stata completata)
+- `user_answers`: **null** (le risposte al pre-screening non vengono persistite)
+- `prescreenResult`: **non salvato** da nessuna parte
 
-```text
-Logica:
-1. Al mount: check getSession() — se c'e' sessione, mostra il form
-2. Ascolta onAuthStateChange per PASSWORD_RECOVERY o SIGNED_IN
-3. Timeout 5s: se ancora !ready, mostra messaggio "Il link potrebbe essere scaduto" + bottone "Richiedi nuovo link"
-```
+Quindi quando si riprende una bozza senza `tailored_data`, il wizard ricomincia dallo step 1 (pre-screening), ma senza il pre-screening originale. Questo e' il comportamento corretto: la bozza e' stata interrotta prima di completare l'analisi, quindi deve rifare il pre-screening.
 
-**File**: `src/pages/ResetPassword.tsx`
+Il vero blocco e' che **senza un CV master caricato, il wizard non parte affatto**.
 
-## Problema 2 — Google OAuth (audience mismatch)
+## Soluzione
 
-**Causa**: Il log mostra:
-```
-Unacceptable audience in id_token: [288002387414-6cvdo0ftcmsi36l9npigsaoj3m86oedc.apps.googleusercontent.com]
-```
-Questo succede quando il token Google viene presentato al backend con un client ID che non e' nella lista degli audience accettati. L'errore avviene solo sull'URL pubblicato (`verso-cv.lovable.app`), non sul preview.
+### 1. Gestire il caso "CV mancante" quando si riprende una bozza
 
-**Fix**: Questo e' un problema di configurazione dell'integrazione Lovable Auth, non del codice. Il codice e' corretto (`lovable.auth.signInWithOAuth("google")`). Il problema e' che l'URL pubblicato potrebbe non essere configurato correttamente come redirect URI nel progetto Google OAuth.
+Quando l'utente clicca "Riprendi" e il CV master non esiste, invece di bloccare tutto, mostrare un messaggio specifico:
+- "Per completare questa candidatura, devi prima ricaricare il tuo CV."
+- Pulsante "Carica CV" che porta all'onboarding
+- Dopo il caricamento, l'utente puo' tornare a riprendere la bozza
 
-**Azione**: Verificare la configurazione del connettore Google OAuth e, se necessario, riconnettere il provider per includere l'URL pubblicato.
+**Modifica:** `src/pages/Nuova.tsx` — nella sezione `cvCheck === "missing"`, se c'e' un `?draft=` nell'URL, mostrare un messaggio contestualizzato con il nome dell'azienda/ruolo della bozza, e un pulsante che porta a `/onboarding` (dove si carica il CV).
 
-## Problema 3 — Accesso impossibile
+### 2. Salvare `user_answers` nella bozza
 
-**Causa**: Il refresh token dell'utente `giulialaporta@libero.it` e' invalido. Questo puo' succedere quando:
-- Il recovery link crea una nuova sessione ma la vecchia sessione nel browser ha un token scaduto
-- Il browser ha token stale nel localStorage
+Attualmente le risposte al pre-screening vengono salvate solo allo step 2 (`handleVerificaProceed`). Questo e' gia' implementato (linea 1817-1821). Il problema e' che se l'utente abbandona prima dello step 2, le risposte si perdono. Ma questo e' un caso limite accettabile per ora.
 
-**Fix nel codice**: Migliorare la gestione dell'errore `refresh_token_not_found` in `AuthContext.tsx`:
-1. Intercettare l'errore di refresh token
-2. Fare `signOut()` automaticamente per pulire i token corrotti
-3. Redirect a `/login` con un messaggio chiaro
+### 3. Migliorare il messaggio di errore per bozze senza dati
 
-**File**: `src/contexts/AuthContext.tsx`
+Se la bozza non ha `job_description`, mostrare un messaggio chiaro invece di un form vuoto.
 
-**Fix immediato per l'utente**: Una volta fixato il recupero password, l'utente potra' fare un nuovo reset e accedere.
-
-## Riepilogo file da modificare
+## Riepilogo modifiche
 
 | File | Modifica |
 |------|----------|
-| `src/pages/ResetPassword.tsx` | Fix race condition: getSession + timeout + fallback UI |
-| `src/contexts/AuthContext.tsx` | Gestione errore refresh token invalido con auto-signout |
+| `src/pages/Nuova.tsx` | Quando `cvCheck === "missing"` e c'e' un draft nell'URL, mostrare messaggio contestualizzato con nome azienda/ruolo e CTA per ricaricare il CV |
+| `src/pages/Nuova.tsx` | Caricare i dati della bozza anche quando il CV e' mancante, per poter mostrare il contesto (azienda, ruolo) nel messaggio di errore |
 
 ## Dettagli tecnici
 
-### ResetPassword.tsx — nuova logica
+### Modifica al blocco `cvCheck === "missing"`
 
 ```typescript
-useEffect(() => {
-  let timeout: NodeJS.Timeout;
-  
-  // 1. Check if already has a session (recovery processed before mount)
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (session) setReady(true);
-  });
-
-  // 2. Listen for recovery events
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-    if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
-      setReady(true);
-    }
-  });
-
-  // 3. Timeout fallback — show error UI instead of infinite loading
-  timeout = setTimeout(() => {
-    if (!ready) setExpired(true);
-  }, 5000);
-
-  return () => { subscription.unsubscribe(); clearTimeout(timeout); };
-}, []);
+if (cvCheck === "missing") {
+  // Se c'e' un draft, mostrare contesto
+  const draftId = searchParams.get("draft");
+  return (
+    <div className="mx-auto max-w-md py-16 text-center space-y-6">
+      <FileArrowUp size={48} className="mx-auto text-muted-foreground" />
+      <h2 className="font-display text-xl font-bold">
+        {draftId && jobData
+          ? `Per riprendere "${jobData.role_title}" serve il tuo CV`
+          : "Prima di iniziare, carica il tuo CV"}
+      </h2>
+      <p className="text-muted-foreground">
+        {draftId
+          ? "Il CV master e' stato rimosso. Ricaricalo per continuare."
+          : "Verso ha bisogno del tuo CV per analizzare la compatibilita'."}
+      </p>
+      <Button onClick={() => navigate("/onboarding")} className="gap-2">
+        <FileArrowUp size={16} /> Carica CV
+      </Button>
+    </div>
+  );
+}
 ```
 
-Quando `expired` e' true, mostrare:
-- "Il link di recupero potrebbe essere scaduto o gia' utilizzato."
-- Bottone "Richiedi un nuovo link" che porta a `/login` con il form di recupero
+### Caricare dati draft PRIMA del CV guard
 
-### AuthContext.tsx — gestione token corrotto
-
-Aggiungere nel `useEffect` la gestione dell'evento `TOKEN_REFRESHED` fallito:
-
-```typescript
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === "SIGNED_OUT" || (!session && event === "TOKEN_REFRESHED")) {
-    setSession(null);
-    setUser(null);
-  }
-  // ... rest
-});
-```
-
-E nel `getSession`, gestire l'errore:
-
-```typescript
-supabase.auth.getSession().then(({ data: { session }, error }) => {
-  if (error) {
-    supabase.auth.signOut(); // pulisce token corrotti
-  }
-  // ...
-});
-```
-
+Spostare la logica di caricamento dei dati della bozza (solo `company_name` e `role_title`) prima del check `cvCheck === "missing"`, in modo da poter mostrare il contesto nel messaggio di errore. Basta che il `useEffect` di draft resumption venga eseguito indipendentemente da `cvCheck`.
