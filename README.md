@@ -1,73 +1,82 @@
-# Welcome to your Lovable project
+# Verso
 
-## Project info
+**Assistente AI per candidature di lavoro** — CV tailoring, pre-screening, application tracking.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Verso aiuta chi cerca lavoro a candidarsi meglio: carica il CV, incolla un annuncio, e ottieni un CV adattato con score di compatibilità e analisi gap, scaricabile in PDF.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Stack tecnologico
 
-**Use Lovable**
+| Layer | Strumento |
+|-------|-----------|
+| Frontend | React 18 + TypeScript + Vite |
+| UI | Tailwind CSS + shadcn/ui + Framer Motion |
+| Backend / DB | Supabase (Auth, DB, Storage, Edge Functions) |
+| AI | AI Gateway → LLM (parsing, tailoring, scoring) |
+| PDF Export | @react-pdf/renderer |
+| Build | Lovable |
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## Struttura del repo
 
-**Use your preferred IDE**
+```
+verso-mvp/
+├── src/                    # Codice sorgente (React + TypeScript)
+├── supabase/               # Edge Functions + migrations
+├── docs/                   # Documentazione di prodotto
+│   ├── epics/              # PRD + epic v1 completa (8 epic)
+│   ├── mvp/                # PRD + epic MVP (5 epic)
+│   ├── app-lovable/        # Documentazione dell'app sviluppata (6 epic)
+│   ├── brand-system/       # Design system (colori, tipografia, componenti)
+│   ├── contesto/           # Contesto progetto, legal, competitor analysis
+│   └── landing-page/       # Prompt landing page
+├── CLAUDE.md               # Istruzioni per Claude Code
+└── README.md
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Documentazione
 
-Follow these steps:
+| Documento | Descrizione |
+|-----------|-------------|
+| [PRD v1](docs/epics/verso-prd.md) | Piano prodotto completo |
+| [PRD MVP](docs/mvp/epics/verso-prd-mvp.md) | Piano MVP ridotto |
+| [PRD App](docs/app-lovable/epics/verso-prd-app.md) | Stato dell'app sviluppata |
+| [Brand System](docs/brand-system/brand-system.md) | Design system |
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Setup locale
 
-# Step 3: Install the necessary dependencies.
-npm i
+```bash
+# Clona il repo
+git clone https://github.com/giulialaporta/verso-mvp.git
+cd verso-mvp
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Installa dipendenze
+npm install
+
+# Avvia dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Serve un file `.env` con le chiavi Supabase (già incluso nel repo per le chiavi pubbliche).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## Flusso principale
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+Signup → Upload CV (PDF) → Parsing AI → Preview + Edit
+    ↓
+Nuova Candidatura → Job Input → Pre-screening → Tailoring → Score → Export PDF
+    ↓
+Dashboard Home ←→ Candidature (tracker con stati)
+```
 
-## What technologies are used for this project?
+---
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+*Dark mode only.*
