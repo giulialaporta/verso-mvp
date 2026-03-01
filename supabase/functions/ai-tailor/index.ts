@@ -1,4 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { compactCV } from "../_shared/compact-cv.ts";
+import { aiFetch, parseAIResponse } from "../_shared/ai-fetch.ts";
+import { validateOutput } from "../_shared/validate-output.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,53 +9,44 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// --- Utility: compact CV by removing nulls, empty strings, empty arrays, photo_base64 ---
-function compactCV(data: Record<string, unknown>): Record<string, unknown> {
-  if (Array.isArray(data)) {
-    const filtered = data
-      .map((item) => (typeof item === "object" && item !== null ? compactCV(item as Record<string, unknown>) : item))
-      .filter((item) => item !== null && item !== undefined && item !== "");
-    return filtered.length > 0 ? (filtered as unknown as Record<string, unknown>) : (undefined as unknown as Record<string, unknown>);
-  }
-  if (typeof data === "object" && data !== null) {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(data)) {
-      if (key === "photo_base64") continue;
-      if (value === null || value === undefined || value === "") continue;
-      if (typeof value === "string" && ["None", "none", "null", "N/A", "n/a", "undefined", "N/D", "n/d"].includes(value.trim())) continue;
-      if (Array.isArray(value) && value.length === 0) continue;
-      const compacted = typeof value === "object" && value !== null
-        ? compactCV(value as Record<string, unknown>)
-        : value;
-      if (compacted !== undefined && compacted !== null) {
-        result[key] = compacted;
-      }
-    }
-    return Object.keys(result).length > 0 ? result : (undefined as unknown as Record<string, unknown>);
-  }
-  return data;
-}
-
-// --- Utility: apply patches to original CV ---
+// --- Utility: apply patches to original CV with validation ---
 function applyPatches(
   original: Record<string, unknown>,
   patches: Array<{ path: string; value: unknown }>
-): Record<string, unknown> {
+): { result: Record<string, unknown>; skipped_patches: string[] } {
   const result = JSON.parse(JSON.stringify(original));
+  const skipped: string[] = [];
+
   for (const patch of patches) {
     const { path, value } = patch;
+
+    // Validate path format
+    if (!path || typeof path !== "string") {
+      skipped.push(`Invalid path: ${path}`);
+      continue;
+    }
+
     const segments = path.replace(/\[(\d+)\]/g, ".$1").split(".");
     let target: unknown = result;
     let valid = true;
+
     for (let i = 0; i < segments.length - 1; i++) {
       if (target === null || target === undefined || typeof target !== "object") {
-        console.warn(`applyPatches: skipping patch "${path}"`);
+        console.warn(`applyPatches: skipping patch "${path}" — invalid traversal at segment ${i}`);
+        skipped.push(path);
         valid = false;
         break;
       }
       const seg = segments[i];
       const idx = Number(seg);
       if (!isNaN(idx)) {
+        // Bounds check for array access
+        if (Array.isArray(target) && (idx < 0 || idx >= (target as unknown[]).length)) {
+          console.warn(`applyPatches: skipping patch "${path}" — array index ${idx} out of bounds`);
+          skipped.push(path);
+          valid = false;
+          break;
+        }
         target = (target as Record<string, unknown>)[idx as unknown as string];
       } else {
         const obj = target as Record<string, unknown>;
@@ -63,7 +57,9 @@ function applyPatches(
         target = obj[seg];
       }
     }
+
     if (!valid || target === null || target === undefined || typeof target !== "object") continue;
+
     const lastSeg = segments[segments.length - 1];
     const lastIdx = Number(lastSeg);
     if (!isNaN(lastIdx)) {
@@ -72,7 +68,8 @@ function applyPatches(
       (target as Record<string, unknown>)[lastSeg] = value;
     }
   }
-  return result;
+
+  return { result, skipped_patches: skipped };
 }
 
 // ==================== SYSTEM PROMPTS ====================
@@ -84,6 +81,10 @@ const SYSTEM_PROMPT_ANALYZE = `You are an expert career coach and ATS specialist
 2. ANALYSIS & UI TEXT (score_note, seniority_match.note, ats_checks label/detail, suggestions messages, learning_suggestions resource_name/duration) 
    MUST ALWAYS be in ITALIAN, regardless of the job posting language.
 This rule is ABSOLUTE. No exceptions.
+
+## LANGUAGE POLICY EXAMPLES
+- Job posting in English → detected_language: "en", but score_note in Italian: "Il candidato ha un buon match..."
+- Job posting in German → detected_language: "de", but ats_checks detail in Italian: "Le keyword principali sono presenti..."
 
 Compare the candidate's CV with the job posting and produce an analysis. Do NOT generate any CV modifications or patches — only analyze.
 
@@ -97,6 +98,12 @@ If the candidate is missing MANDATORY requirements (especially years of experien
 If the user section contains "CANDIDATE FOLLOW-UP ANSWERS", use those answers to:
 - Discover implicit skills or experience not explicit in the CV
 - Adjust the score upward if answers reveal relevant hidden experience
+
+## SKILL GAP SEVERITY
+For each missing skill, assess severity:
+- critical: Mandatory requirement, clearly missing, would take 1+ years to acquire (e.g., "5 years Java experience" when candidate has 0)
+- moderate: Important requirement, partially present or acquirable in 3-12 months
+- minor: Nice-to-have or easily learnable in < 3 months
 
 ## REQUIRED OUTPUT
 
@@ -115,7 +122,7 @@ ATS compatibility score. Evaluate 7 specific checks:
 
 ### 3. SKILLS ANALYSIS
 - skills_present: list of skills required by the job with indication whether the candidate has them
-- skills_missing: missing skills with importance level (essential/important/nice_to_have)
+- skills_missing: missing skills with importance level and severity
 
 ### 4. SENIORITY MATCH
 Compare the candidate's seniority level with what the role requires.
@@ -134,6 +141,26 @@ const SYSTEM_PROMPT_TAILOR = `You are an expert career coach and ATS specialist 
 2. ANALYSIS & UI TEXT (diff reasons, structural_changes reason/item) 
    MUST ALWAYS be in ITALIAN, regardless of the job posting language.
 This rule is ABSOLUTE. No exceptions.
+
+## LANGUAGE CONSISTENCY — ABSOLUTE RULE
+The ENTIRE tailored CV content MUST be in ONE single language: the language of the job posting.
+This means ALL of the following must be in the SAME language:
+- summary
+- ALL experience descriptions and bullets (every single one)
+- ALL skill labels (technical, soft, tools)
+- ALL education descriptions
+- ALL certification names (keep original if proper nouns)
+- ALL project descriptions
+
+NEVER mix languages within the CV. If the job posting is in English, the ENTIRE CV must be in English.
+If the job posting is in Italian, the ENTIRE CV must be in Italian.
+
+Common mistake to AVOID: translating some bullets but leaving others in the original language.
+Check EVERY bullet and EVERY section before finalizing.
+
+## LANGUAGE POLICY EXAMPLES
+- Job posting in English → ALL patches values in English, but diff reasons in Italian: "Aggiunto keyword rilevante..."
+- Job posting in Italian → ALL patches values in Italian, but diff reasons still in Italian
 
 You receive the candidate's CV, the job posting, and a prior analysis with skills_missing, match_score, etc.
 Your ONLY job is to generate CV modifications (patches).
@@ -217,6 +244,8 @@ const TOOL_SCHEMA_ANALYZE = {
             properties: {
               label: { type: "string" },
               importance: { type: "string", enum: ["essential", "important", "nice_to_have"] },
+              severity: { type: "string", enum: ["critical", "moderate", "minor"], description: "How severe the gap is" },
+              years_to_bridge: { type: "number", description: "Estimated years to acquire this skill" },
             },
             required: ["label", "importance"],
           },
@@ -345,13 +374,24 @@ const TOOL_SCHEMA_TAILOR = {
   },
 };
 
-// --- Deterministic score adjustment ---
+// --- Deterministic score adjustment with severity ---
 function adjustScore(r: Record<string, unknown>): void {
-  const skillsMissing = Array.isArray(r.skills_missing) ? r.skills_missing as Array<{ label: string; importance: string }> : [];
+  const skillsMissing = Array.isArray(r.skills_missing) ? r.skills_missing as Array<{ label: string; importance: string; severity?: string }> : [];
+
+  // Severity-based caps
+  const criticalCount = skillsMissing.filter(s => s.severity === "critical").length;
+  const moderateCount = skillsMissing.filter(s => s.severity === "moderate").length;
   const essentialMissing = skillsMissing.filter(s => s.importance === "essential").length;
 
-  const caps: Record<number, number> = { 0: 100, 1: 55, 2: 40 };
-  const cap = caps[Math.min(essentialMissing, 2)] ?? 30;
+  // Use severity if available, fallback to importance-based
+  let cap = 100;
+  if (criticalCount > 0) {
+    cap = Math.min(cap, criticalCount >= 3 ? 25 : criticalCount >= 2 ? 35 : 45);
+  } else if (essentialMissing > 0) {
+    const caps: Record<number, number> = { 1: 55, 2: 40 };
+    cap = caps[Math.min(essentialMissing, 2)] ?? 30;
+  }
+  if (moderateCount >= 3) cap = Math.min(cap, 60);
 
   const seniority = r.seniority_match as { candidate_level?: string; role_level?: string; match?: boolean } | undefined;
   const levels = ["junior", "mid", "senior", "lead", "executive"];
@@ -371,9 +411,12 @@ function adjustScore(r: Record<string, unknown>): void {
 
   if (finalScore !== aiScore) {
     const parts: string[] = [];
-    if (essentialMissing > 0) {
+    if (criticalCount > 0) {
+      parts.push(`${criticalCount} gap critico/i`);
+    } else if (essentialMissing > 0) {
       parts.push(`${essentialMissing} competenz${essentialMissing === 1 ? "a essenziale mancante" : "e essenziali mancanti"}`);
     }
+    if (moderateCount > 0) parts.push(`${moderateCount} gap moderato/i`);
     if (seniorityPenalty > 0) parts.push("disallineamento seniority");
     if (atsPenalty > 0) parts.push(`${atsFails} check ATS non superat${atsFails === 1 ? "o" : "i"}`);
     r.score_note = `Punteggio adeguato: ${parts.join(", ")}.`;
@@ -439,9 +482,6 @@ Deno.serve(async (req) => {
     const photoBase64 = (originalCV as any)?.photo_base64 || null;
     const compactedCV = compactCV(originalCV);
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
     // ==================== MODE: ANALYZE ====================
     if (mode === "analyze") {
       const userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}${
@@ -450,43 +490,22 @@ Deno.serve(async (req) => {
           : ""
       }`;
 
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT_ANALYZE },
-            { role: "user", content: userContent },
-          ],
-          tools: [TOOL_SCHEMA_ANALYZE],
-          tool_choice: { type: "function", function: { name: "analyze_cv" } },
-        }),
+      const { data: aiData } = await aiFetch({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT_ANALYZE },
+          { role: "user", content: userContent },
+        ],
+        tools: [TOOL_SCHEMA_ANALYZE],
+        tool_choice: { type: "function", function: { name: "analyze_cv" } },
       });
 
-      if (!aiResponse.ok) {
-        const errText = await aiResponse.text();
-        console.error("AI error:", aiResponse.status, errText);
-        if (aiResponse.status === 429) return new Response(JSON.stringify({ error: "Troppi tentativi. Riprova tra qualche momento." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        if (aiResponse.status === 402) return new Response(JSON.stringify({ error: "Crediti AI esauriti." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        return new Response(JSON.stringify({ error: "Errore durante l'analisi AI." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const result = parseAIResponse(aiData);
+      if (!result) {
+        return new Response(JSON.stringify({ error: "Impossibile completare l'analisi. Riprova." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      const aiData = await aiResponse.json();
-      let result: Record<string, unknown>;
-      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-      if (toolCall?.function?.arguments) {
-        result = typeof toolCall.function.arguments === "string" ? JSON.parse(toolCall.function.arguments) : toolCall.function.arguments;
-      } else {
-        const content = aiData.choices?.[0]?.message?.content || "";
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) result = JSON.parse(jsonMatch[0]);
-        else return new Response(JSON.stringify({ error: "Impossibile completare l'analisi. Riprova." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-
+      validateOutput("ai-tailor-analyze", result);
       adjustScore(result);
       result.master_cv_id = masterCV.id;
 
@@ -506,62 +525,50 @@ Deno.serve(async (req) => {
         : ""
     }${contextInfo}`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT_TAILOR },
-          { role: "user", content: userContent },
-        ],
-        tools: [TOOL_SCHEMA_TAILOR],
-        tool_choice: { type: "function", function: { name: "tailor_cv" } },
-      }),
+    const { data: aiData } = await aiFetch({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT_TAILOR },
+        { role: "user", content: userContent },
+      ],
+      tools: [TOOL_SCHEMA_TAILOR],
+      tool_choice: { type: "function", function: { name: "tailor_cv" } },
     });
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI error:", aiResponse.status, errText);
-      if (aiResponse.status === 429) return new Response(JSON.stringify({ error: "Troppi tentativi. Riprova tra qualche momento." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (aiResponse.status === 402) return new Response(JSON.stringify({ error: "Crediti AI esauriti." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      return new Response(JSON.stringify({ error: "Errore durante la generazione del CV." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const result = parseAIResponse(aiData);
+    if (!result) {
+      return new Response(JSON.stringify({ error: "Impossibile generare il CV. Riprova." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const aiData = await aiResponse.json();
-    let result: Record<string, unknown>;
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall?.function?.arguments) {
-      result = typeof toolCall.function.arguments === "string" ? JSON.parse(toolCall.function.arguments) : toolCall.function.arguments;
-    } else {
-      const content = aiData.choices?.[0]?.message?.content || "";
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) result = JSON.parse(jsonMatch[0]);
-      else return new Response(JSON.stringify({ error: "Impossibile generare il CV. Riprova." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    validateOutput("ai-tailor-tailor", result);
 
-    // Experience protection: validate patches don't eliminate all experiences
+    // Experience protection
     const patches = (result.tailored_patches as Array<{ path: string; value: unknown }>) || [];
     const originalExperience = Array.isArray((originalCV as any).experience) ? (originalCV as any).experience : [];
     const expPatchIdx = patches.findIndex(p => p.path === "experience");
     if (expPatchIdx >= 0 && originalExperience.length > 0) {
       const patchedExp = patches[expPatchIdx].value;
       if (!Array.isArray(patchedExp) || patchedExp.length === 0) {
-        // AI tried to remove all experiences — revert to original
         console.warn("Experience protection: AI removed all experiences, reverting.");
         patches[expPatchIdx].value = originalExperience;
       } else if (patchedExp.length < Math.ceil(originalExperience.length * 0.5) && originalExperience.length > 2) {
-        // Removed more than 50% — revert
         console.warn("Experience protection: AI removed >50% experiences, reverting.");
         patches[expPatchIdx].value = originalExperience;
       }
     }
 
-    // Apply patches
-    const tailoredCV = applyPatches(originalCV, patches);
+    // Change-ratio check
+    const totalFields = Object.keys(originalCV).length;
+    const changeRatio = patches.length / Math.max(totalFields, 1);
+    if (changeRatio > 0.6) {
+      console.warn(`Change ratio warning: ${(changeRatio * 100).toFixed(0)}% of fields modified (${patches.length}/${totalFields})`);
+    }
+
+    // Apply patches with validation
+    const { result: tailoredCV, skipped_patches } = applyPatches(originalCV, patches);
+    if (skipped_patches.length > 0) {
+      result.skipped_patches = skipped_patches;
+    }
 
     // Ensure skills arrays
     const cvSkills = (tailoredCV as any)?.skills;
@@ -584,8 +591,15 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
+  } catch (e: unknown) {
     console.error("ai-tailor error:", e);
+    const status = (e as any)?.status;
+    if (status === 429) {
+      return new Response(JSON.stringify({ error: "Troppi tentativi. Riprova tra qualche momento." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (status === 402) {
+      return new Response(JSON.stringify({ error: "Crediti AI esauriti." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Errore sconosciuto" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

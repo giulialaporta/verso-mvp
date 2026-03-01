@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { aiFetch, parseAIResponse } from "../_shared/ai-fetch.ts";
+import { validateOutput } from "../_shared/validate-output.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,13 +16,27 @@ async function hashUrl(text: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function cleanHTML(html: string): string {
+  return html
+    // Remove nav, header, footer, sidebar elements
+    .replace(/<(nav|header|footer|aside)[\s\S]*?<\/\1>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Non autorizzato" }), {
@@ -50,7 +66,6 @@ Deno.serve(async (req) => {
     if (url && !text) {
       const urlHash = await hashUrl(url.trim().toLowerCase());
 
-      // Service role client for cache operations
       const serviceClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -72,7 +87,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Fetch page content
       let jobText = "";
       try {
         const pageResponse = await fetch(url, {
@@ -91,16 +105,7 @@ Deno.serve(async (req) => {
         }
 
         const html = await pageResponse.text();
-        jobText = html
-          .replace(/<script[\s\S]*?<\/script>/gi, "")
-          .replace(/<style[\s\S]*?<\/style>/gi, "")
-          .replace(/<[^>]+>/g, " ")
-          .replace(/&nbsp;/g, " ")
-          .replace(/&amp;/g, "&")
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/\s+/g, " ")
-          .trim();
+        jobText = cleanHTML(html);
 
         if (jobText.length > 15000) jobText = jobText.substring(0, 15000);
       } catch (fetchErr) {
@@ -118,10 +123,8 @@ Deno.serve(async (req) => {
         );
       }
 
-      // AI call
       const jobData = await callAI(jobText);
 
-      // Cache insert (fire-and-forget)
       serviceClient
         .from("job_cache")
         .insert({ url_hash: urlHash, job_data: jobData })
@@ -159,94 +162,65 @@ Deno.serve(async (req) => {
 });
 
 async function callAI(jobText: string) {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    throw new Error("LOVABLE_API_KEY not configured");
-  }
-
-  const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
-      messages: [
-        {
-          role: "system",
-          content: `Extract key data from a job posting. Respond ONLY via the tool call.
+  const { data: aiData } = await aiFetch({
+    model: "google/gemini-2.5-flash",
+    messages: [
+      {
+        role: "system",
+        content: `Extract key data from a job posting. Respond ONLY via the tool call.
 
 ## CRITICAL RULE — LANGUAGE IN = LANGUAGE OUT
 Detect the language of the job posting text. ALL extracted fields (role_title, description, key_requirements, required_skills, nice_to_have) MUST be in the SAME language as the job posting.
 - English job posting → English output
 - Italian job posting → Italian output
 - German job posting → German output
-This rule is ABSOLUTE. No exceptions. Never translate content.`,
-        },
-        {
-          role: "user",
-          content: `Here is the job posting text:\n\n${jobText}`,
-        },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "extract_job_data",
-            description: "Extract structured job posting data preserving the original language",
-            parameters: {
-              type: "object",
-              properties: {
-                company_name: { type: "string", description: "Company name" },
-                role_title: { type: "string", description: "Job title (in the original language of the posting)" },
-                location: { type: "string", description: "Work location" },
-                job_type: { type: "string", description: "Contract type (full-time, part-time, internship, etc.)" },
-                description: { type: "string", description: "Full role description (max 500 words, in the original language)" },
-                key_requirements: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "3-7 key requirements for the ideal candidate (in the original language)",
-                },
-                required_skills: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "Required technical and soft skills (in the original language)",
-                },
-                nice_to_have: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "Optional or preferred skills (in the original language)",
-                },
-              },
-              required: ["company_name", "role_title", "description", "key_requirements", "required_skills"],
+This rule is ABSOLUTE. No exceptions. Never translate content.
+
+## IMPLICIT REQUIREMENTS
+Beyond explicitly stated requirements, infer implicit ones:
+- If the posting mentions "team lead" or "mentor junior developers", infer leadership skills
+- If it mentions specific methodologies (Agile, Scrum), infer familiarity with those
+- If it mentions client-facing work, infer communication and presentation skills
+Add these as nice_to_have unless explicitly required.`,
+      },
+      {
+        role: "user",
+        content: `Here is the job posting text:\n\n${jobText}`,
+      },
+    ],
+    tools: [
+      {
+        type: "function",
+        function: {
+          name: "extract_job_data",
+          description: "Extract structured job posting data preserving the original language",
+          parameters: {
+            type: "object",
+            properties: {
+              company_name: { type: "string" },
+              role_title: { type: "string" },
+              location: { type: "string" },
+              job_type: { type: "string" },
+              description: { type: "string", description: "Full role description (max 500 words, original language)" },
+              key_requirements: { type: "array", items: { type: "string" } },
+              required_skills: { type: "array", items: { type: "string" } },
+              nice_to_have: { type: "array", items: { type: "string" } },
+              seniority_level: { type: "string", description: "junior/mid/senior/lead/executive if detectable" },
+              salary_range: { type: "string", description: "Salary range if mentioned" },
+              industry: { type: "string", description: "Industry/sector if detectable" },
             },
+            required: ["company_name", "role_title", "description", "key_requirements", "required_skills"],
           },
         },
-      ],
-      tool_choice: { type: "function", function: { name: "extract_job_data" } },
-    }),
+      },
+    ],
+    tool_choice: { type: "function", function: { name: "extract_job_data" } },
   });
 
-  if (!aiResponse.ok) {
-    const errText = await aiResponse.text();
-    console.error("AI error:", aiResponse.status, errText);
-    throw new Error("Errore durante l'analisi dell'annuncio.");
-  }
+  const result = parseAIResponse(aiData);
+  if (!result) throw new Error("Impossibile analizzare l'annuncio. Riprova.");
 
-  const aiData = await aiResponse.json();
-  const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-  if (toolCall?.function?.arguments) {
-    return typeof toolCall.function.arguments === "string"
-      ? JSON.parse(toolCall.function.arguments)
-      : toolCall.function.arguments;
-  }
+  validateOutput("scrape-job", result);
 
-  const content = aiData.choices?.[0]?.message?.content || "";
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    return JSON.parse(jsonMatch[0]);
-  }
-
-  throw new Error("Impossibile analizzare l'annuncio. Riprova.");
+  return result;
 }

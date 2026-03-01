@@ -1,4 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { compactCV } from "../_shared/compact-cv.ts";
+import { aiFetch, parseAIResponse } from "../_shared/ai-fetch.ts";
+import { validateOutput } from "../_shared/validate-output.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,7 +60,7 @@ const TOOL_SCHEMA = {
               requirement: { type: "string" },
               priority: { type: "string", enum: ["mandatory", "preferred", "nice_to_have"] },
               candidate_has: { type: "boolean" },
-              gap_type: { type: "string", enum: ["none", "bridgeable", "unbridgeable"], description: "none if candidate has it, bridgeable if could be implicit, unbridgeable if clearly missing" },
+              gap_type: { type: "string", enum: ["none", "bridgeable", "unbridgeable"] },
               explanation: { type: "string" },
             },
             required: ["requirement", "priority", "candidate_has", "gap_type", "explanation"],
@@ -70,7 +73,7 @@ const TOOL_SCHEMA = {
             properties: {
               requirement: { type: "string" },
               severity: { type: "string", enum: ["critical", "significant"] },
-              message: { type: "string", description: "Clear, honest explanation of the gap" },
+              message: { type: "string" },
             },
             required: ["requirement", "severity", "message"],
           },
@@ -82,7 +85,7 @@ const TOOL_SCHEMA = {
             properties: {
               id: { type: "string" },
               question: { type: "string" },
-              context: { type: "string", description: "Why this question matters for this role" },
+              context: { type: "string" },
               field: { type: "string", enum: ["experience", "skills", "education", "other"] },
             },
             required: ["id", "question", "context", "field"],
@@ -94,39 +97,12 @@ const TOOL_SCHEMA = {
         },
         feasibility_note: {
           type: "string",
-          description: "Brief honest assessment of the candidate's chances",
         },
       },
       required: ["detected_language", "requirements_analysis", "dealbreakers", "follow_up_questions", "overall_feasibility", "feasibility_note"],
     },
   },
 };
-
-// Compact CV utility (strip nulls, empties, photo)
-function compactCV(data: Record<string, unknown>): Record<string, unknown> {
-  if (Array.isArray(data)) {
-    const filtered = data
-      .map((item) => (typeof item === "object" && item !== null ? compactCV(item as Record<string, unknown>) : item))
-      .filter((item) => item !== null && item !== undefined && item !== "");
-    return filtered.length > 0 ? (filtered as unknown as Record<string, unknown>) : (undefined as unknown as Record<string, unknown>);
-  }
-  if (typeof data === "object" && data !== null) {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(data)) {
-      if (key === "photo_base64") continue;
-      if (value === null || value === undefined || value === "") continue;
-      if (Array.isArray(value) && value.length === 0) continue;
-      const compacted = typeof value === "object" && value !== null
-        ? compactCV(value as Record<string, unknown>)
-        : value;
-      if (compacted !== undefined && compacted !== null) {
-        result[key] = compacted;
-      }
-    }
-    return Object.keys(result).length > 0 ? result : (undefined as unknown as Record<string, unknown>);
-  }
-  return data;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -167,7 +143,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch user's master CV
     const { data: masterCV, error: cvError } = await supabase
       .from("master_cvs")
       .select("id, parsed_data")
@@ -185,80 +160,41 @@ Deno.serve(async (req) => {
 
     const compactedCV = compactCV(masterCV.parsed_data as Record<string, unknown>);
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}`,
-          },
-        ],
-        tools: [TOOL_SCHEMA],
-        tool_choice: { type: "function", function: { name: "prescreen_analysis" } },
-      }),
+    const { data: aiData } = await aiFetch({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}`,
+        },
+      ],
+      tools: [TOOL_SCHEMA],
+      tool_choice: { type: "function", function: { name: "prescreen_analysis" } },
     });
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI error:", aiResponse.status, errText);
-
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Troppi tentativi. Riprova tra qualche momento." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Crediti AI esauriti." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
+    const result = parseAIResponse(aiData);
+    if (!result) {
       return new Response(
-        JSON.stringify({ error: "Errore durante l'analisi AI." }),
+        JSON.stringify({ error: "Impossibile completare l'analisi. Riprova." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const aiData = await aiResponse.json();
-    let result: Record<string, unknown>;
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall?.function?.arguments) {
-      result =
-        typeof toolCall.function.arguments === "string"
-          ? JSON.parse(toolCall.function.arguments)
-          : toolCall.function.arguments;
-    } else {
-      const content = aiData.choices?.[0]?.message?.content || "";
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
-      } else {
-        return new Response(
-          JSON.stringify({ error: "Impossibile completare l'analisi. Riprova." }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
+    validateOutput("ai-prescreen", result);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
+  } catch (e: unknown) {
     console.error("ai-prescreen error:", e);
+    const status = (e as any)?.status;
+    if (status === 429) {
+      return new Response(JSON.stringify({ error: "Troppi tentativi. Riprova tra qualche momento." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (status === 402) {
+      return new Response(JSON.stringify({ error: "Crediti AI esauriti." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Errore sconosciuto" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
