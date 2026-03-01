@@ -44,16 +44,16 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | File / Cartella | Descrizione |
 |-----------------|-------------|
 | `docs/brand-system/` | Design system (colori, tipografia, componenti) |
-| `docs/epics/` | PRD + epic completi per v1 (vedi `docs/epics/CLAUDE.md`) |
-| `docs/epics/verso-prd.md` | PRD principale (v1.1) |
-| `docs/epics/epic-01-onboarding.md` | F1 — Onboarding Wizard |
-| `docs/epics/epic-02-nuova-candidatura.md` | F2 — Wizard Nuova Candidatura |
-| `docs/epics/epic-03-application-tracker.md` | F3 — Application Tracker (Kanban) |
-| `docs/epics/epic-04-dettaglio-candidatura.md` | F4 — Dettaglio Candidatura |
-| `docs/epics/epic-05-profilo-master-cv.md` | F5 — Profilo e Master CV |
-| `docs/epics/epic-06-ai-engine.md` | F6 — AI Engine (Edge Functions) |
-| `docs/epics/epic-07-freemium.md` | F7 — Freemium e Piano |
-| `docs/epics/epic-08-settings.md` | F8 — Impostazioni |
+| `docs/full/` | PRD + epic completi per v1 (vedi `docs/full/CLAUDE.md`) |
+| `docs/full/verso-prd.md` | PRD principale (v1.1) |
+| `docs/full/epic-01-onboarding.md` | F1 — Onboarding Wizard |
+| `docs/full/epic-02-nuova-candidatura.md` | F2 — Wizard Nuova Candidatura |
+| `docs/full/epic-03-application-tracker.md` | F3 — Application Tracker (Kanban) |
+| `docs/full/epic-04-dettaglio-candidatura.md` | F4 — Dettaglio Candidatura |
+| `docs/full/epic-05-profilo-master-cv.md` | F5 — Profilo e Master CV |
+| `docs/full/epic-06-ai-engine.md` | F6 — AI Engine (Edge Functions) |
+| `docs/full/epic-07-freemium.md` | F7 — Freemium e Piano |
+| `docs/full/epic-08-settings.md` | F8 — Impostazioni |
 | `docs/mvp/` | MVP: PRD ridotto + epic per Lovable (vedi `docs/mvp/CLAUDE_MVP.md`) |
 | `docs/mvp/brand-system.md` | Design system (copia per Lovable) |
 | `docs/mvp/epics/verso-prd-mvp.md` | PRD dell'MVP |
@@ -74,7 +74,6 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/landing-page/` | Prompt per la landing page |
 | `docs/contesto/` | File di contesto progetto |
 | `docs/contesto/legal-pack/` | Documenti legali |
-| `docs/contesto/competitor/` | Analisi competitiva |
 
 ---
 

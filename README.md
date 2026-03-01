@@ -26,11 +26,11 @@ verso-mvp/
 ├── src/                    # Codice sorgente (React + TypeScript)
 ├── supabase/               # Edge Functions + migrations
 ├── docs/                   # Documentazione di prodotto
-│   ├── epics/              # PRD + epic v1 completa (8 epic)
+│   ├── full/               # PRD + epic v1 completa (8 epic)
 │   ├── mvp/                # PRD + epic MVP (5 epic)
 │   ├── app-lovable/        # Documentazione dell'app sviluppata (6 epic)
 │   ├── brand-system/       # Design system (colori, tipografia, componenti)
-│   ├── contesto/           # Contesto progetto, legal, competitor analysis
+│   ├── contesto/           # Contesto progetto, legal pack
 │   └── landing-page/       # Prompt landing page
 ├── CLAUDE.md               # Istruzioni per Claude Code
 └── README.md
@@ -42,7 +42,7 @@ verso-mvp/
 
 | Documento | Descrizione |
 |-----------|-------------|
-| [PRD v1](docs/epics/verso-prd.md) | Piano prodotto completo |
+| [PRD v1](docs/full/verso-prd.md) | Piano prodotto completo |
 | [PRD MVP](docs/mvp/epics/verso-prd-mvp.md) | Piano MVP ridotto |
 | [PRD App](docs/app-lovable/epics/verso-prd-app.md) | Stato dell'app sviluppata |
 | [Brand System](docs/brand-system/brand-system.md) | Design system |
