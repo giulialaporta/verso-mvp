@@ -1750,6 +1750,29 @@ export default function Nuova() {
         updateStep(urlStep >= 2 ? urlStep : 4);
       } else if (app.job_description) {
         updateStep(1);
+        setPrescreening(true);
+
+        const jobDataForPrescreen = {
+          company_name: app.company_name,
+          role_title: app.role_title,
+          description: app.job_description,
+          location: "",
+          key_requirements: [],
+          required_skills: [],
+        };
+
+        supabase.functions.invoke("ai-prescreen", {
+          body: { job_data: jobDataForPrescreen },
+        }).then(({ data: result, error }) => {
+          if (error || result?.error) {
+            toast.error("Errore durante il pre-screening");
+            updateStep(0);
+          } else {
+            setPrescreenResult(result);
+          }
+        }).finally(() => {
+          setPrescreening(false);
+        });
       }
     })();
   }, [searchParams, user, updateStep]);
