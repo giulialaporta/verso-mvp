@@ -30,6 +30,7 @@ verso-mvp/
 │   ├── mvp/                # PRD + epic MVP (5 epic)
 │   ├── app-lovable/        # Documentazione dell'app sviluppata (6 epic)
 │   ├── brand-system/       # Design system (colori, tipografia, componenti)
+│   ├── improvements/       # Specifiche di miglioramento (post-MVP)
 │   ├── contesto/           # Contesto progetto, legal pack
 │   └── landing-page/       # Prompt landing page
 ├── CLAUDE.md               # Istruzioni per Claude Code

@@ -71,6 +71,8 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/app-lovable/epics/epic-04-ai-engine.md` | F4 — 4 Edge Functions AI |
 | `docs/app-lovable/epics/epic-05-export-dashboard.md` | F5 — Export PDF + Dashboard |
 | `docs/app-lovable/epics/epic-06-candidature.md` | F6 — Pagina Candidature (tracker) |
+| `docs/improvements/` | Specifiche di miglioramento (post-MVP) |
+| `docs/improvements/epic-07-ai-improvements.md` | 9 interventi per migliorare l'output AI |
 | `docs/landing-page/` | Prompt per la landing page |
 | `docs/contesto/` | File di contesto progetto |
 | `docs/contesto/legal-pack/` | Documenti legali |
