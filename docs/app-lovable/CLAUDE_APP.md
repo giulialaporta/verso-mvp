@@ -45,6 +45,7 @@ Questa cartella documenta lo **stato reale dell'app Verso** così come è stata 
 | `epics/epic-04-ai-engine.md` | F4 — 4 Edge Functions (parse-cv, scrape-job, ai-prescreen, ai-tailor) |
 | `epics/epic-05-export-dashboard.md` | F5 — Export PDF + Dashboard Home |
 | `epics/epic-06-candidature.md` | F6 — Pagina Candidature (tracker) |
+| [`../improvements/epic-07-ai-improvements.md`](../improvements/epic-07-ai-improvements.md) | F7 — 9 interventi per migliorare l'output AI |
 
 ---
 
