@@ -1910,17 +1910,24 @@ export default function Nuova() {
   }
 
   if (cvCheck === "missing") {
+    const draftId = searchParams.get("draft");
     return (
       <div className="mx-auto max-w-md py-16 text-center space-y-6">
         <FileArrowUp size={48} className="text-primary mx-auto" />
         <div>
-          <h2 className="font-display text-2xl font-bold">CV necessario</h2>
+          <h2 className="font-display text-2xl font-bold">
+            {draftId && jobData
+              ? `Per riprendere "${jobData.role_title}" serve il tuo CV`
+              : "CV necessario"}
+          </h2>
           <p className="text-muted-foreground mt-2">
-            Per creare una candidatura, devi prima caricare il tuo CV. Verso lo userà per adattarlo all'annuncio.
+            {draftId
+              ? "Il CV master è stato rimosso. Ricaricalo per continuare con questa candidatura."
+              : "Per creare una candidatura, devi prima caricare il tuo CV. Verso lo userà per adattarlo all'annuncio."}
           </p>
         </div>
         <Button onClick={() => navigate("/onboarding")} className="gap-2">
-          Carica il tuo CV <ArrowRight size={16} />
+          <FileArrowUp size={16} /> Carica il tuo CV
         </Button>
       </div>
     );
