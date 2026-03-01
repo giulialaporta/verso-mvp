@@ -62,6 +62,15 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `mvp/epics/epic-03-nuova-candidatura.md` | F3 — Wizard nuova candidatura |
 | `mvp/epics/epic-04-ai-engine.md` | F4 — Edge functions AI |
 | `mvp/epics/epic-05-export.md` | F5 — Export PDF + dashboard home |
+| `app-lovable/` | Documentazione di ciò che è stato effettivamente sviluppato su Lovable |
+| `app-lovable/CLAUDE_APP.md` | Istruzioni e indice della cartella app-lovable |
+| `app-lovable/epics/verso-prd-app.md` | PRD dell'app sviluppata |
+| `app-lovable/epics/epic-01-setup.md` | F1 — Auth + Supabase + App Shell + Brand System |
+| `app-lovable/epics/epic-02-onboarding.md` | F2 — Onboarding 3 step |
+| `app-lovable/epics/epic-03-nuova-candidatura.md` | F3 — Wizard 5 step |
+| `app-lovable/epics/epic-04-ai-engine.md` | F4 — 4 Edge Functions AI |
+| `app-lovable/epics/epic-05-export-dashboard.md` | F5 — Export PDF + Dashboard |
+| `app-lovable/epics/epic-06-candidature.md` | F6 — Pagina Candidature (tracker) |
 | `landing-page/` | Prompt per la landing page |
 | `legal-pack/` | Documenti legali |
 | `contesto/` | File di contesto progetto |
