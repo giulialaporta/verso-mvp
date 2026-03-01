@@ -1,12 +1,14 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -22,7 +24,6 @@ import {
   ChartLineUp,
   MagicWand,
   DownloadSimple,
-  FloppyDisk,
   SpinnerGap,
   FileArrowUp,
   LinkedinLogo,
@@ -34,11 +35,19 @@ import {
   ChatTeardropDots,
   Target,
   ArrowClockwise,
+  Lock,
+  PaperPlaneTilt,
+  Clock,
+  Plus,
+  Eye,
+  Pencil,
+  ListChecks,
 } from "@phosphor-icons/react";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { ExportDrawer } from "@/components/ExportDrawer";
+import { ClassicoTemplate, MinimalTemplate, TEMPLATES } from "@/components/cv-templates";
 import { InlineEdit } from "@/components/InlineEdit";
 import { EditableSkillChips } from "@/components/EditableSkillChips";
+
+// ==================== Types ====================
 
 type JobData = {
   company_name: string;
@@ -90,7 +99,6 @@ type StructuralChange = {
   reason: string;
 };
 
-// --- NEW: AnalyzeResult (mode=analyze) ---
 type AnalyzeResult = {
   match_score: number;
   score_note?: string;
@@ -115,7 +123,6 @@ type AnalyzeResult = {
   master_cv_id: string;
 };
 
-// --- TailorResult (mode=tailor) ---
 type TailorResult = {
   tailored_cv: Record<string, unknown>;
   tailored_patches?: Array<{ path: string; value: unknown }>;
@@ -142,15 +149,15 @@ type TailorResult = {
   master_cv_id: string;
 };
 
-// --- Step Indicator (5 steps) ---
+// ==================== Step Indicator (6 steps) ====================
 function StepIndicator({ current }: { current: number }) {
-  const steps = ["Annuncio", "Verifica", "Score", "Modifiche", "CV Adattato"];
+  const steps = ["Annuncio", "Analisi", "Tailoring", "Revisione", "Export", "Completa"];
   return (
-    <div className="flex items-center justify-center gap-2 sm:gap-3 mb-8">
+    <div className="flex items-center justify-center gap-1 sm:gap-2 mb-8">
       {steps.map((label, i) => (
-        <div key={label} className="flex items-center gap-1.5 sm:gap-2">
+        <div key={label} className="flex items-center gap-1 sm:gap-1.5">
           <div
-            className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full font-mono text-xs font-medium transition-colors ${
+            className={`flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full font-mono text-[10px] sm:text-xs font-medium transition-colors ${
               i < current
                 ? "bg-primary text-primary-foreground"
                 : i === current
@@ -158,17 +165,19 @@ function StepIndicator({ current }: { current: number }) {
                   : "bg-muted text-muted-foreground"
             }`}
           >
-            {i < current ? <CheckCircle size={14} weight="fill" /> : i + 1}
+            {i < current ? <CheckCircle size={12} weight="fill" /> : i + 1}
           </div>
-          <span className={`hidden sm:inline text-xs sm:text-sm ${i === current ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+          <span className={`hidden lg:inline text-[11px] ${i === current ? "text-foreground font-medium" : "text-muted-foreground"}`}>
             {label}
           </span>
-          {i < steps.length - 1 && <div className="w-4 sm:w-8 h-px bg-border" />}
+          {i < steps.length - 1 && <div className="w-3 sm:w-6 h-px bg-border" />}
         </div>
       ))}
     </div>
   );
 }
+
+// ==================== Utilities ====================
 
 const PROBLEMATIC_DOMAINS = [
   { pattern: "glassdoor.com", hint: "Glassdoor richiede login e potrebbe bloccare lo scraping." },
@@ -186,11 +195,9 @@ function getDomainHint(url: string): string | null {
   return null;
 }
 
-// --- Animated Counter Hook ---
 function useAnimatedCounter(target: number, duration = 800) {
   const [value, setValue] = useState(0);
   const prevTargetRef = useRef<number | null>(null);
-
   useEffect(() => {
     if (target <= 0) return;
     if (prevTargetRef.current === target) return;
@@ -206,11 +213,76 @@ function useAnimatedCounter(target: number, duration = 800) {
     };
     requestAnimationFrame(animate);
   }, [target, duration]);
-
   return value;
 }
 
-// --- Step 0: Job Input ---
+function applyPatchesFrontend(
+  original: Record<string, unknown>,
+  patches: Array<{ path: string; value: unknown }>
+): Record<string, unknown> {
+  const result = JSON.parse(JSON.stringify(original));
+  for (const patch of patches) {
+    const { path, value } = patch;
+    const segments = path.replace(/\[(\d+)\]/g, ".$1").split(".");
+    let target = result;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const seg = segments[i];
+      const idx = Number(seg);
+      if (!isNaN(idx)) target = target[idx];
+      else {
+        if (target[seg] === undefined || target[seg] === null) {
+          const nextSeg = segments[i + 1];
+          target[seg] = !isNaN(Number(nextSeg)) ? [] : {};
+        }
+        target = target[seg];
+      }
+      if (target === undefined || target === null) break;
+    }
+    if (target === undefined || target === null) continue;
+    const lastSeg = segments[segments.length - 1];
+    const lastIdx = Number(lastSeg);
+    if (!isNaN(lastIdx)) target[lastIdx] = value;
+    else target[lastSeg] = value;
+  }
+  return result;
+}
+
+/** Deterministic confidence calculation from CV comparison */
+function computeConfidence(
+  original: Record<string, unknown> | null,
+  tailored: Record<string, unknown>,
+  diff: TailorResult["diff"]
+): { confidence: number; bulletsRewritten: number; bulletsAdded: number; sectionsRemoved: number; experiencesKept: number; experiencesOriginal: number } {
+  const origExp = Array.isArray((original as any)?.experience) ? (original as any).experience : [];
+  const tailExp = Array.isArray((tailored as any)?.experience) ? (tailored as any).experience : [];
+
+  const experiencesOriginal = origExp.length;
+  const experiencesKept = tailExp.length;
+  const sectionsRemoved = Math.max(0, experiencesOriginal - experiencesKept);
+
+  // Count bullet changes from diff
+  const bulletDiffs = diff.filter(d => d.section?.toLowerCase().includes("experience") || d.section?.toLowerCase().includes("esperienza"));
+  const bulletsRewritten = bulletDiffs.length;
+
+  // Count added bullets (bullets in tailored not in original)
+  let bulletsAdded = 0;
+  tailExp.forEach((exp: any, i: number) => {
+    const origBullets = origExp[i]?.bullets?.length ?? 0;
+    const tailBullets = exp?.bullets?.length ?? 0;
+    if (tailBullets > origBullets) bulletsAdded += tailBullets - origBullets;
+  });
+
+  // Deterministic confidence: starts at 100, penalize for aggressive changes
+  let confidence = 100;
+  confidence -= sectionsRemoved * 8;
+  confidence -= bulletsRewritten * 2;
+  confidence -= bulletsAdded * 5;
+  confidence = Math.max(0, Math.min(100, Math.round(confidence)));
+
+  return { confidence, bulletsRewritten, bulletsAdded, sectionsRemoved, experiencesKept, experiencesOriginal };
+}
+
+// ==================== Step 0: Job Input ====================
 function StepAnnuncio({
   onConfirm,
   initialJobData,
@@ -236,13 +308,9 @@ function StepAnnuncio({
   }, []);
 
   const handleAnalyze = useCallback(async () => {
-    if (!companyName.trim()) {
-      toast.error("Inserisci il nome dell'azienda");
-      return;
-    }
+    if (!companyName.trim()) { toast.error("Inserisci il nome dell'azienda"); return; }
     setLoading(true);
     setJobData(null);
-
     const controller = new AbortController();
     abortControllerRef.current = controller;
     const timeoutId = tab === "url" ? setTimeout(() => controller.abort(), 25000) : undefined;
@@ -256,14 +324,9 @@ function StepAnnuncio({
         if (text.trim().length < 30) { toast.error("Il testo è troppo corto"); setLoading(false); return; }
         body.text = text.trim();
       }
-
-      const { data, error } = await supabase.functions.invoke("scrape-job", {
-        body,
-        signal: controller.signal as AbortSignal,
-      });
+      const { data, error } = await supabase.functions.invoke("scrape-job", { body, signal: controller.signal as AbortSignal });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
       const merged = { ...data.job_data, company_name: companyName.trim() || data.job_data.company_name };
       setJobData(merged);
     } catch (e: unknown) {
@@ -300,57 +363,28 @@ function StepAnnuncio({
           <CardContent className="pt-6 space-y-4">
             <div className="relative">
               <Buildings size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Es. Google, Accenture, Intesa Sanpaolo..."
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                disabled={loading}
-                className="pl-9"
-              />
+              <Input placeholder="Es. Google, Accenture, Intesa Sanpaolo..." value={companyName} onChange={(e) => setCompanyName(e.target.value)} disabled={loading} className="pl-9" />
             </div>
-
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="w-full">
-                <TabsTrigger value="text" className="flex-1 gap-2">
-                  <TextAa size={16} /> Testo
-                </TabsTrigger>
-                <TabsTrigger value="url" className="flex-1 gap-2 text-xs">
-                  <LinkIcon size={16} /> URL
-                  <span className="text-[10px] text-muted-foreground hidden sm:inline">(solo alcuni siti)</span>
-                </TabsTrigger>
+                <TabsTrigger value="text" className="flex-1 gap-2"><TextAa size={16} /> Testo</TabsTrigger>
+                <TabsTrigger value="url" className="flex-1 gap-2 text-xs"><LinkIcon size={16} /> URL <span className="text-[10px] text-muted-foreground hidden sm:inline">(solo alcuni siti)</span></TabsTrigger>
               </TabsList>
-
               <TabsContent value="text" className="mt-4 space-y-3">
-                <Textarea
-                  placeholder="Incolla qui il testo completo dell'annuncio..."
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  disabled={loading}
-                  rows={10}
-                  className="resize-none"
-                />
+                <Textarea placeholder="Incolla qui il testo completo dell'annuncio..." value={text} onChange={(e) => setText(e.target.value)} disabled={loading} rows={10} className="resize-none" />
                 <Collapsible open={guideOpen} onOpenChange={setGuideOpen}>
                   <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
-                    <Info size={14} />
-                    <span>Come copiare da LinkedIn, Indeed...</span>
+                    <Info size={14} /><span>Come copiare da LinkedIn, Indeed...</span>
                     <CaretDown size={12} className={`ml-auto transition-transform duration-200 ${guideOpen ? "rotate-180" : ""}`} />
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.2 }}
-                      className="mt-3 rounded-lg border border-border/50 bg-surface p-4 space-y-3 text-xs text-muted-foreground"
-                    >
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }} className="mt-3 rounded-lg border border-border/50 bg-surface p-4 space-y-3 text-xs text-muted-foreground">
                       <div className="flex items-start gap-2">
                         <LinkedinLogo size={16} className="text-secondary shrink-0 mt-0.5" />
                         <div>
                           <p className="text-foreground font-medium mb-1">LinkedIn</p>
                           <ol className="list-decimal list-inside space-y-0.5">
-                            <li>Apri l'annuncio su LinkedIn</li>
-                            <li>Seleziona tutto il testo (Ctrl+A / ⌘+A)</li>
-                            <li>Copia (Ctrl+C / ⌘+C)</li>
-                            <li>Incolla qui</li>
+                            <li>Apri l'annuncio su LinkedIn</li><li>Seleziona tutto il testo (Ctrl+A / ⌘+A)</li><li>Copia (Ctrl+C / ⌘+C)</li><li>Incolla qui</li>
                           </ol>
                         </div>
                       </div>
@@ -363,36 +397,21 @@ function StepAnnuncio({
                       </div>
                       <div className="flex items-start gap-2 border-t border-border/30 pt-2">
                         <Info size={14} className="text-warning shrink-0 mt-0.5" />
-                        <p>
-                          <span className="text-foreground font-medium">Tip:</span> Puoi anche provare il tab URL incollando il link dell'annuncio. Se non funziona, il testo è sempre l'opzione più affidabile.
-                        </p>
+                        <p><span className="text-foreground font-medium">Tip:</span> Puoi anche provare il tab URL incollando il link dell'annuncio. Se non funziona, il testo è sempre l'opzione più affidabile.</p>
                       </div>
                     </motion.div>
                   </CollapsibleContent>
                 </Collapsible>
               </TabsContent>
-
               <TabsContent value="url" className="mt-4">
-                <Input
-                  placeholder="https://www.linkedin.com/jobs/view/..."
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  disabled={loading}
-                />
-                <p className="text-[10px] text-muted-foreground mt-2">
-                  Se l'URL non funziona, copia il testo dell'annuncio e usa il tab Testo.
-                </p>
+                <Input placeholder="https://www.linkedin.com/jobs/view/..." value={url} onChange={(e) => setUrl(e.target.value)} disabled={loading} />
+                <p className="text-[10px] text-muted-foreground mt-2">Se l'URL non funziona, copia il testo dell'annuncio e usa il tab Testo.</p>
               </TabsContent>
             </Tabs>
-
             {loading ? (
-              <Button onClick={handleCancel} variant="destructive" className="w-full gap-2">
-                <XCircle size={16} /> Annulla
-              </Button>
+              <Button onClick={handleCancel} variant="destructive" className="w-full gap-2"><XCircle size={16} /> Annulla</Button>
             ) : (
-              <Button onClick={handleAnalyze} className="w-full gap-2">
-                <MagicWand size={16} /> Analizza
-              </Button>
+              <Button onClick={handleAnalyze} className="w-full gap-2"><MagicWand size={16} /> Analizza</Button>
             )}
           </CardContent>
         </Card>
@@ -408,35 +427,22 @@ function StepAnnuncio({
                   {jobData.location && <p className="text-sm text-muted-foreground">{jobData.location}</p>}
                 </div>
               </div>
-
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Requisiti chiave</p>
                 <ul className="space-y-1">
                   {jobData.key_requirements.slice(0, 5).map((req, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <Briefcase size={14} className="text-primary mt-0.5 shrink-0" />
-                      <span>{req}</span>
-                    </li>
+                    <li key={i} className="flex items-start gap-2 text-sm"><Briefcase size={14} className="text-primary mt-0.5 shrink-0" /><span>{req}</span></li>
                   ))}
                 </ul>
               </div>
-
               <div className="flex flex-wrap gap-2">
                 {jobData.required_skills.map((skill) => (
-                  <span key={skill} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-mono text-primary">
-                    {skill}
-                  </span>
+                  <span key={skill} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-mono text-primary">{skill}</span>
                 ))}
               </div>
-
               <div className="flex gap-3 pt-2">
-                <Button variant="outline" onClick={() => setJobData(null)} className="gap-2">
-                  <ArrowLeft size={16} /> Modifica
-                </Button>
-                <Button
-                  className="flex-1 gap-2"
-                  onClick={() => onConfirm(jobData, tab === "url" ? url : undefined, tab === "text" ? text : undefined)}
-                >
+                <Button variant="outline" onClick={() => setJobData(null)} className="gap-2"><ArrowLeft size={16} /> Modifica</Button>
+                <Button className="flex-1 gap-2" onClick={() => onConfirm(jobData, tab === "url" ? url : undefined, tab === "text" ? text : undefined)}>
                   Conferma e verifica <ArrowRight size={16} />
                 </Button>
               </div>
@@ -448,7 +454,7 @@ function StepAnnuncio({
   );
 }
 
-// --- Step 1: Pre-screening ---
+// ==================== Step 1: Pre-screening ====================
 function StepVerifica({
   prescreenResult,
   loading,
@@ -470,18 +476,10 @@ function StepVerifica({
           <p className="text-muted-foreground mt-1">Verso sta analizzando i requisiti dell'annuncio...</p>
         </div>
         {["Classificazione requisiti...", "Analisi gap...", "Generazione domande..."].map((msg, i) => (
-          <motion.div
-            key={msg}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.8, duration: 0.4 }}
-          >
+          <motion.div key={msg} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.8, duration: 0.4 }}>
             <Card className="border-border/30 bg-card/60">
               <CardContent className="py-5">
-                <div className="flex items-center gap-3">
-                  <SpinnerGap size={18} className="text-primary animate-spin" />
-                  <span className="text-sm text-muted-foreground">{msg}</span>
-                </div>
+                <div className="flex items-center gap-3"><SpinnerGap size={18} className="text-primary animate-spin" /><span className="text-sm text-muted-foreground">{msg}</span></div>
               </CardContent>
             </Card>
           </motion.div>
@@ -492,16 +490,8 @@ function StepVerifica({
 
   if (!prescreenResult) return null;
 
-  const feasibilityColors = {
-    low: "text-destructive",
-    medium: "text-warning",
-    high: "text-primary",
-  };
-  const feasibilityLabels = {
-    low: "Bassa",
-    medium: "Media",
-    high: "Alta",
-  };
+  const feasibilityColors = { low: "text-destructive", medium: "text-warning", high: "text-primary" };
+  const feasibilityLabels = { low: "Bassa", medium: "Media", high: "Alta" };
 
   const handleProceed = () => {
     const formattedAnswers = prescreenResult.follow_up_questions
@@ -513,39 +503,30 @@ function StepVerifica({
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft size={20} />
-        </button>
+        <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft size={20} /></button>
         <div>
           <h2 className="font-display text-2xl font-bold">Verifica compatibilità</h2>
           <p className="text-muted-foreground mt-1">Analisi onesta dei requisiti prima di procedere.</p>
         </div>
       </div>
 
-      {/* Feasibility indicator */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         <Card className="border-border/50 bg-card/80">
           <CardContent className="py-5">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Fattibilità candidatura</span>
-              <span className={`font-mono text-lg font-bold ${feasibilityColors[prescreenResult.overall_feasibility]}`}>
-                {feasibilityLabels[prescreenResult.overall_feasibility]}
-              </span>
+              <span className={`font-mono text-lg font-bold ${feasibilityColors[prescreenResult.overall_feasibility]}`}>{feasibilityLabels[prescreenResult.overall_feasibility]}</span>
             </div>
             <p className="text-sm text-muted-foreground mt-2">{prescreenResult.feasibility_note}</p>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Dealbreakers */}
       {prescreenResult.dealbreakers.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="border-destructive/40 bg-card/80">
             <CardContent className="pt-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <ShieldWarning size={20} className="text-destructive" weight="fill" />
-                <span className="text-sm font-medium text-destructive">Gap significativi</span>
-              </div>
+              <div className="flex items-center gap-2"><ShieldWarning size={20} className="text-destructive" weight="fill" /><span className="text-sm font-medium text-destructive">Gap significativi</span></div>
               <div className="space-y-3">
                 {prescreenResult.dealbreakers.map((db, i) => (
                   <div key={i} className="border-l-2 border-destructive/40 pl-3 space-y-1">
@@ -554,15 +535,12 @@ function StepVerifica({
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground italic pt-2 border-t border-border/30">
-                Verso non ti impedisce di candidarti, ma vuole che tu sia consapevole di questi gap.
-              </p>
+              <p className="text-xs text-muted-foreground italic pt-2 border-t border-border/30">Verso non ti impedisce di candidarti, ma vuole che tu sia consapevole di questi gap.</p>
             </CardContent>
           </Card>
         </motion.div>
       )}
 
-      {/* Requirements breakdown */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Card className="border-border/50 bg-card/80">
           <CardContent className="pt-5 space-y-3">
@@ -580,14 +558,9 @@ function StepVerifica({
                   <div className="flex-1 min-w-0">
                     <span>{req.requirement}</span>
                     <span className={`ml-2 font-mono text-[10px] uppercase px-1.5 py-0.5 rounded-full ${
-                      req.priority === "mandatory"
-                        ? "bg-destructive/10 text-destructive"
-                        : req.priority === "preferred"
-                          ? "bg-warning/10 text-warning"
-                          : "bg-muted text-muted-foreground"
-                    }`}>
-                      {req.priority === "mandatory" ? "obbligatorio" : req.priority === "preferred" ? "preferito" : "gradito"}
-                    </span>
+                      req.priority === "mandatory" ? "bg-destructive/10 text-destructive"
+                      : req.priority === "preferred" ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"
+                    }`}>{req.priority === "mandatory" ? "obbligatorio" : req.priority === "preferred" ? "preferito" : "gradito"}</span>
                   </div>
                 </div>
               ))}
@@ -596,30 +569,18 @@ function StepVerifica({
         </Card>
       </motion.div>
 
-      {/* Follow-up questions */}
       {prescreenResult.follow_up_questions.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="border-secondary/30 bg-card/80">
             <CardContent className="pt-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <ChatTeardropDots size={20} className="text-secondary" weight="fill" />
-                <span className="text-sm font-medium">Aiutaci a conoscerti meglio</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Rispondi alle domande per aiutare Verso a scoprire competenze non esplicite nel tuo CV. Le risposte sono facoltative.
-              </p>
+              <div className="flex items-center gap-2"><ChatTeardropDots size={20} className="text-secondary" weight="fill" /><span className="text-sm font-medium">Aiutaci a conoscerti meglio</span></div>
+              <p className="text-xs text-muted-foreground">Rispondi alle domande per aiutare Verso a scoprire competenze non esplicite nel tuo CV. Le risposte sono facoltative.</p>
               <div className="space-y-4">
                 {prescreenResult.follow_up_questions.map((q) => (
                   <div key={q.id} className="space-y-2">
                     <p className="text-sm font-medium">{q.question}</p>
                     <p className="text-xs text-muted-foreground italic">{q.context}</p>
-                    <Textarea
-                      value={answers[q.id] || ""}
-                      onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                      placeholder="La tua risposta (facoltativa)..."
-                      rows={2}
-                      className="resize-none"
-                    />
+                    <Textarea value={answers[q.id] || ""} onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))} placeholder="La tua risposta (facoltativa)..." rows={2} className="resize-none" />
                   </div>
                 ))}
               </div>
@@ -629,1020 +590,531 @@ function StepVerifica({
       )}
 
       <div className="flex gap-3">
-        <Button variant="outline" onClick={onBack} className="gap-2">
-          <ArrowLeft size={16} /> Indietro
-        </Button>
-        <Button className="flex-1 gap-2" onClick={handleProceed}>
-          Prosegui con l'analisi <ArrowRight size={16} />
-        </Button>
+        <Button variant="outline" onClick={onBack} className="gap-2"><ArrowLeft size={16} /> Indietro</Button>
+        <Button className="flex-1 gap-2" onClick={handleProceed}>Prosegui con l'analisi <ArrowRight size={16} /></Button>
       </div>
     </div>
   );
 }
 
-// --- Utility: apply patches to original CV (frontend copy) ---
-function applyPatchesFrontend(
-  original: Record<string, unknown>,
-  patches: Array<{ path: string; value: unknown }>
-): Record<string, unknown> {
-  const result = JSON.parse(JSON.stringify(original));
-  for (const patch of patches) {
-    const { path, value } = patch;
-    const segments = path.replace(/\[(\d+)\]/g, ".$1").split(".");
-    let target = result;
-    for (let i = 0; i < segments.length - 1; i++) {
-      const seg = segments[i];
-      const idx = Number(seg);
-      if (!isNaN(idx)) {
-        target = target[idx];
-      } else {
-        if (target[seg] === undefined || target[seg] === null) {
-          const nextSeg = segments[i + 1];
-          target[seg] = !isNaN(Number(nextSeg)) ? [] : {};
-        }
-        target = target[seg];
-      }
-      if (target === undefined || target === null) break;
-    }
-    if (target === undefined || target === null) continue;
-    const lastSeg = segments[segments.length - 1];
-    const lastIdx = Number(lastSeg);
-    if (!isNaN(lastIdx)) {
-      target[lastIdx] = value;
-    } else {
-      target[lastSeg] = value;
-    }
-  }
-  return result;
-}
-
-// ==================== Step 2: Score (NEW) ====================
-function StepScore({
-  result,
-  loading,
+// ==================== Step 2: Score + Tailoring trigger ====================
+function StepTailoring({
+  analyzeResult,
+  analyzeLoading,
+  tailoring,
   onGenerateCv,
   onAbandon,
   onBack,
-  tailoring,
 }: {
-  result: AnalyzeResult | null;
-  loading: boolean;
+  analyzeResult: AnalyzeResult | null;
+  analyzeLoading: boolean;
+  tailoring: boolean;
   onGenerateCv: () => void;
   onAbandon: () => void;
   onBack: () => void;
-  tailoring: boolean;
 }) {
-  const animatedScore = useAnimatedCounter(result?.match_score ?? 0);
-  const animatedAts = useAnimatedCounter(result?.ats_score ?? 0);
+  const animatedScore = useAnimatedCounter(analyzeResult?.match_score ?? 0);
+  const animatedAts = useAnimatedCounter(analyzeResult?.ats_score ?? 0);
 
-  if (loading) {
+  if (analyzeLoading) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 px-4">
-        <div>
-          <h2 className="font-display text-2xl font-bold">Analisi in corso</h2>
-          <p className="text-muted-foreground mt-1">Verso sta confrontando il tuo CV con l'annuncio...</p>
-        </div>
+        <div><h2 className="font-display text-2xl font-bold">Analisi in corso</h2><p className="text-muted-foreground mt-1">Verso sta confrontando il tuo CV con l'annuncio...</p></div>
         {["Confronto competenze...", "Calcolo match score...", "Analisi ATS..."].map((msg, i) => (
-          <motion.div
-            key={msg}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 1.2, duration: 0.4 }}
-          >
-            <Card className="border-border/30 bg-card/60">
-              <CardContent className="py-6">
-                <div className="flex items-center gap-3">
-                  <SpinnerGap size={20} className="text-primary animate-spin" />
-                  <span className="text-sm text-muted-foreground">{msg}</span>
-                </div>
-                <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary"
-                    initial={{ width: "0%" }}
-                    animate={{ width: "100%" }}
-                    transition={{ delay: i * 1.2, duration: 2, ease: "easeOut" }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+          <motion.div key={msg} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 1.2, duration: 0.4 }}>
+            <Card className="border-border/30 bg-card/60"><CardContent className="py-6">
+              <div className="flex items-center gap-3"><SpinnerGap size={20} className="text-primary animate-spin" /><span className="text-sm text-muted-foreground">{msg}</span></div>
+              <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden"><motion.div className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary" initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ delay: i * 1.2, duration: 2, ease: "easeOut" }} /></div>
+            </CardContent></Card>
           </motion.div>
         ))}
       </div>
     );
   }
 
-  if (!result) return null;
+  if (tailoring) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 px-4">
+        <div><h2 className="font-display text-2xl font-bold">Adattamento CV</h2><p className="text-muted-foreground mt-1">Verso sta adattando il tuo CV al ruolo...</p></div>
+        {["Adattamento contenuti...", "Ottimizzazione ATS...", "Verifica onestà..."].map((msg, i) => (
+          <motion.div key={msg} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 1.2, duration: 0.4 }}>
+            <Card className="border-border/30 bg-card/60"><CardContent className="py-6">
+              <div className="flex items-center gap-3"><SpinnerGap size={20} className="text-primary animate-spin" /><span className="text-sm text-muted-foreground">{msg}</span></div>
+              <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden"><motion.div className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary" initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ delay: i * 1.2, duration: 2, ease: "easeOut" }} /></div>
+            </CardContent></Card>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
 
-  const isLowScore = result.match_score <= 25;
+  if (!analyzeResult) return null;
 
-  const scoreBadge = result.match_score >= 80
+  const isLowScore = analyzeResult.match_score <= 25;
+  const scoreBadge = analyzeResult.match_score >= 80
     ? { label: "Ottimo match", className: "bg-primary/20 text-primary" }
-    : result.match_score <= 40
+    : analyzeResult.match_score <= 40
       ? { label: "Gap significativi", className: "bg-destructive/20 text-destructive" }
       : null;
+
+  const ATS_LABELS_IT: Record<string, string> = {
+    keywords: "Parole chiave", format: "Formato", dates: "Date",
+    measurable: "Risultati misurabili", cliches: "Frasi fatte",
+    sections: "Sezioni standard", action_verbs: "Verbi d'azione",
+  };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft size={20} />
-        </button>
-        <div>
-          <h2 className="font-display text-2xl font-bold">Risultato analisi</h2>
-          <p className="text-muted-foreground mt-1">Ecco come il tuo CV si allinea con l'offerta.</p>
-        </div>
+        <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft size={20} /></button>
+        <div><h2 className="font-display text-2xl font-bold">Risultato analisi</h2><p className="text-muted-foreground mt-1">Ecco come il tuo CV si allinea con l'offerta.</p></div>
       </div>
 
-      {/* Animated Score Meter */}
+      {/* Score Meter */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="py-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ChartLineUp size={20} className="text-primary" />
-                <span className="text-sm font-medium">Match Score</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-3xl font-bold text-primary">
-                  {animatedScore}%
-                </span>
-                {scoreBadge && (
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-medium ${scoreBadge.className}`}>
-                    {scoreBadge.label}
-                  </span>
-                )}
-              </div>
+        <Card className="border-border/50 bg-card/80"><CardContent className="py-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2"><ChartLineUp size={20} className="text-primary" /><span className="text-sm font-medium">Match Score</span></div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-3xl font-bold text-primary">{animatedScore}%</span>
+              {scoreBadge && <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-medium ${scoreBadge.className}`}>{scoreBadge.label}</span>}
             </div>
-            <div className="h-3 rounded-full bg-muted overflow-hidden">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary"
-                initial={{ width: "0%" }}
-                animate={{ width: `${result.match_score}%` }}
-                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-              />
-            </div>
-            {result.score_note && (
-              <p className="text-sm text-muted-foreground mt-2">{result.score_note}</p>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+          <div className="h-3 rounded-full bg-muted overflow-hidden">
+            <motion.div className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary" initial={{ width: "0%" }} animate={{ width: `${analyzeResult.match_score}%` }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} />
+          </div>
+          {analyzeResult.score_note && <p className="text-sm text-muted-foreground mt-2">{analyzeResult.score_note}</p>}
+        </CardContent></Card>
       </motion.div>
 
       {/* Dual Score */}
       <div className="grid grid-cols-2 gap-3">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="border-border/50 bg-card/80 h-full">
-            <CardContent className="py-4 text-center">
-              <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Punteggio ATS</p>
-              <span className="font-mono text-2xl font-bold text-secondary">
-                {animatedAts}%
-              </span>
-            </CardContent>
-          </Card>
+          <Card className="border-border/50 bg-card/80 h-full"><CardContent className="py-4 text-center">
+            <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Punteggio ATS</p>
+            <span className="font-mono text-2xl font-bold text-secondary">{animatedAts}%</span>
+          </CardContent></Card>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="border-border/50 bg-card/80 h-full">
-            <CardContent className="py-4 text-center">
-              <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Seniority</p>
-              <p className="text-sm font-medium">
-                {result.seniority_match?.match ? (
-                  <span className="text-primary">✓ Match</span>
-                ) : (
-                  <span className="text-warning">≠ {result.seniority_match?.candidate_level} → {result.seniority_match?.role_level}</span>
-                )}
-              </p>
-              {result.seniority_match?.note && (
-                <p className="text-xs text-muted-foreground mt-1">{result.seniority_match.note}</p>
-              )}
-            </CardContent>
-          </Card>
+          <Card className="border-border/50 bg-card/80 h-full"><CardContent className="py-4 text-center">
+            <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Seniority</p>
+            <p className="text-sm font-medium">
+              {analyzeResult.seniority_match?.match
+                ? <span className="text-primary">✓ Match</span>
+                : <span className="text-warning">≠ {analyzeResult.seniority_match?.candidate_level} → {analyzeResult.seniority_match?.role_level}</span>}
+            </p>
+          </CardContent></Card>
         </motion.div>
       </div>
 
-      {/* Skill Match */}
+      {/* Skills */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <Card className="border-primary/20 bg-card/80 h-full">
-            <CardContent className="pt-5 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium text-primary">
-                <CheckCircle size={16} weight="fill" /> Hai già
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {result.skills_present.filter(s => s.has).map((s) => (
-                  <span key={s.label} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-mono text-primary">
-                    {s.label}
-                  </span>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <Card className="border-primary/20 bg-card/80 h-full"><CardContent className="pt-5 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-primary"><CheckCircle size={16} weight="fill" /> Hai già</div>
+            <div className="flex flex-wrap gap-2">{analyzeResult.skills_present.filter(s => s.has).map((s) => <span key={s.label} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-mono text-primary">{s.label}</span>)}</div>
+          </CardContent></Card>
         </motion.div>
-
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-          <Card className="border-destructive/20 bg-card/80 h-full">
-            <CardContent className="pt-5 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium text-destructive">
-                <XCircle size={16} weight="fill" /> Ti mancano
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {result.skills_missing.map((s) => (
-                  <span key={s.label} className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-mono text-destructive flex items-center gap-1">
-                    {s.label}
-                    {(s.importance === "essential" || s.importance === "essenziale") && <Warning size={12} weight="fill" />}
-                  </span>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <Card className="border-destructive/20 bg-card/80 h-full"><CardContent className="pt-5 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-destructive"><XCircle size={16} weight="fill" /> Ti mancano</div>
+            <div className="flex flex-wrap gap-2">{analyzeResult.skills_missing.map((s) => <span key={s.label} className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-mono text-destructive flex items-center gap-1">{s.label}{(s.importance === "essential" || s.importance === "essenziale") && <Warning size={12} weight="fill" />}</span>)}</div>
+          </CardContent></Card>
         </motion.div>
       </div>
 
       {/* Learning Suggestions */}
-      {result.learning_suggestions && result.learning_suggestions.length > 0 && (
+      {analyzeResult.learning_suggestions && analyzeResult.learning_suggestions.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-          <Card className="border-secondary/20 bg-card/80">
-            <CardContent className="pt-5 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium text-secondary">
-                <GraduationCap size={18} weight="fill" /> Risorse per colmare i gap
-              </div>
-              <div className="space-y-2">
-                {result.learning_suggestions.map((ls, i) => (
-                  <a
-                    key={i}
-                    href={ls.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-start gap-3 p-3 rounded-lg border border-border/30 hover:border-secondary/40 bg-surface/50 hover:bg-surface transition-colors group"
-                  >
-                    <GraduationCap size={18} className="text-secondary mt-0.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium group-hover:text-secondary transition-colors">{ls.resource_name}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="font-mono text-[10px] uppercase text-muted-foreground">{ls.skill}</span>
-                        <span className="text-border">·</span>
-                        <span className="font-mono text-[10px] uppercase text-muted-foreground">{ls.type}</span>
-                        {ls.duration && (
-                          <>
-                            <span className="text-border">·</span>
-                            <span className="font-mono text-[10px] text-muted-foreground">{ls.duration}</span>
-                          </>
-                        )}
-                      </div>
+          <Card className="border-secondary/20 bg-card/80"><CardContent className="pt-5 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-secondary"><GraduationCap size={18} weight="fill" /> Risorse per colmare i gap</div>
+            <div className="space-y-2">
+              {analyzeResult.learning_suggestions.map((ls, i) => (
+                <a key={i} href={ls.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-3 rounded-lg border border-border/30 hover:border-secondary/40 bg-surface/50 hover:bg-surface transition-colors group">
+                  <GraduationCap size={18} className="text-secondary mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium group-hover:text-secondary transition-colors">{ls.resource_name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="font-mono text-[10px] uppercase text-muted-foreground">{ls.skill}</span>
+                      <span className="text-border">·</span>
+                      <span className="font-mono text-[10px] uppercase text-muted-foreground">{ls.type}</span>
+                      {ls.duration && <><span className="text-border">·</span><span className="font-mono text-[10px] text-muted-foreground">{ls.duration}</span></>}
                     </div>
-                    <ArrowRight size={14} className="text-muted-foreground group-hover:text-secondary mt-1 shrink-0 transition-colors" />
-                  </a>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  </div>
+                  <ArrowRight size={14} className="text-muted-foreground group-hover:text-secondary mt-1 shrink-0 transition-colors" />
+                </a>
+              ))}
+            </div>
+          </CardContent></Card>
         </motion.div>
       )}
 
       {/* ATS Checks */}
-      {result.ats_checks && result.ats_checks.length > 0 && (() => {
-        const ATS_LABELS_IT: Record<string, string> = {
-          keywords: "Parole chiave", format: "Formato", dates: "Date",
-          measurable: "Risultati misurabili", cliches: "Frasi fatte",
-          sections: "Sezioni standard", action_verbs: "Verbi d'azione",
-        };
-        const ATS_SUGGESTIONS_IT: Record<string, string> = {
-          measurable: "Aggiungi risultati misurabili ai tuoi bullet point (numeri, percentuali, metriche concrete).",
-          action_verbs: "Inizia ogni bullet point con un verbo d'azione forte (es. 'Implementato', 'Ottimizzato', 'Guidato').",
-          keywords: "Il CV non contiene abbastanza parole chiave dall'annuncio. Verifica di aver incluso i termini chiave.",
-          cliches: "Sostituisci le frasi generiche con descrizioni specifiche e concrete.",
-        };
-        const failingChecks = result.ats_checks.filter(ch => ch.status === "warning" || ch.status === "fail");
-        return (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
-            <Card className="border-border/50 bg-card/80">
-              <CardContent className="pt-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Check ATS</p>
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <Info size={12} className="text-secondary" />
-                    <span>Leggibilità sistemi automatici</span>
-                  </div>
+      {analyzeResult.ats_checks && analyzeResult.ats_checks.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+          <Card className="border-border/50 bg-card/80"><CardContent className="pt-5 space-y-3">
+            <p className="text-sm font-medium">Check ATS</p>
+            <div className="space-y-2">
+              {analyzeResult.ats_checks.map((ch) => (
+                <div key={ch.check} className="flex items-center gap-2 text-sm">
+                  {ch.status === "pass" ? <CheckCircle size={16} className="text-primary" weight="fill" /> : ch.status === "warning" ? <Warning size={16} className="text-warning" weight="fill" /> : <XCircle size={16} className="text-destructive" weight="fill" />}
+                  <span className="flex-1">{ATS_LABELS_IT[ch.check] || ch.label}</span>
                 </div>
-                <div className="space-y-2">
-                  {result.ats_checks.map((ch) => (
-                    <div key={ch.check} className="flex items-center gap-2 text-sm">
-                      {ch.status === "pass" ? (
-                        <CheckCircle size={16} className="text-primary" weight="fill" />
-                      ) : ch.status === "warning" ? (
-                        <Warning size={16} className="text-warning" weight="fill" />
-                      ) : (
-                        <XCircle size={16} className="text-destructive" weight="fill" />
-                      )}
-                      <span className="flex-1">{ATS_LABELS_IT[ch.check] || ch.label}</span>
-                      {ch.detail && <span className="text-xs text-muted-foreground">{ch.detail}</span>}
-                    </div>
-                  ))}
-                </div>
-                {failingChecks.length > 0 && (
-                  <div className="space-y-2 mt-1 p-3 rounded-lg border border-warning/20 bg-warning/5">
-                    <p className="text-xs font-medium text-warning">Suggerimenti per migliorare</p>
-                    {failingChecks.map((ch) => {
-                      const suggestion = ATS_SUGGESTIONS_IT[ch.check];
-                      if (!suggestion) return null;
-                      return <p key={ch.check} className="text-[11px] text-muted-foreground leading-relaxed">• {suggestion}</p>;
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        );
-      })()}
-
-      {/* Low Score CTA */}
-      {isLowScore && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
-          <Card className="border-warning/40 bg-card/80">
-            <CardContent className="py-6 space-y-4">
-              <div className="flex items-start gap-3">
-                <Target size={24} className="text-warning shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-display text-lg font-bold">Forse non è la posizione giusta</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Il match con questo ruolo è basso. Non significa che non sei valido — significa che le tue competenze brillano altrove. 
-                    Concentra le energie su posizioni dove puoi fare davvero la differenza.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <Button onClick={onAbandon} className="flex-1 gap-2">
-                  <ArrowClockwise size={16} /> Cerca un'altra posizione
-                </Button>
-                <Button variant="outline" onClick={onGenerateCv} disabled={tailoring} className="gap-2">
-                  {tailoring ? <SpinnerGap size={16} className="animate-spin" /> : <ArrowRight size={16} />}
-                  Procedi comunque
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              ))}
+            </div>
+          </CardContent></Card>
         </motion.div>
       )}
 
-      {/* Normal Score: Generate CV button */}
+      {/* Low score warning */}
+      {isLowScore && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
+          <Card className="border-warning/40 bg-card/80"><CardContent className="py-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <Target size={24} className="text-warning shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-display text-lg font-bold">Forse non è la posizione giusta</h3>
+                <p className="text-sm text-muted-foreground mt-2">Il match con questo ruolo è basso. Concentra le energie su posizioni dove puoi fare la differenza.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={onAbandon} className="flex-1 gap-2"><ArrowClockwise size={16} /> Cerca un'altra posizione</Button>
+              <Button variant="outline" onClick={onGenerateCv} className="gap-2"><ArrowRight size={16} /> Procedi comunque</Button>
+            </div>
+          </CardContent></Card>
+        </motion.div>
+      )}
+
       {!isLowScore && (
-        <Button onClick={onGenerateCv} disabled={tailoring} className="w-full gap-2">
-          {tailoring ? (
-            <><SpinnerGap size={16} className="animate-spin" /> Generazione in corso...</>
-          ) : (
-            <><MagicWand size={16} /> Genera il CV adattato</>
-          )}
+        <Button onClick={onGenerateCv} className="w-full gap-2">
+          <MagicWand size={16} /> Genera il CV adattato
         </Button>
       )}
     </div>
   );
 }
 
-// ==================== Step 3: Modifications (interactive approval) ====================
-function StepModifiche({
-  result,
+// ==================== Step 3: Revisione (NEW) ====================
+function StepRevisione({
+  tailorResult,
   analyzeResult,
-  loading,
+  originalCv,
   onNext,
   onBack,
 }: {
-  result: TailorResult | null;
+  tailorResult: TailorResult;
   analyzeResult: AnalyzeResult | null;
-  loading: boolean;
-  onNext: (approvedCv: Record<string, unknown>) => void;
+  originalCv: Record<string, unknown> | null;
+  onNext: () => void;
   onBack: () => void;
 }) {
-  const structCount = result?.structural_changes?.length ?? 0;
-  const diffCount = result?.diff?.length ?? 0;
-  const totalChanges = structCount + diffCount;
+  const [diffOpen, setDiffOpen] = useState(false);
 
-  const decisionsInitRef = useRef<string | null>(null);
-  const [decisions, setDecisions] = useState<Record<string, "approved" | "rejected">>({});
+  const stats = useMemo(() =>
+    computeConfidence(originalCv, tailorResult.tailored_cv, tailorResult.diff),
+    [originalCv, tailorResult.tailored_cv, tailorResult.diff]
+  );
 
-  useEffect(() => {
-    if (!result) return;
-    const resultId = `${result.diff?.length}_${result.structural_changes?.length}`;
-    if (decisionsInitRef.current === resultId) return;
-    decisionsInitRef.current = resultId;
-    const init: Record<string, "approved" | "rejected"> = {};
-    (result.structural_changes ?? []).forEach((_, i) => { init[`s_${i}`] = "approved"; });
-    (result.diff ?? []).forEach((_, i) => { init[`d_${i}`] = "approved"; });
-    setDecisions(init);
-  }, [result]);
-
-  const approvedCount = Object.values(decisions).filter(v => v === "approved").length;
-
-  const toggleDecision = (key: string) => {
-    setDecisions(prev => ({ ...prev, [key]: prev[key] === "approved" ? "rejected" : "approved" }));
-  };
-
-  const setAll = (status: "approved" | "rejected") => {
-    setDecisions(prev => {
-      const next = { ...prev };
-      for (const k of Object.keys(next)) next[k] = status;
-      return next;
-    });
-  };
-
-  const handleNext = () => {
-    if (!result) return;
-
-    if (approvedCount === totalChanges) {
-      onNext(result.tailored_cv);
-      return;
-    }
-
-    const originalCv = result.original_cv || result.tailored_cv;
-    const allPatches = result.tailored_patches || [];
-    const approvedPaths = new Set<string>();
-
-    (result.structural_changes ?? []).forEach((sc, i) => {
-      if (decisions[`s_${i}`] === "approved") approvedPaths.add(sc.section);
-    });
-    (result.diff ?? []).forEach((d, i) => {
-      if (decisions[`d_${i}`] === "approved" && d.patch_path) approvedPaths.add(d.patch_path);
-    });
-
-    const approvedPatches = allPatches.filter(p => approvedPaths.has(p.path));
-    const finalCv = applyPatchesFrontend(originalCv, approvedPatches);
-    onNext(finalCv);
-  };
-
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6 px-4">
-        <div>
-          <h2 className="font-display text-2xl font-bold">Generazione modifiche</h2>
-          <p className="text-muted-foreground mt-1">Verso sta adattando il tuo CV...</p>
-        </div>
-        {["Adattamento contenuti...", "Ottimizzazione ATS...", "Verifica onestà..."].map((msg, i) => (
-          <motion.div
-            key={msg}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 1.2, duration: 0.4 }}
-          >
-            <Card className="border-border/30 bg-card/60">
-              <CardContent className="py-6">
-                <div className="flex items-center gap-3">
-                  <SpinnerGap size={20} className="text-primary animate-spin" />
-                  <span className="text-sm text-muted-foreground">{msg}</span>
-                </div>
-                <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary"
-                    initial={{ width: "0%" }}
-                    animate={{ width: "100%" }}
-                    transition={{ delay: i * 1.2, duration: 2, ease: "easeOut" }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-    );
-  }
-
-  if (!result) return null;
+  const matchScore = analyzeResult?.match_score ?? 0;
+  const atsScore = analyzeResult?.ats_score ?? 0;
+  const totalDiffs = tailorResult.diff?.length ?? 0;
+  const structChanges = tailorResult.structural_changes?.length ?? 0;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft size={20} />
-        </button>
+        <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft size={20} /></button>
         <div>
-          <h2 className="font-display text-2xl font-bold">Modifiche suggerite</h2>
-          <p className="text-muted-foreground mt-1">Approva o rifiuta ogni modifica prima di procedere.</p>
+          <h2 className="font-display text-2xl font-bold">Revisione</h2>
+          <p className="text-muted-foreground mt-1">Riepilogo delle modifiche effettuate dal tailoring.</p>
         </div>
       </div>
 
-      {/* Score recap */}
-      {analyzeResult && (
-        <div className="flex gap-2">
-          <span className="rounded-full bg-primary/20 px-3 py-1 font-mono text-sm font-bold text-primary">
-            Match {analyzeResult.match_score}%
-          </span>
-          <span className="rounded-full bg-secondary/20 px-3 py-1 font-mono text-sm font-bold text-secondary">
-            ATS {analyzeResult.ats_score}%
-          </span>
+      {/* Compact scores */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-4 text-center space-y-1">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase">Match</p>
+            <p className="font-mono text-xl font-bold text-primary">{matchScore}%</p>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary" style={{ width: `${matchScore}%` }} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-4 text-center space-y-1">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase">ATS</p>
+            <p className="font-mono text-xl font-bold text-secondary">{atsScore}%</p>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div className="h-full rounded-full bg-secondary" style={{ width: `${atsScore}%` }} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-4 text-center space-y-1">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase">Confidence</p>
+            <p className={`font-mono text-xl font-bold ${stats.confidence >= 90 ? "text-primary" : stats.confidence >= 70 ? "text-warning" : "text-destructive"}`}>{stats.confidence}%</p>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div className={`h-full rounded-full ${stats.confidence >= 90 ? "bg-primary" : stats.confidence >= 70 ? "bg-warning" : "bg-destructive"}`} style={{ width: `${stats.confidence}%` }} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Change counters */}
+      <Card className="border-border/50 bg-card/80">
+        <CardContent className="py-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <ListChecks size={18} className="text-primary" />
+            <span className="text-sm font-medium">Cosa abbiamo cambiato</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="rounded-lg border border-border/30 p-3 text-center">
+              <p className="font-mono text-lg font-bold text-foreground">{stats.bulletsRewritten}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Bullet riscritti</p>
+            </div>
+            <div className="rounded-lg border border-border/30 p-3 text-center">
+              <p className="font-mono text-lg font-bold text-foreground">{stats.bulletsAdded}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Bullet aggiunti</p>
+            </div>
+            <div className="rounded-lg border border-border/30 p-3 text-center">
+              <p className="font-mono text-lg font-bold text-foreground">{stats.sectionsRemoved}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Esperienze rimosse</p>
+            </div>
+            <div className="rounded-lg border border-border/30 p-3 text-center">
+              <p className="font-mono text-lg font-bold text-foreground">{structChanges}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Modifiche strutturali</p>
+            </div>
+            <div className="rounded-lg border border-border/30 p-3 text-center">
+              <p className="font-mono text-lg font-bold text-foreground">{stats.experiencesKept}/{stats.experiencesOriginal}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Esperienze mantenute</p>
+            </div>
+            <div className="rounded-lg border border-border/30 p-3 text-center">
+              <p className="font-mono text-lg font-bold text-foreground">{totalDiffs}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Modifiche contenuto</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Collapsible diff */}
+      {totalDiffs > 0 && (
+        <Collapsible open={diffOpen} onOpenChange={setDiffOpen}>
+          <Card className="border-border/50 bg-card/80">
+            <CardContent className="py-4">
+              <CollapsibleTrigger className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <Eye size={16} className="text-primary" />
+                  <span className="text-sm font-medium">Dettaglio modifiche</span>
+                  <span className="font-mono text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{totalDiffs}</span>
+                </div>
+                <CaretDown size={14} className={`text-muted-foreground transition-transform ${diffOpen ? "rotate-180" : ""}`} />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="space-y-3 mt-4">
+                  {tailorResult.diff.map((ch, i) => (
+                    <div key={i} className="rounded-lg border border-border/30 p-3 space-y-1.5">
+                      <p className="font-mono text-[10px] text-muted-foreground uppercase">{ch.section}</p>
+                      <p className="text-sm line-through text-muted-foreground">{ch.original}</p>
+                      <p className="text-sm text-primary border-l-2 border-primary/40 pl-2">{ch.suggested}</p>
+                      {ch.reason && <p className="text-xs text-muted-foreground italic">{ch.reason}</p>}
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </CardContent>
+          </Card>
+        </Collapsible>
+      )}
+
+      {stats.confidence < 90 && (
+        <div className="flex items-start gap-2 p-3 rounded-lg border border-warning/20 bg-warning/5">
+          <Warning size={16} className="text-warning shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground">Confidence sotto il 90%. Rivedi le modifiche nel dettaglio prima di procedere.</p>
         </div>
       )}
 
-      {totalChanges > 0 && (
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="pt-5 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <MagicWand size={18} className="text-primary" />
-                <span className="text-sm font-medium">Modifiche</span>
-                <span className="font-mono text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                  {approvedCount}/{totalChanges} approvate
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setAll("approved")}
-                  className="text-[11px] font-mono text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded border border-primary/20 hover:bg-primary/5"
-                >
-                  Approva tutte
-                </button>
-                <button
-                  onClick={() => setAll("rejected")}
-                  className="text-[11px] font-mono text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded border border-destructive/20 hover:bg-destructive/5"
-                >
-                  Rifiuta tutte
-                </button>
-              </div>
-            </div>
-
-            {/* Structural changes */}
-            {result.structural_changes && result.structural_changes.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-xs font-mono text-muted-foreground uppercase">Modifiche strutturali</p>
-                {result.structural_changes.map((sc, i) => {
-                  const key = `s_${i}`;
-                  const isApproved = decisions[key] === "approved";
-                  const actionLabels: Record<string, string> = { removed: "Rimossa", reordered: "Riordinata", condensed: "Condensata" };
-                  const actionColors: Record<string, string> = { removed: "text-destructive", reordered: "text-secondary", condensed: "text-warning" };
-                  return (
-                    <div
-                      key={key}
-                      className={`rounded-lg border p-3 transition-all duration-200 ${isApproved ? "border-border/50 bg-card/60" : "border-destructive/30 bg-destructive/5 opacity-60"}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`font-mono text-[10px] uppercase font-medium ${actionColors[sc.action] || "text-muted-foreground"}`}>
-                              {actionLabels[sc.action] || sc.action}
-                            </span>
-                            <span className="font-mono text-[10px] text-muted-foreground uppercase">{sc.section}</span>
-                          </div>
-                          <p className="text-sm font-medium">{sc.item}</p>
-                          <p className="text-xs text-muted-foreground italic mt-1">{sc.reason}</p>
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          <button onClick={() => toggleDecision(key)} className={`p-1.5 rounded-md transition-colors ${isApproved ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary hover:bg-primary/5"}`} title="Approva">
-                            <CheckCircle size={18} weight={isApproved ? "fill" : "regular"} />
-                          </button>
-                          <button onClick={() => toggleDecision(key)} className={`p-1.5 rounded-md transition-colors ${!isApproved ? "text-destructive bg-destructive/10" : "text-muted-foreground hover:text-destructive hover:bg-destructive/5"}`} title="Rifiuta">
-                            <XCircle size={18} weight={!isApproved ? "fill" : "regular"} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Content diff */}
-            {result.diff && result.diff.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-xs font-mono text-muted-foreground uppercase">Modifiche al contenuto</p>
-                {result.diff.map((ch, i) => {
-                  const key = `d_${i}`;
-                  const isApproved = decisions[key] === "approved";
-                  return (
-                    <div
-                      key={key}
-                      className={`rounded-lg border p-3 transition-all duration-200 ${isApproved ? "border-border/50 bg-card/60" : "border-destructive/30 bg-destructive/5 opacity-60"}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0 space-y-1.5">
-                          <p className="font-mono text-[10px] text-muted-foreground uppercase">{ch.section}</p>
-                          <p className="text-sm line-through text-muted-foreground">{ch.original}</p>
-                          <p className={`text-sm ${isApproved ? "text-primary" : "text-muted-foreground line-through"}`}>{ch.suggested}</p>
-                          {ch.reason && <p className="text-xs text-muted-foreground italic">{ch.reason}</p>}
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          <button onClick={() => toggleDecision(key)} className={`p-1.5 rounded-md transition-colors ${isApproved ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary hover:bg-primary/5"}`} title="Approva">
-                            <CheckCircle size={18} weight={isApproved ? "fill" : "regular"} />
-                          </button>
-                          <button onClick={() => toggleDecision(key)} className={`p-1.5 rounded-md transition-colors ${!isApproved ? "text-destructive bg-destructive/10" : "text-muted-foreground hover:text-destructive hover:bg-destructive/5"}`} title="Rifiuta">
-                            <XCircle size={18} weight={!isApproved ? "fill" : "regular"} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      <Button onClick={handleNext} className="w-full gap-2">
-        Vedi il CV adattato <ArrowRight size={16} />
+      <Button onClick={onNext} className="w-full gap-2">
+        Procedi all'export <ArrowRight size={16} />
       </Button>
     </div>
   );
 }
 
-// ==================== Step 4: CV Preview + Export ====================
-function StepCVAdattato({
-  tailorResult,
+// ==================== Step 4: Export (full-page) ====================
+function StepExport({
+  tailoredCv,
   analyzeResult,
+  tailorResult,
   jobData,
   applicationId,
   onBack,
-  onTailoredCvChange,
+  onNext,
 }: {
-  tailorResult: TailorResult;
+  tailoredCv: Record<string, unknown>;
   analyzeResult: AnalyzeResult | null;
+  tailorResult: TailorResult;
   jobData: JobData;
   applicationId: string;
   onBack: () => void;
-  onTailoredCvChange: (cv: Record<string, unknown>) => void;
+  onNext: () => void;
 }) {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [saving, setSaving] = useState(false);
-  const [diffTab, setDiffTab] = useState<string>("adattato");
-  const [exportOpen, setExportOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("classico");
+  const [downloading, setDownloading] = useState(false);
 
-  const cv = tailorResult.tailored_cv;
+  const personalName = (tailoredCv?.personal as any)?.name || "CV";
   const matchScore = analyzeResult?.match_score ?? 0;
   const atsScore = analyzeResult?.ats_score ?? 0;
-  const atsChecks = analyzeResult?.ats_checks ?? [];
 
-  const updateCvField = (path: string, value: unknown) => {
-    const updated = JSON.parse(JSON.stringify(cv));
-    const segments = path.replace(/\[(\d+)\]/g, ".$1").split(".");
-    let target = updated;
-    for (let i = 0; i < segments.length - 1; i++) {
-      const seg = segments[i];
-      const idx = Number(seg);
-      target = !isNaN(idx) ? target[idx] : target[seg];
-    }
-    const lastSeg = segments[segments.length - 1];
-    const lastIdx = Number(lastSeg);
-    if (!isNaN(lastIdx)) target[lastIdx] = value;
-    else target[lastSeg] = value;
-    onTailoredCvChange(updated);
-  };
+  const stats = useMemo(() =>
+    computeConfidence(tailorResult.original_cv ?? null, tailoredCv, tailorResult.diff),
+    [tailorResult.original_cv, tailoredCv, tailorResult.diff]
+  );
 
-  const renderEditableCV = () => {
-    const personal = cv.personal as Record<string, string> | undefined;
-    const summary = cv.summary as string | undefined;
-    const experience = cv.experience as Array<Record<string, any>> | undefined;
-    const education = cv.education as Array<Record<string, any>> | undefined;
-    const skills = cv.skills as any;
-    const extraSections = cv.extra_sections as Array<{ title: string; items: string[] }> | undefined;
-
-    const ensureArray = (val: unknown): string[] => {
-      if (Array.isArray(val)) return val;
-      if (typeof val === 'string') return val.split(',').map((s: string) => s.trim()).filter(Boolean);
-      return [];
-    };
-
-    return (
-      <div className="space-y-4 text-sm">
-        {personal?.name && (
-          <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Dati personali</p>
-            <p className="font-medium">{personal.name}</p>
-            {personal.email && <p className="text-muted-foreground">{personal.email}</p>}
-          </div>
-        )}
-        {summary !== undefined && (
-          <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Profilo</p>
-            <InlineEdit value={summary || ""} onChange={(v) => updateCvField("summary", v)} multiline placeholder="Aggiungi un profilo..." />
-          </div>
-        )}
-        {Array.isArray(experience) && experience.length > 0 && (
-          <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Esperienza</p>
-            {experience.map((exp, i) => (
-              <div key={i} className="mb-3">
-                <p className="font-medium">{exp.role || exp.title} — {exp.company}</p>
-                <p className="text-muted-foreground text-xs">
-                  {exp.start || exp.period}{exp.end && ` – ${exp.end}`}{exp.current && " – Attuale"}{exp.location && ` · ${exp.location}`}
-                </p>
-                {exp.description !== undefined && (
-                  <InlineEdit value={exp.description || ""} onChange={(v) => updateCvField(`experience[${i}].description`, v)} multiline placeholder="Aggiungi descrizione..." className="mt-1" />
-                )}
-                {Array.isArray(exp.bullets) && exp.bullets.length > 0 && (
-                  <ul className="mt-1 space-y-1">
-                    {exp.bullets.map((b: string, j: number) => (
-                      <li key={j} className="flex items-start gap-1.5 text-xs">
-                        <span className="text-muted-foreground mt-1">•</span>
-                        <InlineEdit
-                          value={b}
-                          onChange={(v) => {
-                            const newBullets = [...exp.bullets];
-                            newBullets[j] = v;
-                            updateCvField(`experience[${i}].bullets`, newBullets);
-                          }}
-                          showIcon={false}
-                          className="flex-1"
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        {Array.isArray(education) && education.length > 0 && (
-          <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Formazione</p>
-            {education.map((ed, i) => (
-              <div key={i} className="mb-2">
-                <p className="font-medium">{ed.degree}{ed.field && ` in ${ed.field}`} — {ed.institution}</p>
-                <p className="text-muted-foreground text-xs">{ed.start || ed.period}{ed.end && ` – ${ed.end}`}</p>
-                {ed.grade && <p className="text-xs text-primary">{ed.grade}</p>}
-              </div>
-            ))}
-          </div>
-        )}
-        {skills && (
-          <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Competenze</p>
-            {skills.technical && (
-              <div className="mb-2">
-                <p className="text-xs text-muted-foreground mb-1">Tecniche</p>
-                <EditableSkillChips items={ensureArray(skills.technical)} onChange={(v) => updateCvField("skills.technical", v)} variant="primary" />
-              </div>
-            )}
-            {skills.soft && (
-              <div className="mb-2">
-                <p className="text-xs text-muted-foreground mb-1">Soft</p>
-                <EditableSkillChips items={ensureArray(skills.soft)} onChange={(v) => updateCvField("skills.soft", v)} variant="outline" />
-              </div>
-            )}
-            {skills.tools && (
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Strumenti</p>
-                <EditableSkillChips items={ensureArray(skills.tools)} onChange={(v) => updateCvField("skills.tools", v)} variant="outline" />
-              </div>
-            )}
-          </div>
-        )}
-        {Array.isArray(extraSections) && extraSections.length > 0 && extraSections.map((sec, i) => (
-          <div key={i}>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">{sec.title}</p>
-            <ul className="list-disc list-inside text-xs">
-              {(Array.isArray(sec.items) ? sec.items : []).map((item, j) => <li key={j}>{item}</li>)}
-            </ul>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const renderCV = (data: Record<string, unknown>) => {
-    const personal = data.personal as Record<string, string> | undefined;
-    const summary = data.summary as string | undefined;
-    const experience = data.experience as Array<Record<string, any>> | undefined;
-    const education = data.education as Array<Record<string, any>> | undefined;
-    const skills = data.skills as any;
-    const extraSections = data.extra_sections as Array<{ title: string; items: string[] }> | undefined;
-
-    const ensureArray = (val: unknown): string[] => {
-      if (Array.isArray(val)) return val;
-      if (typeof val === 'string') return val.split(',').map((s: string) => s.trim()).filter(Boolean);
-      return [];
-    };
-
-    const renderSkills = () => {
-      if (!skills) return null;
-      const sections: { label: string; items: string[] }[] = [];
-      if (skills.technical) sections.push({ label: "Tecniche", items: ensureArray(skills.technical) });
-      if (skills.soft) sections.push({ label: "Soft", items: ensureArray(skills.soft) });
-      if (skills.tools) sections.push({ label: "Strumenti", items: ensureArray(skills.tools) });
-      if (sections.length === 0) return null;
-      return (
-        <div>
-          <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Competenze</p>
-          {sections.map((sec) => (
-            <div key={sec.label} className="mb-1">
-              <span className="text-xs text-muted-foreground">{sec.label}: </span>
-              <span className="text-xs">{sec.items.join(", ")}</span>
-            </div>
-          ))}
-        </div>
-      );
-    };
-
-    return (
-      <div className="space-y-4 text-sm">
-        {personal?.name && (
-          <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Dati personali</p>
-            <p className="font-medium">{personal.name}</p>
-            {personal.email && <p className="text-muted-foreground">{personal.email}</p>}
-          </div>
-        )}
-        {summary && (
-          <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Profilo</p>
-            <p>{summary}</p>
-          </div>
-        )}
-        {Array.isArray(experience) && experience.length > 0 && (
-          <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Esperienza</p>
-            {experience.map((exp, i) => (
-              <div key={i} className="mb-2">
-                <p className="font-medium">{exp.role || exp.title} — {exp.company}</p>
-                <p className="text-muted-foreground text-xs">
-                  {exp.start || exp.period}{exp.end && ` – ${exp.end}`}{exp.current && " – Attuale"}{exp.location && ` · ${exp.location}`}
-                </p>
-                {exp.description && <p className="mt-1">{exp.description}</p>}
-                {Array.isArray(exp.bullets) && exp.bullets.length > 0 && (
-                  <ul className="mt-1 list-disc list-inside text-xs">
-                    {exp.bullets.map((b: string, j: number) => <li key={j}>{b}</li>)}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        {Array.isArray(education) && education.length > 0 && (
-          <div>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">Formazione</p>
-            {education.map((ed, i) => (
-              <div key={i} className="mb-1">
-                <p className="font-medium">{ed.degree}{ed.field && ` in ${ed.field}`} — {ed.institution}</p>
-                <p className="text-muted-foreground text-xs">{ed.start || ed.period}{ed.end && ` – ${ed.end}`}</p>
-                {ed.grade && <p className="text-xs text-primary">{ed.grade}</p>}
-              </div>
-            ))}
-          </div>
-        )}
-        {renderSkills()}
-        {Array.isArray(extraSections) && extraSections.length > 0 && extraSections.map((sec, i) => (
-          <div key={i}>
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-1">{sec.title}</p>
-            <ul className="list-disc list-inside text-xs">
-              {(Array.isArray(sec.items) ? sec.items : []).map((item, j) => <li key={j}>{item}</li>)}
-            </ul>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const handleSave = async () => {
-    if (!user) return;
-    setSaving(true);
+  const handleDownload = async () => {
+    setDownloading(true);
     try {
-      const { error: appErr } = await supabase
-        .from("applications")
-        .update({
-          status: "inviata",
-          match_score: matchScore,
-          ats_score: atsScore,
-          template_id: "classico",
-        } as any)
-        .eq("id", applicationId);
-      if (appErr) throw appErr;
+      const TemplateComponent = selectedTemplate === "minimal" ? MinimalTemplate : ClassicoTemplate;
+      const blob = await pdf(<TemplateComponent cv={tailoredCv} />).toBlob();
+      const fileName = `CV-${personalName.replace(/\s+/g, "-")}-${jobData.company_name.replace(/\s+/g, "-")}.pdf`;
 
-      const { data: existingTc } = await supabase
-        .from("tailored_cvs")
-        .select("id")
-        .eq("application_id", applicationId)
-        .maybeSingle();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-      const tcPayload = {
-        user_id: user.id,
-        application_id: applicationId,
-        master_cv_id: tailorResult.master_cv_id,
-        tailored_data: cv as unknown as import("@/integrations/supabase/types").Json,
-        skills_match: {
-          present: analyzeResult?.skills_present || [],
-          missing: analyzeResult?.skills_missing || [],
-        } as unknown as import("@/integrations/supabase/types").Json,
-        suggestions: tailorResult.diff as unknown as import("@/integrations/supabase/types").Json,
-        ats_score: atsScore,
-        ats_checks: atsChecks as unknown as import("@/integrations/supabase/types").Json,
-        seniority_match: analyzeResult?.seniority_match as unknown as import("@/integrations/supabase/types").Json,
-        honest_score: tailorResult.honest_score as unknown as import("@/integrations/supabase/types").Json,
-        diff: tailorResult.diff as unknown as import("@/integrations/supabase/types").Json,
-      };
+      if (user?.id && applicationId) {
+        const storagePath = `${user.id}/${applicationId}/${fileName}`;
+        await supabase.storage.from("cv-exports").upload(storagePath, blob, { contentType: "application/pdf", upsert: true });
+        const { data: urlData } = supabase.storage.from("cv-exports").getPublicUrl(storagePath);
+        if (urlData?.publicUrl) {
+          await supabase.from("tailored_cvs").update({ pdf_url: urlData.publicUrl, template_id: selectedTemplate } as any).eq("application_id", applicationId);
+        }
+      }
 
-      const { error: cvErr } = existingTc
-        ? await supabase.from("tailored_cvs").update(tcPayload as any).eq("id", existingTc.id)
-        : await supabase.from("tailored_cvs").insert([tcPayload as any]);
-      if (cvErr) throw cvErr;
-
-      toast.success("Candidatura salvata!");
-      navigate("/app/home");
+      toast.success("PDF scaricato!");
+      onNext();
     } catch (e) {
-      console.error("Save error:", e);
-      toast.error("Errore durante il salvataggio.");
+      console.error("PDF generation error:", e);
+      toast.error("Errore durante la generazione del PDF.");
     } finally {
-      setSaving(false);
+      setDownloading(false);
     }
   };
-
-  const [originalCV, setOriginalCV] = useState<Record<string, unknown> | null>(tailorResult.original_cv ?? null);
-
-  useEffect(() => {
-    if (originalCV) return;
-    supabase
-      .from("master_cvs")
-      .select("parsed_data")
-      .eq("id", tailorResult.master_cv_id)
-      .single()
-      .then(({ data }) => {
-        if (data?.parsed_data) setOriginalCV(data.parsed_data as Record<string, unknown>);
-      });
-  }, [tailorResult.master_cv_id, originalCV]);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-24 px-4">
+    <div className="mx-auto max-w-2xl space-y-6 px-4">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h2 className="font-display text-2xl font-bold truncate">
-            {jobData.role_title} — {jobData.company_name}
-          </h2>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <span className="rounded-full bg-primary/20 px-3 py-1 font-mono text-sm font-bold text-primary">
-            {matchScore}%
-          </span>
-          <span className="rounded-full bg-secondary/20 px-3 py-1 font-mono text-sm font-bold text-secondary">
-            ATS {atsScore}%
-          </span>
+        <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft size={20} /></button>
+        <div>
+          <h2 className="font-display text-2xl font-bold">Scarica il tuo CV</h2>
+          <p className="text-muted-foreground mt-1">Scegli il template e scarica il PDF.</p>
         </div>
       </div>
 
-      {/* Desktop: side-by-side */}
-      <div className="hidden md:grid md:grid-cols-2 gap-4">
-        <Card className="border-border/30 bg-card/60">
-          <CardContent className="pt-5">
-            <p className="font-mono text-xs text-muted-foreground uppercase mb-3">Originale</p>
-            {originalCV ? renderCV(originalCV) : <p className="text-muted-foreground text-sm">Caricamento...</p>}
-          </CardContent>
-        </Card>
-        <Card className="border-primary/30 bg-card/80">
-          <CardContent className="pt-5">
-            <p className="font-mono text-xs text-primary uppercase mb-3">Adattato — clicca per modificare</p>
-            {renderEditableCV()}
-          </CardContent>
-        </Card>
+      {/* Template selector */}
+      <div className="space-y-3">
+        <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Template</p>
+        <div className="grid grid-cols-2 gap-3">
+          {TEMPLATES.map((t) => {
+            const isSelected = selectedTemplate === t.id;
+            const isLocked = !t.free;
+            return (
+              <button
+                key={t.id}
+                disabled={isLocked}
+                onClick={() => setSelectedTemplate(t.id)}
+                className={`relative rounded-xl border-2 p-6 text-center transition-all ${
+                  isSelected ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+                  : isLocked ? "border-border/30 bg-muted/20 opacity-50 cursor-not-allowed"
+                  : "border-border/50 hover:border-primary/40"
+                }`}
+              >
+                {isLocked && <Lock size={14} className="absolute top-2 right-2 text-muted-foreground" />}
+                <div className="h-16 flex items-center justify-center mb-3">
+                  <div className={`w-12 h-16 rounded border ${t.id === "classico" ? "bg-gradient-to-b from-card to-background border-primary/30" : "bg-background border-border"}`} />
+                </div>
+                <p className="text-sm font-medium">{t.name}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{isLocked ? "Pro" : "Free"}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Mobile: tabs */}
-      <div className="md:hidden">
-        <Tabs value={diffTab} onValueChange={setDiffTab}>
-          <TabsList className="w-full">
-            <TabsTrigger value="originale" className="flex-1">Originale</TabsTrigger>
-            <TabsTrigger value="adattato" className="flex-1">Adattato</TabsTrigger>
-          </TabsList>
-          <TabsContent value="originale" className="mt-4">
-            <Card className="border-border/30 bg-card/60">
-              <CardContent className="pt-5">
-                {originalCV ? renderCV(originalCV) : <p className="text-muted-foreground text-sm">Caricamento...</p>}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="adattato" className="mt-4">
-            <Card className="border-primary/30 bg-card/80">
-              <CardContent className="pt-5">
-                <p className="font-mono text-xs text-primary uppercase mb-3">Clicca per modificare</p>
-                {renderEditableCV()}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+      {/* Compact badges */}
+      <div className="flex gap-2 flex-wrap">
+        <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary">Match {matchScore}%</span>
+        <span className="rounded-full bg-secondary/15 px-3 py-1 font-mono text-xs text-secondary">ATS {atsScore}%</span>
+        <span className={`rounded-full px-3 py-1 font-mono text-xs ${stats.confidence >= 90 ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning"}`}>
+          Confidence {stats.confidence}%
+        </span>
       </div>
 
-      {/* Fixed bottom bar */}
-      <div className="fixed bottom-14 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-md p-4 md:bottom-0 md:left-16">
-        <div className="mx-auto max-w-4xl flex gap-3">
-          <Button variant="outline" className="flex-1 gap-2" onClick={() => setExportOpen(true)}>
-            <DownloadSimple size={16} /> Scarica PDF
+      {/* Download button */}
+      <Button onClick={handleDownload} disabled={downloading} className="w-full gap-2 h-12 text-base">
+        {downloading ? <><SpinnerGap size={18} className="animate-spin" /> Generazione...</> : <><DownloadSimple size={18} /> Scarica PDF</>}
+      </Button>
+
+      <Button variant="outline" onClick={onNext} className="w-full gap-2 text-muted-foreground">
+        Salta per ora <ArrowRight size={16} />
+      </Button>
+    </div>
+  );
+}
+
+// ==================== Step 5: Completa (NEW) ====================
+function StepCompleta({
+  jobData,
+  applicationId,
+  onMarkSent,
+  onKeepDraft,
+  onNewApplication,
+}: {
+  jobData: JobData;
+  applicationId: string;
+  onMarkSent: () => void;
+  onKeepDraft: () => void;
+  onNewApplication: () => void;
+}) {
+  return (
+    <div className="mx-auto max-w-md space-y-8 px-4 py-8 text-center">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+        <div className="mx-auto w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4">
+          <CheckCircle size={32} className="text-primary" weight="fill" />
+        </div>
+        <h2 className="font-display text-2xl font-bold">CV pronto!</h2>
+        <p className="text-muted-foreground mt-2">
+          Il tuo CV per <span className="text-foreground font-medium">{jobData.role_title}</span> presso <span className="text-foreground font-medium">{jobData.company_name}</span> è stato preparato.
+        </p>
+      </motion.div>
+
+      <div className="space-y-3">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Button onClick={onMarkSent} className="w-full gap-2 h-12">
+            <PaperPlaneTilt size={18} /> Ho inviato la candidatura
           </Button>
-          <Button className="flex-1 gap-2" onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <><SpinnerGap size={16} className="animate-spin" /> Salvataggio...</>
-            ) : (
-              <><FloppyDisk size={16} /> Salva candidatura</>
-            )}
-          </Button>
-        </div>
-      </div>
+          <p className="text-[10px] text-muted-foreground mt-1">Segna come inviata e vai alle candidature</p>
+        </motion.div>
 
-      <ExportDrawer
-        open={exportOpen}
-        onOpenChange={setExportOpen}
-        tailoredCv={cv}
-        atsScore={atsScore}
-        atsChecks={atsChecks}
-        honestScore={tailorResult.honest_score}
-        companyName={jobData.company_name}
-        applicationId={applicationId}
-        userId={user?.id}
-      />
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Button variant="outline" onClick={onKeepDraft} className="w-full gap-2">
+            <Clock size={16} /> La invierò dopo
+          </Button>
+          <p className="text-[10px] text-muted-foreground mt-1">Resta come bozza, torna alla home</p>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <Button variant="ghost" onClick={onNewApplication} className="w-full gap-2 text-muted-foreground">
+            <Plus size={16} /> Nuova candidatura
+          </Button>
+        </motion.div>
+      </div>
     </div>
   );
 }
@@ -1667,6 +1139,7 @@ export default function Nuova() {
   const [cvCheck, setCvCheck] = useState<"loading" | "ok" | "missing">("loading");
   const [applicationId, setApplicationId] = useState<string | null>(searchParams.get("draft"));
   const [userAnswers, setUserAnswers] = useState<{ question: string; answer: string }[]>([]);
+  const [originalCv, setOriginalCv] = useState<Record<string, unknown> | null>(null);
   const draftLoadedId = useRef<string | null>(null);
 
   const updateStep = useCallback((newStep: number) => {
@@ -1681,15 +1154,8 @@ export default function Nuova() {
   // CV Guard
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("master_cvs")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .limit(1)
-      .then(({ data }) => {
-        setCvCheck(data && data.length > 0 ? "ok" : "missing");
-      });
+    supabase.from("master_cvs").select("id").eq("user_id", user.id).eq("is_active", true).limit(1)
+      .then(({ data }) => setCvCheck(data && data.length > 0 ? "ok" : "missing"));
   }, [user]);
 
   // Draft resumption
@@ -1699,16 +1165,8 @@ export default function Nuova() {
     draftLoadedId.current = draftId;
 
     (async () => {
-      const { data: app } = await supabase
-        .from("applications")
-        .select("*")
-        .eq("id", draftId)
-        .single();
-
-      if (!app) {
-        toast.error("Bozza non trovata.");
-        return;
-      }
+      const { data: app } = await supabase.from("applications").select("*").eq("id", draftId).single();
+      if (!app) { toast.error("Bozza non trovata."); return; }
 
       setApplicationId(app.id);
       setJobData({
@@ -1722,14 +1180,9 @@ export default function Nuova() {
       if (app.job_url) setJobUrl(app.job_url);
       if ((app as any).user_answers) setUserAnswers((app as any).user_answers);
 
-      const { data: tc } = await supabase
-        .from("tailored_cvs")
-        .select("*")
-        .eq("application_id", draftId)
-        .maybeSingle();
+      const { data: tc } = await supabase.from("tailored_cvs").select("*").eq("application_id", draftId).maybeSingle();
 
       if (tc?.tailored_data) {
-        // Restore both analyze and tailor results from saved data
         setAnalyzeResult({
           match_score: app.match_score ?? 0,
           ats_score: tc.ats_score ?? 0,
@@ -1746,33 +1199,21 @@ export default function Nuova() {
           diff: (tc.diff as any) || [],
           master_cv_id: tc.master_cv_id,
         });
-        const urlStep = parseInt(searchParams.get("step") || "4", 10);
-        updateStep(urlStep >= 2 ? urlStep : 4);
+        // Fetch original CV for comparison
+        supabase.from("master_cvs").select("parsed_data").eq("id", tc.master_cv_id).single()
+          .then(({ data: mcv }) => { if (mcv?.parsed_data) setOriginalCv(mcv.parsed_data as Record<string, unknown>); });
+
+        const urlStep = parseInt(searchParams.get("step") || "3", 10);
+        updateStep(urlStep >= 3 ? urlStep : 3);
       } else if (app.job_description) {
         updateStep(1);
         setPrescreening(true);
-
-        const jobDataForPrescreen = {
-          company_name: app.company_name,
-          role_title: app.role_title,
-          description: app.job_description,
-          location: "",
-          key_requirements: [],
-          required_skills: [],
-        };
-
         supabase.functions.invoke("ai-prescreen", {
-          body: { job_data: jobDataForPrescreen },
+          body: { job_data: { company_name: app.company_name, role_title: app.role_title, description: app.job_description, location: "", key_requirements: [], required_skills: [] } },
         }).then(({ data: result, error }) => {
-          if (error || result?.error) {
-            toast.error("Errore durante il pre-screening");
-            updateStep(0);
-          } else {
-            setPrescreenResult(result);
-          }
-        }).finally(() => {
-          setPrescreening(false);
-        });
+          if (error || result?.error) { toast.error("Errore durante il pre-screening"); updateStep(0); }
+          else setPrescreenResult(result);
+        }).finally(() => setPrescreening(false));
       }
     })();
   }, [searchParams, user, updateStep]);
@@ -1790,46 +1231,27 @@ export default function Nuova() {
       let appId = applicationId;
       if (!appId) {
         const { data: draftApp, error: draftErr } = await supabase
-          .from("applications")
-          .insert({
-            user_id: user.id,
-            company_name: data.company_name,
-            role_title: data.role_title,
-            job_url: url || null,
-            job_description: data.description,
-            status: "draft",
-          })
-          .select("id")
-          .single();
-
+          .from("applications").insert({ user_id: user.id, company_name: data.company_name, role_title: data.role_title, job_url: url || null, job_description: data.description, status: "draft" })
+          .select("id").single();
         if (draftErr) throw draftErr;
         appId = draftApp.id;
         setApplicationId(appId);
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev);
-          next.set("draft", appId!);
-          next.set("step", "1");
-          return next;
-        }, { replace: true });
+        setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("draft", appId!); next.set("step", "1"); return next; }, { replace: true });
       }
 
-      const { data: result, error } = await supabase.functions.invoke("ai-prescreen", {
-        body: { job_data: data },
-      });
+      const { data: result, error } = await supabase.functions.invoke("ai-prescreen", { body: { job_data: data } });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
-
       setPrescreenResult(result);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Errore durante il pre-screening";
-      toast.error(msg);
+      toast.error(e instanceof Error ? e.message : "Errore durante il pre-screening");
       updateStep(0);
     } finally {
       setPrescreening(false);
     }
   };
 
-  // Step 1 → Step 2: Run ANALYZE only
+  // Step 1 → Step 2: Run ANALYZE
   const handleVerificaProceed = async (answers: { question: string; answer: string }[]) => {
     if (!user || !jobData) return;
     setUserAnswers(answers);
@@ -1839,34 +1261,22 @@ export default function Nuova() {
 
     try {
       if (applicationId && answers.length > 0) {
-        await supabase
-          .from("applications")
-          .update({ user_answers: answers } as any)
-          .eq("id", applicationId);
+        await supabase.from("applications").update({ user_answers: answers } as any).eq("id", applicationId);
       }
 
       const { data: result, error } = await supabase.functions.invoke("ai-tailor", {
-        body: {
-          job_data: jobData,
-          user_answers: answers.length > 0 ? answers : undefined,
-          mode: "analyze",
-        },
+        body: { job_data: jobData, user_answers: answers.length > 0 ? answers : undefined, mode: "analyze" },
       });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
 
-      // Save scores to application
       if (applicationId) {
-        await supabase
-          .from("applications")
-          .update({ match_score: result.match_score, ats_score: result.ats_score } as any)
-          .eq("id", applicationId);
+        await supabase.from("applications").update({ match_score: result.match_score, ats_score: result.ats_score } as any).eq("id", applicationId);
       }
 
       setAnalyzeResult(result);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Errore durante l'analisi AI";
-      toast.error(msg);
+      toast.error(e instanceof Error ? e.message : "Errore durante l'analisi AI");
       updateStep(1);
     } finally {
       setAnalyzing(false);
@@ -1885,52 +1295,88 @@ export default function Nuova() {
           job_data: jobData,
           user_answers: userAnswers.length > 0 ? userAnswers : undefined,
           mode: "tailor",
-          analyze_context: {
-            match_score: analyzeResult.match_score,
-            skills_missing: analyzeResult.skills_missing,
-            detected_language: analyzeResult.detected_language,
-          },
+          analyze_context: { match_score: analyzeResult.match_score, skills_missing: analyzeResult.skills_missing, detected_language: analyzeResult.detected_language },
         },
       });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
 
       setTailorResult(result);
+
+      // Fetch original CV for comparison
+      if (result.original_cv) {
+        setOriginalCv(result.original_cv);
+      } else if (result.master_cv_id) {
+        const { data: mcv } = await supabase.from("master_cvs").select("parsed_data").eq("id", result.master_cv_id).single();
+        if (mcv?.parsed_data) setOriginalCv(mcv.parsed_data as Record<string, unknown>);
+      }
+
+      // Save tailored CV
+      if (applicationId) {
+        const tcPayload = {
+          user_id: user.id,
+          application_id: applicationId,
+          master_cv_id: result.master_cv_id,
+          tailored_data: result.tailored_cv as any,
+          skills_match: { present: analyzeResult.skills_present || [], missing: analyzeResult.skills_missing || [] } as any,
+          suggestions: result.diff as any,
+          ats_score: analyzeResult.ats_score,
+          ats_checks: analyzeResult.ats_checks as any,
+          seniority_match: analyzeResult.seniority_match as any,
+          honest_score: result.honest_score as any,
+          diff: result.diff as any,
+        };
+
+        const { data: existingTc } = await supabase.from("tailored_cvs").select("id").eq("application_id", applicationId).maybeSingle();
+        if (existingTc) {
+          await supabase.from("tailored_cvs").update(tcPayload as any).eq("id", existingTc.id);
+        } else {
+          await supabase.from("tailored_cvs").insert([tcPayload as any]);
+        }
+      }
+
       updateStep(3);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Errore durante la generazione del CV";
-      toast.error(msg);
+      toast.error(e instanceof Error ? e.message : "Errore durante la generazione del CV");
     } finally {
       setTailoring(false);
     }
   };
 
-  // Abandon: reset and go to new application
-  const handleAbandon = () => {
+  // Step 5 actions
+  const handleMarkSent = async () => {
+    if (applicationId) {
+      await supabase.from("applications").update({ status: "inviata" } as any).eq("id", applicationId);
+    }
+    toast.success("Candidatura segnata come inviata!");
+    navigate("/app/candidature");
+  };
+
+  const handleKeepDraft = () => {
+    toast.success("Bozza salvata.");
+    navigate("/app/home");
+  };
+
+  const handleNewApplication = () => {
     setStep(0);
     setJobData(null);
     setJobUrl(undefined);
     setPrescreenResult(null);
     setAnalyzeResult(null);
     setTailorResult(null);
+    setOriginalCv(null);
     setApplicationId(null);
     setUserAnswers([]);
     setSearchParams({}, { replace: true });
   };
 
-  // Handle inline CV edits in Step 4
-  const handleTailoredCvChange = (updatedCv: Record<string, unknown>) => {
-    if (tailorResult) {
-      setTailorResult({ ...tailorResult, tailored_cv: updatedCv });
-    }
+  // Abandon
+  const handleAbandon = () => {
+    handleNewApplication();
   };
 
   if (cvCheck === "loading") {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <SpinnerGap size={32} className="text-primary animate-spin" />
-      </div>
-    );
+    return <div className="flex items-center justify-center py-20"><SpinnerGap size={32} className="text-primary animate-spin" /></div>;
   }
 
   if (cvCheck === "missing") {
@@ -1939,20 +1385,10 @@ export default function Nuova() {
       <div className="mx-auto max-w-md py-16 text-center space-y-6">
         <FileArrowUp size={48} className="text-primary mx-auto" />
         <div>
-          <h2 className="font-display text-2xl font-bold">
-            {draftId && jobData
-              ? `Per riprendere "${jobData.role_title}" serve il tuo CV`
-              : "CV necessario"}
-          </h2>
-          <p className="text-muted-foreground mt-2">
-            {draftId
-              ? "Il CV master è stato rimosso. Ricaricalo per continuare con questa candidatura."
-              : "Per creare una candidatura, devi prima caricare il tuo CV. Verso lo userà per adattarlo all'annuncio."}
-          </p>
+          <h2 className="font-display text-2xl font-bold">{draftId && jobData ? `Per riprendere "${jobData.role_title}" serve il tuo CV` : "CV necessario"}</h2>
+          <p className="text-muted-foreground mt-2">{draftId ? "Il CV master è stato rimosso. Ricaricalo per continuare con questa candidatura." : "Per creare una candidatura, devi prima caricare il tuo CV."}</p>
         </div>
-        <Button onClick={() => navigate("/onboarding")} className="gap-2">
-          <FileArrowUp size={16} /> Carica il tuo CV
-        </Button>
+        <Button onClick={() => navigate("/onboarding")} className="gap-2"><FileArrowUp size={16} /> Carica il tuo CV</Button>
       </div>
     );
   }
@@ -1978,37 +1414,42 @@ export default function Nuova() {
             />
           )}
           {step === 2 && (
-            <StepScore
-              result={analyzeResult}
-              loading={analyzing}
+            <StepTailoring
+              analyzeResult={analyzeResult}
+              analyzeLoading={analyzing}
+              tailoring={tailoring}
               onGenerateCv={handleGenerateCv}
               onAbandon={handleAbandon}
               onBack={() => updateStep(1)}
-              tailoring={tailoring}
             />
           )}
-          {step === 3 && (
-            <StepModifiche
-              result={tailorResult}
+          {step === 3 && tailorResult && (
+            <StepRevisione
+              tailorResult={tailorResult}
               analyzeResult={analyzeResult}
-              loading={tailoring && !tailorResult}
-              onNext={(approvedCv) => {
-                if (tailorResult) {
-                  setTailorResult({ ...tailorResult, tailored_cv: approvedCv });
-                }
-                updateStep(4);
-              }}
+              originalCv={originalCv}
+              onNext={() => updateStep(4)}
               onBack={() => updateStep(2)}
             />
           )}
           {step === 4 && tailorResult && jobData && applicationId && (
-            <StepCVAdattato
-              tailorResult={tailorResult}
+            <StepExport
+              tailoredCv={tailorResult.tailored_cv}
               analyzeResult={analyzeResult}
+              tailorResult={tailorResult}
               jobData={jobData}
               applicationId={applicationId}
               onBack={() => updateStep(3)}
-              onTailoredCvChange={handleTailoredCvChange}
+              onNext={() => updateStep(5)}
+            />
+          )}
+          {step === 5 && jobData && applicationId && (
+            <StepCompleta
+              jobData={jobData}
+              applicationId={applicationId}
+              onMarkSent={handleMarkSent}
+              onKeepDraft={handleKeepDraft}
+              onNewApplication={handleNewApplication}
             />
           )}
         </motion.div>
