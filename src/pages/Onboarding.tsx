@@ -92,8 +92,8 @@ export default function Onboarding() {
     setSaving(true);
 
     try {
-      // Delete existing master CVs for this user before inserting new one
-      await supabase.from("master_cvs").delete().eq("user_id", user.id);
+      // Deactivate existing master CVs for this user before inserting new one
+      await supabase.from("master_cvs").update({ is_active: false } as any).eq("user_id", user.id);
 
       const { error } = await supabase.from("master_cvs").insert({
         user_id: user.id,
