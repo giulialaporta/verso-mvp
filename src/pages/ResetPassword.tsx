@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,22 +13,35 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [ready, setReady] = useState(false);
+  const [expired, setExpired] = useState(false);
+  const readyRef = useRef(false);
 
   useEffect(() => {
-    // Listen for the PASSWORD_RECOVERY event
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event) => {
-        if (event === "PASSWORD_RECOVERY") {
-          setReady(true);
-        }
+    // 1. Check if already has a session (recovery processed before mount)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        readyRef.current = true;
+        setReady(true);
       }
-    );
-    // Also check hash for type=recovery
-    const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
-      setReady(true);
-    }
-    return () => subscription.unsubscribe();
+    });
+
+    // 2. Listen for recovery events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        readyRef.current = true;
+        setReady(true);
+      }
+    });
+
+    // 3. Timeout fallback — show error UI instead of infinite loading
+    const timeout = setTimeout(() => {
+      if (!readyRef.current) setExpired(true);
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleReset = async (e: React.FormEvent) => {
@@ -54,6 +67,33 @@ export default function ResetPassword() {
     }
   };
 
+  // Expired / invalid link UI
+  if (expired && !ready) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm space-y-8 text-center">
+          <h1 className="font-display text-4xl font-extrabold tracking-tight">
+            VERS<span className="text-primary">O</span>
+          </h1>
+          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+            <CardContent className="pt-6 space-y-4">
+              <p className="text-muted-foreground text-sm">
+                Il link di recupero potrebbe essere scaduto o già utilizzato.
+              </p>
+              <Button
+                className="w-full"
+                onClick={() => navigate("/login")}
+              >
+                Richiedi un nuovo link
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
