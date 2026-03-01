@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { House, Briefcase, SignOut, List, Plus } from "@phosphor-icons/react";
+import { House, Briefcase, SignOut, List, Plus, Flask } from "@phosphor-icons/react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -25,6 +25,7 @@ const navItems = [
 const sidebarItems = [
   ...navItems,
   { title: "Nuova candidatura", url: "/app/nuova", icon: Plus },
+  ...(import.meta.env.DEV ? [{ title: "Dev Test", url: "/app/dev-test", icon: Flask }] : []),
 ];
 
 function DesktopSidebar() {

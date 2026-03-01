@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { lazy, Suspense } from "react";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
@@ -14,6 +15,8 @@ import Home from "./pages/Home";
 import Nuova from "./pages/Nuova";
 import Candidature from "./pages/Candidature";
 import NotFound from "./pages/NotFound";
+
+const DevTest = lazy(() => import("./pages/DevTest"));
 
 const queryClient = new QueryClient();
 
@@ -48,6 +51,9 @@ const App = () => (
                 <Route path="home" element={<Home />} />
                 <Route path="nuova" element={<Nuova />} />
                 <Route path="candidature" element={<Candidature />} />
+                {import.meta.env.DEV && (
+                  <Route path="dev-test" element={<Suspense fallback={null}><DevTest /></Suspense>} />
+                )}
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
