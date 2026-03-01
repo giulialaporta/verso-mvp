@@ -72,8 +72,9 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `app-lovable/epics/epic-05-export-dashboard.md` | F5 — Export PDF + Dashboard |
 | `app-lovable/epics/epic-06-candidature.md` | F6 — Pagina Candidature (tracker) |
 | `landing-page/` | Prompt per la landing page |
-| `legal-pack/` | Documenti legali |
 | `contesto/` | File di contesto progetto |
+| `contesto/legal-pack/` | Documenti legali |
+| `contesto/competitor/` | Analisi competitiva |
 
 ---
 
