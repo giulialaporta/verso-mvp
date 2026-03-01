@@ -793,7 +793,7 @@ function StepScore({
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="border-border/50 bg-card/80 h-full">
             <CardContent className="py-4 text-center">
-              <p className="text-xs font-mono text-muted-foreground uppercase mb-1">ATS Score</p>
+              <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Punteggio ATS</p>
               <span className="font-mono text-2xl font-bold text-secondary">
                 {animatedAts}%
               </span>
@@ -899,30 +899,60 @@ function StepScore({
       )}
 
       {/* ATS Checks */}
-      {result.ats_checks && result.ats_checks.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
-          <Card className="border-border/50 bg-card/80">
-            <CardContent className="pt-5 space-y-3">
-              <p className="text-sm font-medium">Check ATS</p>
-              <div className="space-y-2">
-                {result.ats_checks.map((ch) => (
-                  <div key={ch.check} className="flex items-center gap-2 text-sm">
-                    {ch.status === "pass" ? (
-                      <CheckCircle size={16} className="text-primary" weight="fill" />
-                    ) : ch.status === "warning" ? (
-                      <Warning size={16} className="text-warning" weight="fill" />
-                    ) : (
-                      <XCircle size={16} className="text-destructive" weight="fill" />
-                    )}
-                    <span className="flex-1">{ch.label}</span>
-                    {ch.detail && <span className="text-xs text-muted-foreground">{ch.detail}</span>}
+      {result.ats_checks && result.ats_checks.length > 0 && (() => {
+        const ATS_LABELS_IT: Record<string, string> = {
+          keywords: "Parole chiave", format: "Formato", dates: "Date",
+          measurable: "Risultati misurabili", cliches: "Frasi fatte",
+          sections: "Sezioni standard", action_verbs: "Verbi d'azione",
+        };
+        const ATS_SUGGESTIONS_IT: Record<string, string> = {
+          measurable: "Aggiungi risultati misurabili ai tuoi bullet point (numeri, percentuali, metriche concrete).",
+          action_verbs: "Inizia ogni bullet point con un verbo d'azione forte (es. 'Implementato', 'Ottimizzato', 'Guidato').",
+          keywords: "Il CV non contiene abbastanza parole chiave dall'annuncio. Verifica di aver incluso i termini chiave.",
+          cliches: "Sostituisci le frasi generiche con descrizioni specifiche e concrete.",
+        };
+        const failingChecks = result.ats_checks.filter(ch => ch.status === "warning" || ch.status === "fail");
+        return (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+            <Card className="border-border/50 bg-card/80">
+              <CardContent className="pt-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Check ATS</p>
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <Info size={12} className="text-secondary" />
+                    <span>Leggibilità sistemi automatici</span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+                </div>
+                <div className="space-y-2">
+                  {result.ats_checks.map((ch) => (
+                    <div key={ch.check} className="flex items-center gap-2 text-sm">
+                      {ch.status === "pass" ? (
+                        <CheckCircle size={16} className="text-primary" weight="fill" />
+                      ) : ch.status === "warning" ? (
+                        <Warning size={16} className="text-warning" weight="fill" />
+                      ) : (
+                        <XCircle size={16} className="text-destructive" weight="fill" />
+                      )}
+                      <span className="flex-1">{ATS_LABELS_IT[ch.check] || ch.label}</span>
+                      {ch.detail && <span className="text-xs text-muted-foreground">{ch.detail}</span>}
+                    </div>
+                  ))}
+                </div>
+                {failingChecks.length > 0 && (
+                  <div className="space-y-2 mt-1 p-3 rounded-lg border border-warning/20 bg-warning/5">
+                    <p className="text-xs font-medium text-warning">Suggerimenti per migliorare</p>
+                    {failingChecks.map((ch) => {
+                      const suggestion = ATS_SUGGESTIONS_IT[ch.check];
+                      if (!suggestion) return null;
+                      return <p key={ch.check} className="text-[11px] text-muted-foreground leading-relaxed">• {suggestion}</p>;
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        );
+      })()}
 
       {/* Low Score CTA */}
       {isLowScore && (

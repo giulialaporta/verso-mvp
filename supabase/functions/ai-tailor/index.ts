@@ -19,6 +19,7 @@ function compactCV(data: Record<string, unknown>): Record<string, unknown> {
     for (const [key, value] of Object.entries(data)) {
       if (key === "photo_base64") continue;
       if (value === null || value === undefined || value === "") continue;
+      if (typeof value === "string" && ["None", "none", "null", "N/A", "n/a", "undefined", "N/D", "n/d"].includes(value.trim())) continue;
       if (Array.isArray(value) && value.length === 0) continue;
       const compacted = typeof value === "object" && value !== null
         ? compactCV(value as Record<string, unknown>)

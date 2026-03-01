@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, StyleSheet, Font } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
 
 Font.register({
   family: "DM Sans",
@@ -9,121 +9,161 @@ Font.register({
   ],
 });
 
-const styles = StyleSheet.create({
-  page: { fontFamily: "DM Sans", fontSize: 10, color: "#1a1a1a", paddingBottom: 68 },
-  header: {
-    backgroundColor: "#141518",
-    paddingHorizontal: 68,
-    paddingVertical: 28,
-    color: "#F2F3F7",
-  },
-  headerName: { fontSize: 22, fontWeight: 700, marginBottom: 4 },
-  headerContact: { fontSize: 9, color: "#8B8FA8", flexDirection: "row", gap: 12, flexWrap: "wrap" },
-  headerLinks: { fontSize: 9, color: "#5DBBFF", flexDirection: "row", gap: 12, flexWrap: "wrap", marginTop: 4 },
-  body: { paddingHorizontal: 68, paddingTop: 20 },
-  sectionTitle: {
-    fontSize: 9,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: 1.2,
-    color: "#141518",
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#d0d0d0",
-    paddingBottom: 3,
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  summary: { fontSize: 10, lineHeight: 1.5, marginBottom: 4 },
-  expBlock: { marginBottom: 10 },
-  expRole: { fontSize: 11, fontWeight: 700 },
-  expMeta: { fontSize: 9, color: "#555", marginBottom: 2 },
-  bullet: { fontSize: 9.5, lineHeight: 1.5, paddingLeft: 10, marginBottom: 1 },
-  eduBlock: { marginBottom: 6 },
-  eduTitle: { fontSize: 10, fontWeight: 500 },
-  eduMeta: { fontSize: 9, color: "#555" },
-  skillsRow: { fontSize: 9.5, lineHeight: 1.6, flexDirection: "row", flexWrap: "wrap" },
-  certBlock: { marginBottom: 6 },
-  certTitle: { fontSize: 10, fontWeight: 500 },
-  certMeta: { fontSize: 9, color: "#555" },
-  projBlock: { marginBottom: 8 },
-  projName: { fontSize: 10, fontWeight: 500 },
-  projDesc: { fontSize: 9.5, lineHeight: 1.5, marginTop: 1 },
-  projLink: { fontSize: 9, color: "#5DBBFF", marginTop: 1 },
-  extraBlock: { marginBottom: 6 },
-});
+const NONE_VALUES = ["None", "none", "null", "N/A", "n/a", "undefined", "N/D", "n/d"];
+const clean = (val: unknown): string | null => {
+  if (typeof val !== "string") return null;
+  const trimmed = val.trim();
+  if (!trimmed || NONE_VALUES.includes(trimmed)) return null;
+  return trimmed;
+};
 
 const ensureArray = (val: unknown): string[] => {
-  if (Array.isArray(val)) return val;
-  if (typeof val === "string") return val.split(",").map((s) => s.trim()).filter(Boolean);
+  if (Array.isArray(val)) return val.map(v => clean(String(v))).filter(Boolean) as string[];
+  if (typeof val === "string") return val.split(",").map(s => s.trim()).filter(s => s && !NONE_VALUES.includes(s));
   return [];
 };
 
+const SIDEBAR_BG = "#141518";
+const SIDEBAR_TEXT = "#F2F3F7";
+const SIDEBAR_MUTED = "#8B8FA8";
+const SIDEBAR_ACCENT = "#5DBBFF";
+const BODY_TEXT = "#1a1a1a";
+const BODY_MUTED = "#555";
+const SECTION_BORDER = "#d0d0d0";
+
+const s = StyleSheet.create({
+  page: { fontFamily: "DM Sans", fontSize: 10, flexDirection: "row" },
+  sidebar: { width: "30%", backgroundColor: SIDEBAR_BG, paddingHorizontal: 16, paddingVertical: 24, color: SIDEBAR_TEXT },
+  main: { width: "70%", paddingHorizontal: 28, paddingVertical: 24, paddingBottom: 60, color: BODY_TEXT },
+  // Sidebar
+  photo: { width: 72, height: 72, borderRadius: 36, marginBottom: 12, alignSelf: "center" },
+  sidebarName: { fontSize: 14, fontWeight: 700, marginBottom: 8, textAlign: "center" },
+  contactItem: { fontSize: 8, color: SIDEBAR_MUTED, marginBottom: 3, lineHeight: 1.4 },
+  contactLink: { fontSize: 8, color: SIDEBAR_ACCENT, marginBottom: 3, lineHeight: 1.4 },
+  sidebarSection: { fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, color: SIDEBAR_MUTED, borderBottomWidth: 0.5, borderBottomColor: "#2A2D35", paddingBottom: 3, marginBottom: 6, marginTop: 14 },
+  skillChip: { fontSize: 8, color: SIDEBAR_TEXT, marginBottom: 2, lineHeight: 1.4 },
+  langItem: { fontSize: 8, color: SIDEBAR_TEXT, marginBottom: 2 },
+  certName: { fontSize: 8, color: SIDEBAR_TEXT, fontWeight: 500 },
+  certMeta: { fontSize: 7, color: SIDEBAR_MUTED, marginBottom: 4 },
+  // Main
+  mainName: { fontSize: 20, fontWeight: 700, marginBottom: 2 },
+  mainSubtitle: { fontSize: 9, color: BODY_MUTED, marginBottom: 14 },
+  sectionTitle: { fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, color: BODY_TEXT, borderBottomWidth: 0.5, borderBottomColor: SECTION_BORDER, paddingBottom: 3, marginBottom: 8, marginTop: 14 },
+  summary: { fontSize: 10, lineHeight: 1.5, marginBottom: 4 },
+  expBlock: { marginBottom: 10 },
+  expRole: { fontSize: 11, fontWeight: 700 },
+  expMeta: { fontSize: 9, color: BODY_MUTED, marginBottom: 2 },
+  bullet: { fontSize: 9.5, lineHeight: 1.5, paddingLeft: 10, marginBottom: 1 },
+  eduBlock: { marginBottom: 6 },
+  eduTitle: { fontSize: 10, fontWeight: 500 },
+  eduMeta: { fontSize: 9, color: BODY_MUTED },
+  projBlock: { marginBottom: 8 },
+  projName: { fontSize: 10, fontWeight: 500 },
+  projDesc: { fontSize: 9.5, lineHeight: 1.5, marginTop: 1 },
+  projLink: { fontSize: 9, color: SIDEBAR_ACCENT, marginTop: 1 },
+  extraBlock: { marginBottom: 6 },
+});
+
 export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
   const personal = cv.personal || {};
-  const summary = cv.summary;
+  const summary = clean(cv.summary);
   const experience = cv.experience || [];
   const education = cv.education || [];
   const skills = cv.skills;
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
   const projects = Array.isArray(cv.projects) ? cv.projects : [];
   const extraSections = Array.isArray(cv.extra_sections) ? cv.extra_sections : [];
+  const photoUrl = clean(cv.photo_url) || clean(personal.photo_url);
 
-  const contactParts = [personal.email, personal.phone, personal.location, personal.date_of_birth].filter(Boolean);
+  const contactParts = [clean(personal.email), clean(personal.phone), clean(personal.location)].filter(Boolean) as string[];
 
   const allSkills = skills
     ? Array.isArray(skills)
-      ? skills
+      ? skills.filter((sk: string) => clean(sk))
       : [...ensureArray(skills.technical), ...ensureArray(skills.soft), ...ensureArray(skills.tools)]
     : [];
 
+  const languages = skills?.languages && Array.isArray(skills.languages) ? skills.languages : [];
+
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerName}>{personal.name || "Nome Cognome"}</Text>
-          <View style={styles.headerContact}>
-            {contactParts.map((c: string, i: number) => (
-              <Text key={i}>{c}</Text>
-            ))}
-          </View>
-          {(personal.linkedin || personal.website) && (
-            <View style={styles.headerLinks}>
-              {personal.linkedin && <Text>{personal.linkedin}</Text>}
-              {personal.website && <Text>{personal.website}</Text>}
-            </View>
+      <Page size="A4" style={s.page}>
+        {/* ===== SIDEBAR (30%) ===== */}
+        <View style={s.sidebar}>
+          {photoUrl && <Image src={photoUrl} style={s.photo} />}
+          <Text style={s.sidebarName}>{clean(personal.name) || "Nome Cognome"}</Text>
+
+          {/* Contacts */}
+          <Text style={s.sidebarSection}>Contatti</Text>
+          {contactParts.map((c, i) => <Text key={i} style={s.contactItem}>{c}</Text>)}
+          {clean(personal.linkedin) && <Text style={s.contactLink}>{personal.linkedin}</Text>}
+          {clean(personal.website) && <Text style={s.contactLink}>{personal.website}</Text>}
+
+          {/* Skills */}
+          {allSkills.length > 0 && (
+            <>
+              <Text style={s.sidebarSection}>Competenze</Text>
+              {allSkills.map((sk: string, i: number) => <Text key={i} style={s.skillChip}>• {sk}</Text>)}
+            </>
+          )}
+
+          {/* Languages */}
+          {languages.length > 0 && (
+            <>
+              <Text style={s.sidebarSection}>Lingue</Text>
+              {languages.map((l: any, i: number) => (
+                <Text key={i} style={s.langItem}>
+                  {l.language}{clean(l.level) ? ` — ${l.level}` : ""}
+                </Text>
+              ))}
+            </>
+          )}
+
+          {/* Certifications */}
+          {certifications.length > 0 && (
+            <>
+              <Text style={s.sidebarSection}>Certificazioni</Text>
+              {certifications.map((cert: any, i: number) => (
+                <View key={i}>
+                  <Text style={s.certName}>{cert.name}{clean(cert.issuer) ? ` — ${cert.issuer}` : ""}</Text>
+                  {clean(cert.year) && <Text style={s.certMeta}>{cert.year}</Text>}
+                </View>
+              ))}
+            </>
           )}
         </View>
 
-        <View style={styles.body}>
+        {/* ===== MAIN (70%) ===== */}
+        <View style={s.main}>
+          <Text style={s.mainName}>{clean(personal.name) || "Nome Cognome"}</Text>
+          {contactParts.length > 0 && <Text style={s.mainSubtitle}>{contactParts.join(" | ")}</Text>}
+
           {/* Summary */}
           {summary && (
             <>
-              <Text style={styles.sectionTitle}>Profilo</Text>
-              <Text style={styles.summary}>{summary}</Text>
+              <Text style={s.sectionTitle}>Profilo</Text>
+              <Text style={s.summary}>{summary}</Text>
             </>
           )}
 
           {/* Experience */}
           {experience.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>Esperienza</Text>
+              <Text style={s.sectionTitle}>Esperienza</Text>
               {experience.map((exp: any, i: number) => (
-                <View key={i} style={styles.expBlock}>
-                  <Text style={styles.expRole}>
-                    {exp.role || exp.title} — {exp.company}
+                <View key={i} style={s.expBlock}>
+                  <Text style={s.expRole}>
+                    {clean(exp.role) || clean(exp.title)} — {exp.company}
                   </Text>
-                  <Text style={styles.expMeta}>
+                  <Text style={s.expMeta}>
                     {exp.start || exp.period}
                     {exp.end ? ` – ${exp.end}` : exp.current ? " – Attuale" : ""}
-                    {exp.location ? ` · ${exp.location}` : ""}
+                    {clean(exp.location) ? ` · ${exp.location}` : ""}
                   </Text>
-                  {exp.description && <Text style={styles.summary}>{exp.description}</Text>}
+                  {clean(exp.description) && <Text style={s.summary}>{exp.description}</Text>}
                   {Array.isArray(exp.bullets) &&
-                    exp.bullets.map((b: string, j: number) => (
-                      <Text key={j} style={styles.bullet}>
-                        • {b}
-                      </Text>
+                    exp.bullets.filter((b: string) => clean(b)).map((b: string, j: number) => (
+                      <Text key={j} style={s.bullet}>• {b}</Text>
                     ))}
                 </View>
               ))}
@@ -133,57 +173,17 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
           {/* Education */}
           {education.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>Formazione</Text>
+              <Text style={s.sectionTitle}>Formazione</Text>
               {education.map((ed: any, i: number) => (
-                <View key={i} style={styles.eduBlock}>
-                  <Text style={styles.eduTitle}>
-                    {ed.degree}
-                    {ed.field ? ` in ${ed.field}` : ""} — {ed.institution}
+                <View key={i} style={s.eduBlock}>
+                  <Text style={s.eduTitle}>
+                    {ed.degree}{clean(ed.field) ? ` in ${ed.field}` : ""} — {ed.institution}
                   </Text>
-                  <Text style={styles.eduMeta}>
+                  <Text style={s.eduMeta}>
                     {ed.start || ed.period}
                     {ed.end ? ` – ${ed.end}` : ""}
-                    {ed.grade ? ` · ${ed.grade}` : ""}
+                    {clean(ed.grade) ? ` · ${ed.grade}` : ""}
                   </Text>
-                </View>
-              ))}
-            </>
-          )}
-
-          {/* Skills */}
-          {allSkills.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>Competenze</Text>
-              <View style={styles.skillsRow}>
-                <Text>{allSkills.join("  ·  ")}</Text>
-              </View>
-            </>
-          )}
-
-          {/* Languages */}
-          {skills?.languages && skills.languages.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>Lingue</Text>
-              <View style={styles.skillsRow}>
-                <Text>
-                  {skills.languages
-                    .map((l: any) => `${l.language}${l.level ? ` (${l.level})` : ""}`)
-                    .join("  ·  ")}
-                </Text>
-              </View>
-            </>
-          )}
-
-          {/* Certifications */}
-          {certifications.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>Certificazioni</Text>
-              {certifications.map((cert: any, i: number) => (
-                <View key={i} style={styles.certBlock}>
-                  <Text style={styles.certTitle}>
-                    {cert.name}{cert.issuer ? ` — ${cert.issuer}` : ""}
-                  </Text>
-                  {cert.year && <Text style={styles.certMeta}>{cert.year}</Text>}
                 </View>
               ))}
             </>
@@ -192,12 +192,12 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
           {/* Projects */}
           {projects.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>Progetti</Text>
+              <Text style={s.sectionTitle}>Progetti</Text>
               {projects.map((proj: any, i: number) => (
-                <View key={i} style={styles.projBlock}>
-                  <Text style={styles.projName}>{proj.name}</Text>
-                  {proj.description && <Text style={styles.projDesc}>{proj.description}</Text>}
-                  {proj.link && <Text style={styles.projLink}>{proj.link}</Text>}
+                <View key={i} style={s.projBlock}>
+                  <Text style={s.projName}>{proj.name}</Text>
+                  {clean(proj.description) && <Text style={s.projDesc}>{proj.description}</Text>}
+                  {clean(proj.link) && <Text style={s.projLink}>{proj.link}</Text>}
                 </View>
               ))}
             </>
@@ -206,11 +206,9 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
           {/* Extra Sections */}
           {extraSections.map((sec: any, i: number) => (
             <View key={i}>
-              <Text style={styles.sectionTitle}>{sec.title}</Text>
-              {(sec.items || []).map((item: string, j: number) => (
-                <Text key={j} style={styles.bullet}>
-                  • {item}
-                </Text>
+              <Text style={s.sectionTitle}>{sec.title}</Text>
+              {(sec.items || []).filter((item: string) => clean(item)).map((item: string, j: number) => (
+                <Text key={j} style={s.bullet}>• {item}</Text>
               ))}
             </View>
           ))}

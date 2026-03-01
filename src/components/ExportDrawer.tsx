@@ -20,10 +20,30 @@ import {
   DownloadSimple,
   SpinnerGap,
   CaretDown,
+  Info,
 } from "@phosphor-icons/react";
 import { ClassicoTemplate, MinimalTemplate, TEMPLATES } from "@/components/cv-templates";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+// --- Italian fallback labels for ATS checks ---
+const ATS_LABELS_IT: Record<string, string> = {
+  keywords: "Parole chiave",
+  format: "Formato",
+  dates: "Date",
+  measurable: "Risultati misurabili",
+  cliches: "Frasi fatte",
+  sections: "Sezioni standard",
+  action_verbs: "Verbi d'azione",
+};
+
+const ATS_SUGGESTIONS_IT: Record<string, string> = {
+  measurable: "Aggiungi risultati misurabili ai tuoi bullet point (numeri, percentuali, metriche concrete).",
+  action_verbs: "Inizia ogni bullet point con un verbo d'azione forte (es. 'Implementato', 'Ottimizzato', 'Guidato').",
+  keywords: "Il CV non contiene abbastanza parole chiave dall'annuncio. Verifica di aver incluso i termini chiave del ruolo.",
+  cliches: "Sostituisci le frasi generiche con descrizioni specifiche e concrete delle tue responsabilità.",
+  sections: "Assicurati che il CV contenga tutte le sezioni standard (Profilo, Esperienza, Formazione, Competenze).",
+};
 
 type AtsCheck = {
   check: string;
@@ -72,6 +92,8 @@ export function ExportDrawer({
 
   const personalName = (tailoredCv?.personal as any)?.name || "CV";
 
+  const failingChecks = (atsChecks || []).filter(ch => ch.status === "warning" || ch.status === "fail");
+
   const handleDownload = async () => {
     setDownloading(true);
     try {
@@ -81,7 +103,6 @@ export function ExportDrawer({
 
       const fileName = `CV-${personalName.replace(/\s+/g, "-")}-${companyName.replace(/\s+/g, "-")}.pdf`;
 
-      // Download locally
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -91,7 +112,6 @@ export function ExportDrawer({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      // Upload to storage if we have user info
       if (userId && applicationId) {
         const storagePath = `${userId}/${applicationId}/${fileName}`;
         await supabase.storage.from("cv-exports").upload(storagePath, blob, {
@@ -136,9 +156,16 @@ export function ExportDrawer({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                    ATS Score
+                    Punteggio ATS
                   </span>
                   <span className="font-mono text-lg font-bold text-secondary">{atsScore}%</span>
+                </div>
+                {/* ATS Explanation */}
+                <div className="flex items-start gap-2 p-2 rounded-lg bg-secondary/5 border border-secondary/10">
+                  <Info size={14} className="text-secondary shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Il punteggio ATS misura quanto il tuo CV è leggibile dai sistemi automatici di screening usati dalle aziende. Un punteggio alto aumenta le probabilità che il tuo CV venga visto da un recruiter.
+                  </p>
                 </div>
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div
@@ -157,9 +184,25 @@ export function ExportDrawer({
                         ) : (
                           <XCircle size={14} className="text-destructive" weight="fill" />
                         )}
-                        <span className="flex-1 text-xs">{ch.label}</span>
+                        <span className="flex-1 text-xs">{ATS_LABELS_IT[ch.check] || ch.label}</span>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Actionable suggestions for failing checks */}
+                {failingChecks.length > 0 && (
+                  <div className="space-y-2 mt-2 p-3 rounded-lg border border-warning/20 bg-warning/5">
+                    <p className="text-xs font-medium text-warning">Suggerimenti per migliorare</p>
+                    {failingChecks.map((ch) => {
+                      const suggestion = ATS_SUGGESTIONS_IT[ch.check];
+                      if (!suggestion) return null;
+                      return (
+                        <p key={ch.check} className="text-[11px] text-muted-foreground leading-relaxed">
+                          • {suggestion}
+                        </p>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -170,7 +213,7 @@ export function ExportDrawer({
               <Collapsible open={honestOpen} onOpenChange={setHonestOpen}>
                 <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm">
                   <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Honest Score
+                    Punteggio di Onestà
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm font-bold text-primary">
