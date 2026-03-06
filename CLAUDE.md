@@ -33,7 +33,7 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | UI / Frontend | Lovable (React + TypeScript + Tailwind + shadcn/ui) |
 | Backend / DB | Supabase (auth, database, storage) |
 | API esterne | Edge Functions (Supabase) |
-| AI features | AI gateway provider-agnostic (Claude API / OpenAI) |
+| AI features | Lovable API Gateway → Google Gemini 2.5 Flash |
 
 > **Importante:** Non entrare nel dettaglio dell'implementazione tecnica. Lovable decide *come* implementare. Claude deve essere chiaro su *cosa* deve fare la funzionalità e sul suo behavior.
 
@@ -44,35 +44,17 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | File / Cartella | Descrizione |
 |-----------------|-------------|
 | `docs/brand-system/` | Design system (colori, tipografia, componenti) |
-| `docs/full/` | PRD + epic completi per v1 (vedi `docs/full/CLAUDE.md`) |
-| `docs/full/verso-prd.md` | PRD principale (v1.1) |
-| `docs/full/epic-01-onboarding.md` | F1 — Onboarding Wizard |
-| `docs/full/epic-02-nuova-candidatura.md` | F2 — Wizard Nuova Candidatura |
-| `docs/full/epic-03-application-tracker.md` | F3 — Application Tracker (Kanban) |
-| `docs/full/epic-04-dettaglio-candidatura.md` | F4 — Dettaglio Candidatura |
-| `docs/full/epic-05-profilo-master-cv.md` | F5 — Profilo e Master CV |
-| `docs/full/epic-06-ai-engine.md` | F6 — AI Engine (Edge Functions) |
-| `docs/full/epic-07-freemium.md` | F7 — Freemium e Piano |
-| `docs/full/epic-08-settings.md` | F8 — Impostazioni |
-| `docs/mvp/` | MVP: PRD ridotto + epic per Lovable (vedi `docs/mvp/CLAUDE_MVP.md`) |
-| `docs/mvp/brand-system.md` | Design system (copia per Lovable) |
-| `docs/mvp/epics/verso-prd-mvp.md` | PRD dell'MVP |
-| `docs/mvp/epics/epic-01-setup.md` | F1 — Auth + Supabase + app shell + brand system |
-| `docs/mvp/epics/epic-02-onboarding.md` | F2 — Upload PDF → parsing → profilo pronto |
-| `docs/mvp/epics/epic-03-nuova-candidatura.md` | F3 — Wizard nuova candidatura |
-| `docs/mvp/epics/epic-04-ai-engine.md` | F4 — Edge functions AI |
-| `docs/mvp/epics/epic-05-export.md` | F5 — Export PDF + dashboard home |
-| `docs/app-lovable/` | Documentazione di ciò che è stato effettivamente sviluppato su Lovable |
-| `docs/app-lovable/CLAUDE_APP.md` | Istruzioni e indice della cartella app-lovable |
-| `docs/app-lovable/epics/verso-prd-app.md` | PRD dell'app sviluppata |
-| `docs/app-lovable/epics/epic-01-setup.md` | F1 — Auth + Supabase + App Shell + Brand System |
-| `docs/app-lovable/epics/epic-02-onboarding.md` | F2 — Onboarding 3 step |
-| `docs/app-lovable/epics/epic-03-nuova-candidatura.md` | F3 — Wizard 5 step |
-| `docs/app-lovable/epics/epic-04-ai-engine.md` | F4 — 4 Edge Functions AI |
-| `docs/app-lovable/epics/epic-05-export-dashboard.md` | F5 — Export PDF + Dashboard |
-| `docs/app-lovable/epics/epic-06-candidature.md` | F6 — Pagina Candidature (tracker) |
-| `docs/improvements/` | Specifiche di miglioramento (post-MVP) |
-| `docs/improvements/epic-07-ai-improvements.md` | 9 interventi per migliorare l'output AI |
+| `docs/spec/` | **Fonte di verità** — specifica dell'app attuale |
+| `docs/spec/CLAUDE_APP.md` | Istruzioni e indice della cartella spec |
+| `docs/spec/verso-prd.md` | PRD principale (v1.1) — visione di prodotto |
+| `docs/spec/verso-prd-app.md` | PRD dell'app sviluppata |
+| `docs/spec/epics/` | 6 epic implementate (F1–F6) |
+| `docs/spec/stories/` | 14 stories implementate |
+| `docs/backlog/` | Cose da costruire: epic future + miglioramenti |
+| `docs/backlog/epic-07-freemium.md` | F7 — Freemium e Piano |
+| `docs/backlog/epic-08-settings.md` | F8 — Impostazioni |
+| `docs/backlog/verso-improvements-v2.md` | 17 stories Lovable-ready: 9 backend AI + 8 frontend UX |
+| `docs/backlog/CLAUDE_epic-template.md` | Template per scrivere nuovi epic |
 | `docs/landing-page/` | Prompt per la landing page |
 | `docs/contesto/` | File di contesto progetto |
 | `docs/contesto/legal-pack/` | Documenti legali |

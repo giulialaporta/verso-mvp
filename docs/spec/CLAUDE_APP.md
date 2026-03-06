@@ -1,8 +1,8 @@
-# Verso App Lovable — Istruzioni per Claude Code
+# Verso Spec — Istruzioni per Claude Code
 
 ## Progetto
 
-Questa cartella documenta lo **stato reale dell'app Verso** così come è stata sviluppata su Lovable. Non è un piano — è la fotografia di ciò che esiste e funziona.
+Questa cartella è la **fonte di verità dell'app Verso**: documenta ciò che è stato effettivamente sviluppato. Non è un piano — è la fotografia di ciò che esiste e funziona.
 
 ---
 
@@ -38,14 +38,16 @@ Questa cartella documenta lo **stato reale dell'app Verso** così come è stata 
 | File / Cartella | Descrizione |
 |-----------------|-------------|
 | `CLAUDE_APP.md` | Questo file — istruzioni e indice |
-| `epics/verso-prd-app.md` | PRD dell'app sviluppata |
+| `verso-prd.md` | PRD principale (v1.1) — visione di prodotto |
+| `verso-prd-app.md` | PRD dell'app sviluppata |
 | `epics/epic-01-setup.md` | F1 — Auth + Supabase + App Shell + Brand System |
 | `epics/epic-02-onboarding.md` | F2 — Onboarding 3 step (upload → parse → preview) |
 | `epics/epic-03-nuova-candidatura.md` | F3 — Wizard 5 step (job → prescreen → tailor → score → export) |
 | `epics/epic-04-ai-engine.md` | F4 — 4 Edge Functions (parse-cv, scrape-job, ai-prescreen, ai-tailor) |
 | `epics/epic-05-export-dashboard.md` | F5 — Export PDF + Dashboard Home |
 | `epics/epic-06-candidature.md` | F6 — Pagina Candidature (tracker) |
-| [`../improvements/epic-07-ai-improvements.md`](../improvements/epic-07-ai-improvements.md) | F7 — 9 interventi per migliorare l'output AI |
+| `stories/` | 14 stories implementate (dettaglio atomico per epic) |
+| [`../backlog/verso-improvements-v2.md`](../backlog/verso-improvements-v2.md) | Backlog: 17 stories Lovable-ready (9 AI + 8 UX) |
 
 ---
 
