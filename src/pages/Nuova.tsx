@@ -1214,8 +1214,12 @@ export default function Nuova() {
       } else if (app.job_description) {
         updateStep(1);
         setPrescreening(true);
+        // Fetch salary for draft resumption too
+        const { data: draftProfile } = await supabase.from("profiles").select("salary_expectations").eq("user_id", user.id).single();
+        const draftBody: Record<string, unknown> = { job_data: { company_name: app.company_name, role_title: app.role_title, description: app.job_description, location: "", key_requirements: [], required_skills: [] } };
+        if (draftProfile?.salary_expectations) draftBody.salary_expectations = draftProfile.salary_expectations;
         supabase.functions.invoke("ai-prescreen", {
-          body: { job_data: { company_name: app.company_name, role_title: app.role_title, description: app.job_description, location: "", key_requirements: [], required_skills: [] } },
+          body: draftBody,
         }).then(({ data: result, error }) => {
           if (error || result?.error) { toast.error("Errore durante il pre-screening"); updateStep(0); }
           else setPrescreenResult(result);
