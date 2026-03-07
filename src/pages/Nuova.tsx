@@ -997,10 +997,8 @@ function StepExport({
       if (user?.id && applicationId) {
         const storagePath = `${user.id}/${applicationId}/${fileName}`;
         await supabase.storage.from("cv-exports").upload(storagePath, blob, { contentType: "application/pdf", upsert: true });
-        const { data: urlData } = supabase.storage.from("cv-exports").getPublicUrl(storagePath);
-        if (urlData?.publicUrl) {
-          await supabase.from("tailored_cvs").update({ pdf_url: urlData.publicUrl, template_id: selectedTemplate } as any).eq("application_id", applicationId);
-        }
+        // Store the storage path (not a public URL) for private bucket access
+        await supabase.from("tailored_cvs").update({ pdf_url: storagePath, template_id: selectedTemplate } as any).eq("application_id", applicationId);
       }
 
       toast.success("PDF scaricato!");

@@ -102,13 +102,9 @@ export default function Candidature() {
         .select("pdf_url")
         .eq("application_id", id);
       if (tcData) {
+        // pdf_url now stores the storage path directly (not a full URL)
         const pdfPaths = tcData
           .map((tc) => tc.pdf_url)
-          .filter(Boolean)
-          .map((url) => {
-            const match = (url as string).match(/cv-exports\/(.+)/);
-            return match ? match[1] : null;
-          })
           .filter(Boolean) as string[];
         if (pdfPaths.length > 0) {
           await supabase.storage.from("cv-exports").remove(pdfPaths);
