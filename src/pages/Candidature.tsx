@@ -41,6 +41,8 @@ import {
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ExportDrawer } from "@/components/ExportDrawer";
+import { DetailContent } from "@/components/candidature/DetailContent";
+import { ResponsiveDetailPanel } from "@/components/candidature/ResponsiveDetailPanel";
 
 
 type AppRow = {
