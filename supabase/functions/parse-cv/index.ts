@@ -112,27 +112,7 @@ serve(async (req) => {
     }
     const pdfBase64 = btoa(binaryStr);
 
-    // Try to extract profile photo from PDF bytes
-    let photoUrl: string | null = null;
-    let hasPhotoFromBinary = false;
-    try {
-      const img = extractFirstImage(bytes);
-      if (img) {
-        hasPhotoFromBinary = true;
-        const photoPath = `${user.id}/photo_${Date.now()}.${img.ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from("cv-uploads")
-          .upload(photoPath, img.data, {
-            contentType: img.ext === "jpg" ? "image/jpeg" : "image/png",
-          });
-        if (!uploadErr) {
-          const { data: urlData } = await supabase.storage.from("cv-uploads").createSignedUrl(photoPath, 60 * 60 * 24 * 365);
-          photoUrl = urlData?.signedUrl || null;
-        }
-      }
-    } catch (e) {
-      console.error("Photo extraction failed (non-blocking):", e);
-    }
+    // Photo extraction happens AFTER AI call — only upload if AI confirms has_photo
 
     const { data: aiData } = await aiFetch({
       model: "google/gemini-2.5-flash",
