@@ -269,8 +269,10 @@ function computeConfidence(
   // Count added bullets (bullets in tailored not in original)
   let bulletsAdded = 0;
   tailExp.forEach((exp: any, i: number) => {
-    const origBullets = origExp[i]?.bullets?.length ?? 0;
-    const tailBullets = exp?.bullets?.length ?? 0;
+    const origBulletsArr = Array.isArray(origExp[i]?.bullets) ? origExp[i].bullets : [];
+    const tailBulletsArr = Array.isArray(exp?.bullets) ? exp.bullets : [];
+    const origBullets = origBulletsArr.length;
+    const tailBullets = tailBulletsArr.length;
     if (tailBullets > origBullets) bulletsAdded += tailBullets - origBullets;
   });
 
