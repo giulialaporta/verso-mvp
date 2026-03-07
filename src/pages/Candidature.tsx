@@ -303,145 +303,45 @@ export default function Candidature() {
         </div>
       )}
 
-      {/* Detail Drawer */}
-      <Drawer open={selectedApp !== null} onOpenChange={(o) => !o && setSelectedApp(null)}>
-        <DrawerContent className="max-h-[85vh]">
-          <DrawerHeader className="flex items-center justify-between">
-            <DrawerTitle className="font-display text-lg font-bold">
-              Dettaglio candidatura
-            </DrawerTitle>
-            <DrawerClose asChild>
-              <button className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors">
-                <X size={18} />
-              </button>
-            </DrawerClose>
-          </DrawerHeader>
-
-          {selectedApp && (
-            <ScrollArea className="flex-1 px-4 pb-2">
-              <div className="space-y-5">
-                {/* Info */}
-                <div className="space-y-1">
-                  <p className="font-display text-xl font-bold">{selectedApp.role_title}</p>
-                  <p className="text-sm text-muted-foreground">{selectedApp.company_name}</p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                    <span className="inline-flex items-center gap-1">
-                      <CalendarBlank size={12} /> {formatDate(selectedApp.created_at)}
-                    </span>
-                    {selectedApp.match_score !== null && (
-                      <span className="inline-flex items-center gap-1 font-mono font-bold text-primary">
-                        <ChartLineUp size={12} /> {selectedApp.match_score}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Status selector */}
-                <div className="space-y-2">
-                  <label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Stato
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {STATUSES.map((s) => {
-                      const style = STATUS_STYLES[s] ?? STATUS_STYLES.draft;
-                      const isActive = drawerStatus === s;
-                      return (
-                        <button
-                          key={s}
-                          onClick={() => setDrawerStatus(s)}
-                          className={`rounded-full px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-all ${
-                            isActive
-                              ? `${style.bg} ${style.text} ring-2 ring-current`
-                              : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                          }`}
-                        >
-                          {s}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Notes */}
-                <div className="space-y-1.5">
-                  <label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Note
-                  </label>
-                  <Textarea
-                    value={drawerNotes}
-                    onChange={(e) => setDrawerNotes(e.target.value)}
-                    placeholder="Aggiungi note..."
-                    rows={3}
-                    className="resize-none bg-surface border-border"
-                  />
-                </div>
-              </div>
-            </ScrollArea>
-          )}
-
-          <DrawerFooter className="space-y-2">
-            <Button onClick={handleStatusSave} className="w-full gap-2">
-              <FloppyDisk size={16} /> Salva
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full gap-2"
-              onClick={async () => {
-                if (!selectedApp) return;
-                const { data: tcData } = await supabase
-                  .from("tailored_cvs")
-                  .select("tailored_data, ats_score, ats_checks, honest_score")
-                  .eq("application_id", selectedApp.id)
-                  .maybeSingle();
-                if (tcData?.tailored_data) {
-                  setExportCv(tcData.tailored_data as Record<string, any>);
-                  setExportAtsScore(tcData.ats_score ?? undefined);
-                  setExportAtsChecks((tcData.ats_checks as any) ?? undefined);
-                  setExportHonestScore((tcData.honest_score as any) ?? undefined);
-                  setExportCompany(selectedApp.company_name);
-                  setExportAppId(selectedApp.id);
-                  setExportOpen(true);
-                } else {
-                  toast.error("Nessun CV adattato trovato per questa candidatura.");
-                }
-              }}
-            >
-              <DownloadSimple size={16} /> Scarica PDF
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                >
-                  <Trash size={16} /> Elimina candidatura
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Eliminare la candidatura?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    La candidatura per {selectedApp?.role_title} — {selectedApp?.company_name} verrà eliminata permanentemente.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annulla</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={async () => {
-                      if (!selectedApp) return;
-                      await handleDelete(selectedApp.id);
-                      setSelectedApp(null);
-                    }}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Elimina
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+      {/* Detail Panel — Sheet on desktop, Drawer on mobile */}
+      <ResponsiveDetailPanel
+        open={selectedApp !== null}
+        onOpenChange={(o) => !o && setSelectedApp(null)}
+      >
+        {selectedApp && (
+          <DetailContent
+            app={selectedApp}
+            drawerStatus={drawerStatus}
+            setDrawerStatus={setDrawerStatus}
+            drawerNotes={drawerNotes}
+            setDrawerNotes={setDrawerNotes}
+            onSave={handleStatusSave}
+            onDelete={async () => {
+              await handleDelete(selectedApp.id);
+              setSelectedApp(null);
+            }}
+            onExport={async () => {
+              const { data: tcData } = await supabase
+                .from("tailored_cvs")
+                .select("tailored_data, ats_score, ats_checks, honest_score")
+                .eq("application_id", selectedApp.id)
+                .maybeSingle();
+              if (tcData?.tailored_data) {
+                setExportCv(tcData.tailored_data as Record<string, any>);
+                setExportAtsScore(tcData.ats_score ?? undefined);
+                setExportAtsChecks((tcData.ats_checks as any) ?? undefined);
+                setExportHonestScore((tcData.honest_score as any) ?? undefined);
+                setExportCompany(selectedApp.company_name);
+                setExportAppId(selectedApp.id);
+                setExportOpen(true);
+              } else {
+                toast.error("Nessun CV adattato trovato per questa candidatura.");
+              }
+            }}
+            deletingId={deletingId}
+          />
+        )}
+      </ResponsiveDetailPanel>
 
       {/* Export Drawer */}
       {exportCv && (
