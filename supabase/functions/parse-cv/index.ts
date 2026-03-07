@@ -379,15 +379,35 @@ RULES:
 
     validateOutput("parse-cv", parsedCV);
 
-    // Use AI's has_photo to conditionally keep binary-extracted photo
+    // Extract photo info from AI response
     const aiDetectedPhoto = parsedCV.has_photo;
     delete parsedCV.has_photo;
+    delete parsedCV.photo_position;
 
-    // Only use binary-extracted photo if AI also confirms photo presence
-    const finalPhotoUrl = (aiDetectedPhoto && hasPhotoFromBinary) ? photoUrl : (hasPhotoFromBinary ? photoUrl : null);
+    // Only attempt photo extraction if AI confirms a person photo exists
+    let photoUrl: string | null = null;
+    if (aiDetectedPhoto) {
+      try {
+        const img = extractFirstImage(bytes);
+        if (img) {
+          const photoPath = `${user.id}/photo_${Date.now()}.${img.ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from("cv-uploads")
+            .upload(photoPath, img.data, {
+              contentType: img.ext === "jpg" ? "image/jpeg" : "image/png",
+            });
+          if (!uploadErr) {
+            const { data: urlData } = await supabase.storage.from("cv-uploads").createSignedUrl(photoPath, 60 * 60 * 24 * 365);
+            photoUrl = urlData?.signedUrl || null;
+          }
+        }
+      } catch (e) {
+        console.error("Photo extraction failed (non-blocking):", e);
+      }
+    }
 
-    if (finalPhotoUrl) {
-      parsedCV.photo_base64 = finalPhotoUrl;
+    if (photoUrl) {
+      parsedCV.photo_base64 = photoUrl;
     }
 
     return new Response(
@@ -395,7 +415,7 @@ RULES:
         parsed_data: parsedCV,
         raw_text: "multimodal",
         has_photo: aiDetectedPhoto || false,
-        photo_url: finalPhotoUrl,
+        photo_url: photoUrl,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
