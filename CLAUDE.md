@@ -51,9 +51,11 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/spec/epics/` | 6 epic implementate (F1–F6) |
 | `docs/spec/stories/` | 14 stories implementate |
 | `docs/backlog/` | Cose da costruire: epic future + miglioramenti |
-| `docs/backlog/epic-07-freemium.md` | F7 — Freemium e Piano |
-| `docs/backlog/epic-08-settings.md` | F8 — Impostazioni |
-| `docs/backlog/verso-improvements-v2.md` | 17 stories Lovable-ready: 9 backend AI + 8 frontend UX |
+| `docs/backlog/stories-p0-sicurezza.md` | P0 — 4 fix sicurezza (bloccanti per produzione) |
+| `docs/backlog/verso-improvements-v2.md` | P1 — 9 stories backend AI + moduli shared |
+| `docs/backlog/stories-p2-ux.md` | P2 — 7 stories miglioramenti UX |
+| `docs/backlog/stories-p3-pulizia.md` | P3 — 7 stories pulizia tecnica |
+| `docs/backlog/epic-08-settings.md` | F8 — Impostazioni (gratuita, no freemium) |
 | `docs/backlog/CLAUDE_epic-template.md` | Template per scrivere nuovi epic |
 | `docs/test/` | Checklist di acceptance criteria per test manuale (6 file, comando `/test`) |
 | `docs/landing-page/` | Prompt per la landing page |
