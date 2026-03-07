@@ -46,6 +46,7 @@ import {
 import { ClassicoTemplate, MinimalTemplate, TEMPLATES } from "@/components/cv-templates";
 import { InlineEdit } from "@/components/InlineEdit";
 import { EditableSkillChips } from "@/components/EditableSkillChips";
+import { SalaryAnalysisCard, type SalaryAnalysis } from "@/components/SalaryAnalysisCard";
 
 // ==================== Types ====================
 
