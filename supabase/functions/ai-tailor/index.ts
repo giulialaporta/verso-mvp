@@ -491,7 +491,7 @@ Deno.serve(async (req) => {
       }`;
 
       const { data: aiData } = await aiFetch({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: SYSTEM_PROMPT_ANALYZE },
           { role: "user", content: userContent },
@@ -526,7 +526,7 @@ Deno.serve(async (req) => {
     }${contextInfo}`;
 
     const { data: aiData } = await aiFetch({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-2.5-pro",
       messages: [
         { role: "system", content: SYSTEM_PROMPT_TAILOR },
         { role: "user", content: userContent },
