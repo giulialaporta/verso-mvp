@@ -10,33 +10,46 @@ const corsHeaders = {
 };
 
 function extractFirstImage(bytes: Uint8Array): { data: Uint8Array; ext: string } | null {
-  // Search for JPEG marker FF D8 FF
+  const candidates: Array<{ data: Uint8Array; ext: string; size: number }> = [];
+
+  // Search for JPEG markers
   for (let i = 0; i < bytes.length - 3; i++) {
     if (bytes[i] === 0xFF && bytes[i + 1] === 0xD8 && bytes[i + 2] === 0xFF) {
       for (let j = i + 3; j < bytes.length - 1; j++) {
         if (bytes[j] === 0xFF && bytes[j + 1] === 0xD9) {
           const imgBytes = bytes.slice(i, j + 2);
+          // Profile photos: 5KB-500KB. Skip tiny (icons) and huge (full-page graphics)
           if (imgBytes.length > 5000 && imgBytes.length < 500000) {
-            return { data: imgBytes, ext: "jpg" };
+            candidates.push({ data: imgBytes, ext: "jpg", size: imgBytes.length });
           }
+          break;
         }
       }
     }
   }
-  // Search for PNG marker 89 50 4E 47
+
+  // Search for PNG markers
   for (let i = 0; i < bytes.length - 8; i++) {
     if (bytes[i] === 0x89 && bytes[i + 1] === 0x50 && bytes[i + 2] === 0x4E && bytes[i + 3] === 0x47) {
       for (let j = i + 8; j < bytes.length - 8; j++) {
         if (bytes[j] === 0x49 && bytes[j + 1] === 0x45 && bytes[j + 2] === 0x4E && bytes[j + 3] === 0x44) {
           const imgBytes = bytes.slice(i, j + 8);
           if (imgBytes.length > 5000 && imgBytes.length < 500000) {
-            return { data: imgBytes, ext: "png" };
+            candidates.push({ data: imgBytes, ext: "png", size: imgBytes.length });
           }
+          break;
         }
       }
     }
   }
-  return null;
+
+  if (candidates.length === 0) return null;
+
+  // Heuristic: profile photos tend to be 10KB-200KB. Sort by distance from ideal size (50KB)
+  const idealSize = 50000;
+  candidates.sort((a, b) => Math.abs(a.size - idealSize) - Math.abs(b.size - idealSize));
+
+  return candidates[0];
 }
 
 serve(async (req) => {
