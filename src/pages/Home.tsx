@@ -592,9 +592,15 @@ export default function Home() {
     );
   }
 
-  // Virgin state — no CV, no apps
+  // Virgin state — no CV, no apps → redirect to onboarding
   if (!hasCV && !hasApplications) {
     return <VirginState />;
+  }
+
+  // Has apps but no CV → prompt to re-upload
+  if (!hasCV && hasApplications) {
+    navigate("/onboarding");
+    return null;
   }
 
   // Dashboard states (CV-only or full)

@@ -96,6 +96,24 @@ export default function Candidature() {
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
+      // Delete PDF from storage if exists
+      const { data: tcData } = await supabase
+        .from("tailored_cvs")
+        .select("pdf_url")
+        .eq("application_id", id);
+      if (tcData) {
+        const pdfPaths = tcData
+          .map((tc) => tc.pdf_url)
+          .filter(Boolean)
+          .map((url) => {
+            const match = (url as string).match(/cv-exports\/(.+)/);
+            return match ? match[1] : null;
+          })
+          .filter(Boolean) as string[];
+        if (pdfPaths.length > 0) {
+          await supabase.storage.from("cv-exports").remove(pdfPaths);
+        }
+      }
       // Delete related tailored_cvs first
       await supabase.from("tailored_cvs").delete().eq("application_id", id);
       const { error } = await supabase.from("applications").delete().eq("id", id);
@@ -176,11 +194,18 @@ export default function Candidature() {
           {app.company_name} · {formatDate(app.created_at)}
         </p>
       </div>
-      {app.match_score !== null && (
-        <span className="font-mono text-sm font-bold text-primary">
-          {app.match_score}%
-        </span>
-      )}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {app.match_score !== null && (
+          <span className="font-mono text-sm font-bold text-primary">
+            {app.match_score}%
+          </span>
+        )}
+        {app.ats_score !== null && (
+          <span className="font-mono text-sm font-bold text-secondary">
+            ATS {app.ats_score}%
+          </span>
+        )}
+      </div>
       <StatusChip status={app.status} />
     </div>
   );
