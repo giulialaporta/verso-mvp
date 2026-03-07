@@ -278,7 +278,12 @@ RULES:
                     website: { type: "string" },
                   },
                 },
-                has_photo: { type: "boolean", description: "true if the CV visually contains a candidate photo" },
+                has_photo: { type: "boolean", description: "true ONLY if the CV contains a visible photograph of a person (headshot, portrait, ID photo). NOT logos, icons, or decorative images." },
+                photo_position: {
+                  type: "string",
+                  enum: ["top-left", "top-right", "top-center", "side-left"],
+                  description: "Position of the candidate's photo in the CV layout. Only set if has_photo is true."
+                },
                 summary: {
                   type: "string",
                   description: "REQUIRED. Professional summary extracted or synthesized from CV content.",
