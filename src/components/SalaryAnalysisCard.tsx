@@ -56,9 +56,9 @@ function SalaryBar({
   
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
+        <span className="text-xs text-muted-foreground shrink-0">{label}</span>
+        <div className="flex items-center gap-1.5 shrink-0">
           <span className="font-mono text-sm font-medium">{formatRAL(estimate.min, estimate.max)}</span>
           <SourceBadge source={estimate.source} />
         </div>
