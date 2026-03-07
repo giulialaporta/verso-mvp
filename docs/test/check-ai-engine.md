@@ -44,6 +44,10 @@ Checklist per verificare le 4 Edge Functions: parse-cv, scrape-job, ai-prescreen
 - [ ] **C8** — Output in italiano
 - [ ] **C9** — CV perfettamente allineato al ruolo: nessun dealbreaker, feasibility `high`
 - [ ] **C10** — CV completamente disallineato: dealbreaker presenti, feasibility `low`
+- [ ] **C11** — Con `salary_expectations` nel body: output include `salary_analysis`
+- [ ] **C12** — Senza `salary_expectations` e senza RAL nell'annuncio: `salary_analysis` assente
+- [ ] **C13** — `salary_analysis.delta` e' coerente (positive se candidato chiede meno della posizione)
+- [ ] **C14** — `salary_analysis.source` corretto ("user_profile", "job_posting", "estimated")
 
 ---
 

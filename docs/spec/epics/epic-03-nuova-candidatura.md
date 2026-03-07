@@ -49,12 +49,19 @@ Chiama Edge Function `ai-prescreen` con CV master + job posting.
 - **Requirements matrix** — requisiti classificati come mandatory/preferred/nice_to_have
 - **Follow-up questions** — max 5 domande per gap colmabili
 - **Feasibility** — valutazione low/medium/high
+- **Salary analysis** (opzionale) — confronto retributivo candidato vs posizione
 
 **UI:**
 - Se ci sono dealbreaker → mostrati con indicazione di severità
 - Se ci sono gap colmabili → domande di follow-up presentate all'utente
 - L'utente può rispondere alle domande (risposte salvate in `applications.user_answers`)
 - Le risposte vengono passate allo step successivo per migliorare il tailoring
+- Se disponibile salary analysis → card `SalaryAnalysisCard` con barre animate, delta percentuale, nota
+
+**Salary analysis:**
+- Attivata se l'utente ha `salary_expectations` nel profilo OPPURE l'annuncio menziona un range RAL
+- Mostra: aspettativa candidato, range posizione, delta (positive/neutral/negative), nota esplicativa
+- Fonte dati indicata con badge: "Da te", "Dall'annuncio", "Stimata"
 
 **Output tutto in italiano.**
 

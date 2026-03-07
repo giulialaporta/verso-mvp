@@ -99,7 +99,8 @@ Quattro Supabase Edge Functions (Deno) che alimentano Verso. Tutte usano il gate
 ```json
 {
   "master_cv": { "...CV JSON..." },
-  "job_posting": { "...dati annuncio..." }
+  "job_posting": { "...dati annuncio..." },
+  "salary_expectations": { "min": 35000, "max": 42000 }  // opzionale, da profiles
 }
 ```
 
@@ -109,6 +110,7 @@ Quattro Supabase Edge Functions (Deno) che alimentano Verso. Tutte usano il gate
 - Identifica dealbreaker (gap non colmabili) con severità critical/significant
 - Genera domande di follow-up per gap colmabili (max 5)
 - Valuta fattibilità complessiva
+- Se disponibili dati retributivi (da profilo o annuncio): genera analisi salary
 
 **Output:**
 ```json
@@ -122,9 +124,18 @@ Quattro Supabase Edge Functions (Deno) che alimentano Verso. Tutte usano il gate
   "follow_up_questions": [
     { "question": "...", "context": "...", "related_gap": "..." }
   ],
-  "feasibility": "low|medium|high"
+  "feasibility": "low|medium|high",
+  "salary_analysis": {
+    "candidate_estimate": { "min": 35000, "max": 42000, "source": "user_profile", "basis": "..." },
+    "position_estimate": { "min": 38000, "max": 45000, "source": "job_posting|estimated", "basis": "..." },
+    "delta": "positive|neutral|negative",
+    "delta_percentage": "+12%",
+    "note": "..."
+  }
 }
 ```
+
+**Nota:** `salary_analysis` e' opzionale — incluso solo se ci sono dati retributivi dal profilo utente o dall'annuncio.
 
 **Output sempre in italiano.**
 

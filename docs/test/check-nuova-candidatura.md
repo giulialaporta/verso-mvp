@@ -36,6 +36,11 @@ Checklist per verificare il wizard a 5 step: Job Input, Pre-screening, Tailoring
 - [ ] **C8** — La feasibility (low/medium/high) e' visibile
 - [ ] **C9** — L'output e' tutto in italiano
 - [ ] **C10** — L'utente puo' procedere anche senza rispondere alle domande
+- [ ] **C11** — Se l'utente ha `salary_expectations` nel profilo: la card Analisi Retributiva viene mostrata
+- [ ] **C12** — Se l'annuncio menziona un range RAL: la card Analisi Retributiva viene mostrata
+- [ ] **C13** — La card mostra: aspettativa candidato, range posizione, delta percentuale, nota
+- [ ] **C14** — Il badge fonte e' corretto ("Da te", "Dall'annuncio", "Stimata")
+- [ ] **C15** — Se non ci sono dati retributivi (ne' profilo ne' annuncio): la card NON appare
 
 ---
 
