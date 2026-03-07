@@ -50,7 +50,7 @@ function formatDate(dateStr: string) {
   });
 }
 
-const STATUSES = ["inviata", "visualizzata", "contattato", "follow-up", "ko"] as const;
+
 
 export default function Candidature() {
   const { user } = useAuth();
