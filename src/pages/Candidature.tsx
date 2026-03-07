@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,25 +17,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerFooter,
-  DrawerClose,
-} from "@/components/ui/drawer";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
   Briefcase,
   ArrowRight,
   Trash,
   ArrowClockwise,
   Plus,
-  X,
-  FloppyDisk,
-  CalendarBlank,
-  ChartLineUp,
-  DownloadSimple,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
