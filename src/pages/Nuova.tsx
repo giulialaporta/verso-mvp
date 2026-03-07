@@ -1245,7 +1245,19 @@ export default function Nuova() {
         setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("draft", appId!); next.set("step", "1"); return next; }, { replace: true });
       }
 
-      const { data: result, error } = await supabase.functions.invoke("ai-prescreen", { body: { job_data: data } });
+      // Fetch salary_expectations from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("salary_expectations")
+        .eq("user_id", user.id)
+        .single();
+      
+      const body: Record<string, unknown> = { job_data: data };
+      if (profile?.salary_expectations) {
+        body.salary_expectations = profile.salary_expectations;
+      }
+
+      const { data: result, error } = await supabase.functions.invoke("ai-prescreen", { body });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
       setPrescreenResult(result);
