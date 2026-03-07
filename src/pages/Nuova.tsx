@@ -571,6 +571,10 @@ function StepVerifica({
         </Card>
       </motion.div>
 
+      {prescreenResult.salary_analysis && (
+        <SalaryAnalysisCard data={prescreenResult.salary_analysis} delay={0.35} />
+      )}
+
       {prescreenResult.follow_up_questions.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="border-secondary/30 bg-card/80">
