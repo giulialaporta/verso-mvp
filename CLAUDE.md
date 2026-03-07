@@ -55,6 +55,7 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/backlog/epic-08-settings.md` | F8 — Impostazioni |
 | `docs/backlog/verso-improvements-v2.md` | 17 stories Lovable-ready: 9 backend AI + 8 frontend UX |
 | `docs/backlog/CLAUDE_epic-template.md` | Template per scrivere nuovi epic |
+| `docs/test/` | Checklist di acceptance criteria per test manuale (6 file, comando `/test`) |
 | `docs/landing-page/` | Prompt per la landing page |
 | `docs/contesto/` | File di contesto progetto |
 | `docs/contesto/legal-pack/` | Documenti legali |
