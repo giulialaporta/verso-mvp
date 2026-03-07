@@ -24,5 +24,6 @@ Ogni file e' una checklist con checkbox markdown (`- [ ]`) da usare per il test 
 | `check-ai-engine.md` | Edge Functions (parse-cv, scrape-job, ai-prescreen, ai-tailor) | F4 |
 | `check-export-dashboard.md` | Export PDF, Dashboard Home | F5 |
 | `check-candidature.md` | Lista candidature, Stati, Note, Bozze | F6 |
+| `check-persistenza.md` | Sessione, dati CV, bozze, candidature, eliminazione | Cross |
 
 > I file non ancora creati verranno generati al primo lancio di `/test`.
