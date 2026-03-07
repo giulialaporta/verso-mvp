@@ -176,11 +176,18 @@ export default function Candidature() {
           {app.company_name} · {formatDate(app.created_at)}
         </p>
       </div>
-      {app.match_score !== null && (
-        <span className="font-mono text-sm font-bold text-primary">
-          {app.match_score}%
-        </span>
-      )}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {app.match_score !== null && (
+          <span className="font-mono text-sm font-bold text-primary">
+            {app.match_score}%
+          </span>
+        )}
+        {app.ats_score !== null && (
+          <span className="font-mono text-sm font-bold text-secondary">
+            ATS {app.ats_score}%
+          </span>
+        )}
+      </div>
       <StatusChip status={app.status} />
     </div>
   );
