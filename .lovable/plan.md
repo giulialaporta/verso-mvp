@@ -1,46 +1,51 @@
 
 
-# Fix Honest Score 0% e 689 bullet aggiunti
+# Story 17 — Analisi Retributiva nello Step 2
 
-## Problema identificato
+## Acceptance Criteria
 
-La funzione `computeConfidence` (Nuova.tsx, riga 270-275) conta i "bullet aggiunti" confrontando `.length` tra `exp.bullets` originali e tailored. 
+1. **AC-1**: Se `salary_expectations` è presente nel profilo utente, viene inviato nel body della request a `ai-prescreen`
+2. **AC-2**: Il prompt di `ai-prescreen` include istruzioni per generare `salary_analysis` quando riceve `salary_expectations`
+3. **AC-3**: Il tool schema di `ai-prescreen` include la struttura `salary_analysis` come campo opzionale
+4. **AC-4**: Nello Step 1 (Verifica), se `salary_analysis` è presente nel response, appare la card "Analisi Retributiva" con:
+   - Due barre orizzontali proporzionali (candidato vs posizione)
+   - Range RAL formattati (es. "€35-42K")
+   - Badge fonte per ogni barra (Da te / Dall'annuncio / Stimata)
+   - Delta percentuale colorato (verde ↑ / giallo → / rosso ↓)
+   - Nota esplicativa dall'AI
+   - Disclaimer in testo muted
+5. **AC-5**: Se `salary_analysis` è assente nel response → nessuna sezione, nessun errore
+6. **AC-6**: Se l'utente non ha `salary_expectations` nel profilo → `salary_expectations` non viene inviato, e l'AI può comunque stimare dalla posizione se il range è esplicito nell'annuncio
 
-**Il bug**: se l'AI restituisce `bullets` come **stringa** invece che array (es. `"Managed team of 10..."` con `.length` = 200+ caratteri), il confronto `.length` confronta la lunghezza della stringa (centinaia di caratteri) con la lunghezza dell'array originale (3-5 elementi). Risultato: `bulletsAdded` esplode a centinaia, e `confidence = 100 - 689*5 = 0%`.
+## Piano di implementazione
 
-Problema secondario: dopo il reorder delle esperienze, `tailExp[i]` non corrisponde più a `origExp[i]`, quindi il confronto per indice è comunque scorretto.
+### 1. Edge Function `ai-prescreen` (2 modifiche)
 
-## Fix
+**Prompt**: Aggiungere sezione che istruisce l'AI a produrre `salary_analysis` quando riceve `salary_expectations` o quando l'annuncio contiene un range esplicito.
 
-### 1. `computeConfidence` in `src/pages/Nuova.tsx` (righe 270-275)
-
-Aggiungere `Array.isArray()` check prima di usare `.length` per i bullets:
-
-```typescript
-tailExp.forEach((exp: any, i: number) => {
-  const origBulletsArr = Array.isArray(origExp[i]?.bullets) ? origExp[i].bullets : [];
-  const tailBulletsArr = Array.isArray(exp?.bullets) ? exp.bullets : [];
-  const origBullets = origBulletsArr.length;
-  const tailBullets = tailBulletsArr.length;
-  if (tailBullets > origBullets) bulletsAdded += tailBullets - origBullets;
-});
+**Tool schema**: Aggiungere `salary_analysis` come proprietà opzionale con struttura:
 ```
-
-### 2. Normalizzazione bullets nel backend `ai-tailor/index.ts` (dopo riga 580)
-
-Aggiungere normalizzazione bullets nelle esperienze del CV tailored, simile alla normalizzazione skills già presente (righe 574-581):
-
-```typescript
-// Ensure experience bullets are arrays
-const cvExperience = (tailoredCV as any)?.experience;
-if (Array.isArray(cvExperience)) {
-  for (const exp of cvExperience) {
-    if (exp.bullets && typeof exp.bullets === "string") {
-      exp.bullets = exp.bullets.split("\n").map((s: string) => s.replace(/^[-•]\s*/, "").trim()).filter(Boolean);
-    }
-  }
+salary_analysis: {
+  candidate_estimate: { min, max, source, basis }
+  position_estimate: { min, max, source, basis }
+  delta: "positive" | "neutral" | "negative"
+  delta_percentage: string
+  note: string
 }
 ```
 
-Due file modificati, nessuna modifica al database.
+**Request body**: Leggere `salary_expectations` dal body della request e includerlo nel messaggio user all'AI.
+
+### 2. Frontend `Nuova.tsx` (2 modifiche)
+
+**Chiamata**: Fetch `salary_expectations` dal profilo utente e passarlo nel body di `ai-prescreen`.
+
+**Componente `SalaryAnalysisCard`**: Nuova sezione dentro `StepVerifica`, renderizzata condizionalmente. Implementa barre proporzionali, badge fonte, delta colorato, disclaimer.
+
+### File coinvolti
+
+| File | Modifiche |
+|------|-----------|
+| `supabase/functions/ai-prescreen/index.ts` | Prompt + schema + body handling |
+| `src/pages/Nuova.tsx` | Fetch salary, pass to API, render card |
 

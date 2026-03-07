@@ -580,6 +580,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Ensure experience bullets are arrays
+    const cvExperience = (tailoredCV as any)?.experience;
+    if (Array.isArray(cvExperience)) {
+      for (const exp of cvExperience) {
+        if (exp.bullets && typeof exp.bullets === "string") {
+          exp.bullets = exp.bullets.split("\n").map((s: string) => s.replace(/^[-•]\s*/, "").trim()).filter(Boolean);
+        }
+      }
+    }
+
     if (photoBase64) (tailoredCV as any).photo_base64 = photoBase64;
 
     result.tailored_cv = tailoredCV;
