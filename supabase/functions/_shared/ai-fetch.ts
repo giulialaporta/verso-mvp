@@ -32,6 +32,20 @@ function getApiKey(): string {
   return key;
 }
 
+function buildBody(model: string, options: AIFetchOptions): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    model,
+    messages: options.messages,
+  };
+  if (options.tools) {
+    body.tools = options.tools;
+  }
+  if (options.tool_choice) {
+    body.tool_choice = options.tool_choice;
+  }
+  return body;
+}
+
 async function doFetch(
   apiKey: string,
   body: Record<string, unknown>
@@ -76,13 +90,7 @@ export async function aiFetch(options: AIFetchOptions): Promise<AIFetchResult> {
 
   // Try with primary model (up to 3 attempts: initial + 2 retries)
   for (let attempt = 0; attempt <= 2; attempt++) {
-    const body = {
-      model: options.model,
-      messages: options.messages,
-      ...(options.tools && { tools: options.tools }),
-      ...(options.tool_choice && { tool_choice: options.tool_choice }),
-    };
-
+    const body = buildBody(options.model, options);
     const res = await doFetch(apiKey, body);
 
     if (res.ok) {
@@ -105,12 +113,7 @@ export async function aiFetch(options: AIFetchOptions): Promise<AIFetchResult> {
 
   // All retries failed with primary model — try fallback
   console.warn(`Primary model failed, trying fallback: ${FALLBACK_MODEL}`);
-  const fallbackBody = {
-    model: FALLBACK_MODEL,
-    messages: options.messages,
-    ...(options.tools && { tools: options.tools }),
-    ...(options.tool_choice && { tool_choice: options.tool_choice }),
-  };
+  const fallbackBody = buildBody(FALLBACK_MODEL, options);
 
   const fallbackRes = await doFetch(apiKey, fallbackBody);
   if (!fallbackRes.ok) {
