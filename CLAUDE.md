@@ -33,7 +33,7 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | UI / Frontend | Lovable (React + TypeScript + Tailwind + shadcn/ui) |
 | Backend / DB | Supabase (auth, database, storage) |
 | API esterne | Edge Functions (Supabase) |
-| AI features | Lovable API Gateway → Google Gemini 2.5 Flash |
+| AI features | Lovable API Gateway → Google Gemini (2.5 Flash + 2.5 Pro) |
 
 > **Importante:** Non entrare nel dettaglio dell'implementazione tecnica. Lovable decide *come* implementare. Claude deve essere chiaro su *cosa* deve fare la funzionalità e sul suo behavior.
 
@@ -52,7 +52,7 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/spec/stories/` | 14 stories implementate |
 | `docs/backlog/` | Cose da costruire: epic future + miglioramenti |
 | `docs/backlog/stories-p0-sicurezza.md` | P0 — 4 fix sicurezza (bloccanti per produzione) |
-| `docs/backlog/verso-improvements-v2.md` | P1 — 9 stories backend AI + moduli shared |
+| `docs/backlog/verso-improvements-v2.md` | P1 — stories backend AI + moduli shared |
 | `docs/backlog/stories-p2-ux.md` | P2 — 7 stories miglioramenti UX |
 | `docs/backlog/stories-p3-pulizia.md` | P3 — 7 stories pulizia tecnica |
 | `docs/backlog/epic-08-settings.md` | F8 — Impostazioni (gratuita, no freemium) |

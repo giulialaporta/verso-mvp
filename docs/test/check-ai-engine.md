@@ -76,3 +76,17 @@ Checklist per verificare le 4 Edge Functions: parse-cv, scrape-job, ai-prescreen
 - [ ] **E4** — Input malformato (JSON invalido): errore 400 con messaggio
 - [ ] **E5** — Timeout dell'AI provider: errore gestito con messaggio comprensibile
 - [ ] **E6** — Retry automatico su errori transitori (se implementato)
+
+---
+
+## F. Configurazione modelli
+
+- [ ] **F1** — `parse-cv` usa `google/gemini-2.5-flash`
+- [ ] **F2** — `scrape-job` usa `google/gemini-2.5-flash`
+- [ ] **F3** — `ai-prescreen` usa `google/gemini-2.5-pro`
+- [ ] **F4** — `ai-tailor` usa `google/gemini-2.5-pro`
+- [ ] **F5** — Il fallback model resta `google/gemini-2.0-flash` per tutti
+- [ ] **F6** — Il summary riscritto da ai-tailor e' specifico per il ruolo (non generico)
+- [ ] **F7** — I bullet point contengono verbi d'azione e metriche
+- [ ] **F8** — Il tempo di risposta di ai-tailor resta sotto i 30 secondi
+- [ ] **F9** — Il tempo di risposta di ai-prescreen resta sotto i 20 secondi

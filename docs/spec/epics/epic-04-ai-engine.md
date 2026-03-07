@@ -220,7 +220,9 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 | Parametro | Valore |
 |-----------|--------|
 | Provider | Lovable API Gateway → Google Gemini |
-| Modello | Gemini 2.5 Flash |
+| Modello (parse-cv, scrape-job) | Gemini 2.5 Flash |
+| Modello (ai-prescreen, ai-tailor) | Gemini 2.5 Pro |
+| Fallback (tutti) | Gemini 2.0 Flash |
 | Runtime | Deno (Supabase Edge Functions) |
 
 ---
