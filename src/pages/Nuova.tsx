@@ -46,6 +46,7 @@ import {
 import { ClassicoTemplate, MinimalTemplate, TEMPLATES } from "@/components/cv-templates";
 import { InlineEdit } from "@/components/InlineEdit";
 import { EditableSkillChips } from "@/components/EditableSkillChips";
+import { SalaryAnalysisCard, type SalaryAnalysis } from "@/components/SalaryAnalysisCard";
 
 // ==================== Types ====================
 
@@ -82,6 +83,7 @@ type PrescreenResult = {
   }[];
   overall_feasibility: "low" | "medium" | "high";
   feasibility_note: string;
+  salary_analysis?: SalaryAnalysis;
 };
 
 type LearningSuggestion = {
@@ -568,6 +570,10 @@ function StepVerifica({
           </CardContent>
         </Card>
       </motion.div>
+
+      {prescreenResult.salary_analysis && (
+        <SalaryAnalysisCard data={prescreenResult.salary_analysis} delay={0.35} />
+      )}
 
       {prescreenResult.follow_up_questions.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
@@ -1208,8 +1214,12 @@ export default function Nuova() {
       } else if (app.job_description) {
         updateStep(1);
         setPrescreening(true);
+        // Fetch salary for draft resumption too
+        const { data: draftProfile } = await supabase.from("profiles").select("salary_expectations").eq("user_id", user.id).single();
+        const draftBody: Record<string, unknown> = { job_data: { company_name: app.company_name, role_title: app.role_title, description: app.job_description, location: "", key_requirements: [], required_skills: [] } };
+        if (draftProfile?.salary_expectations) draftBody.salary_expectations = draftProfile.salary_expectations;
         supabase.functions.invoke("ai-prescreen", {
-          body: { job_data: { company_name: app.company_name, role_title: app.role_title, description: app.job_description, location: "", key_requirements: [], required_skills: [] } },
+          body: draftBody,
         }).then(({ data: result, error }) => {
           if (error || result?.error) { toast.error("Errore durante il pre-screening"); updateStep(0); }
           else setPrescreenResult(result);
@@ -1239,7 +1249,19 @@ export default function Nuova() {
         setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("draft", appId!); next.set("step", "1"); return next; }, { replace: true });
       }
 
-      const { data: result, error } = await supabase.functions.invoke("ai-prescreen", { body: { job_data: data } });
+      // Fetch salary_expectations from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("salary_expectations")
+        .eq("user_id", user.id)
+        .single();
+      
+      const body: Record<string, unknown> = { job_data: data };
+      if (profile?.salary_expectations) {
+        body.salary_expectations = profile.salary_expectations;
+      }
+
+      const { data: result, error } = await supabase.functions.invoke("ai-prescreen", { body });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
       setPrescreenResult(result);

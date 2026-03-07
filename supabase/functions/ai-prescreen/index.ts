@@ -33,6 +33,16 @@ regardless of the job posting language. The site is in Italian; the user expects
    - Do NOT ask about unbridgeable gaps (don't ask "do you have 5 years experience?" if the CV shows 1)
 6. Assess overall feasibility: low / medium / high
 
+## SALARY ANALYSIS
+If the user message includes SALARY_EXPECTATIONS or the job posting explicitly mentions a salary range/RAL:
+- Produce a "salary_analysis" object in your response
+- For candidate_estimate: use the provided salary_expectations if available; source = "user_profile"
+- For position_estimate: extract from the job posting if explicit; otherwise estimate based on role/seniority/location; source = "job_posting" or "estimated"
+- Calculate delta: "positive" if candidate expects less than position offers (good for candidate), "negative" if candidate expects more, "neutral" if overlapping
+- delta_percentage: approximate percentage difference between midpoints (e.g. "+12%", "-8%", "~0%")
+- note: brief Italian explanation of the comparison
+- If NEITHER salary_expectations NOR a salary range in the posting is available, do NOT include salary_analysis
+
 ## HONESTY RULES
 - Be direct and honest. Don't sugarcoat dealbreakers.
 - A candidate with critical dealbreakers should get "low" feasibility
@@ -98,6 +108,36 @@ const TOOL_SCHEMA = {
         feasibility_note: {
           type: "string",
         },
+        salary_analysis: {
+          type: "object",
+          description: "Optional salary comparison. Include only if salary data is available from candidate profile or job posting.",
+          properties: {
+            candidate_estimate: {
+              type: "object",
+              properties: {
+                min: { type: "number", description: "Minimum annual salary in euros" },
+                max: { type: "number", description: "Maximum annual salary in euros" },
+                source: { type: "string", enum: ["user_profile", "estimated"] },
+                basis: { type: "string", description: "Brief explanation of source" },
+              },
+              required: ["min", "max", "source", "basis"],
+            },
+            position_estimate: {
+              type: "object",
+              properties: {
+                min: { type: "number", description: "Minimum annual salary in euros" },
+                max: { type: "number", description: "Maximum annual salary in euros" },
+                source: { type: "string", enum: ["job_posting", "estimated"] },
+                basis: { type: "string", description: "Brief explanation of source" },
+              },
+              required: ["min", "max", "source", "basis"],
+            },
+            delta: { type: "string", enum: ["positive", "neutral", "negative"] },
+            delta_percentage: { type: "string", description: "e.g. '+12%', '-8%', '~0%'" },
+            note: { type: "string", description: "Brief Italian explanation" },
+          },
+          required: ["candidate_estimate", "position_estimate", "delta", "delta_percentage", "note"],
+        },
       },
       required: ["detected_language", "requirements_analysis", "dealbreakers", "follow_up_questions", "overall_feasibility", "feasibility_note"],
     },
@@ -134,7 +174,7 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    const { job_data } = await req.json();
+    const { job_data, salary_expectations } = await req.json();
 
     if (!job_data) {
       return new Response(JSON.stringify({ error: "Dati annuncio mancanti" }), {
@@ -160,14 +200,17 @@ Deno.serve(async (req) => {
 
     const compactedCV = compactCV(masterCV.parsed_data as Record<string, unknown>);
 
+    // Build user message with optional salary expectations
+    let userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}`;
+    if (salary_expectations) {
+      userContent += `\n\nSALARY_EXPECTATIONS:\n${JSON.stringify(salary_expectations)}`;
+    }
+
     const { data: aiData } = await aiFetch({
       model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}`,
-        },
+        { role: "user", content: userContent },
       ],
       tools: [TOOL_SCHEMA],
       tool_choice: { type: "function", function: { name: "prescreen_analysis" } },
