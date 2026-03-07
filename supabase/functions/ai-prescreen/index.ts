@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
     }
 
     const { data: aiData } = await aiFetch({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-2.5-pro",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userContent },
