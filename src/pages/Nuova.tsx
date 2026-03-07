@@ -83,6 +83,7 @@ type PrescreenResult = {
   }[];
   overall_feasibility: "low" | "medium" | "high";
   feasibility_note: string;
+  salary_analysis?: SalaryAnalysis;
 };
 
 type LearningSuggestion = {
