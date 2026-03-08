@@ -130,7 +130,7 @@ export default function Impostazioni() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Tutti i tuoi dati verranno eliminati permanentemente: CV caricati, CV adattati, candidature, profilo. Non potrai recuperarli.
+                  Tutti i tuoi dati verranno eliminati permanentemente: CV caricati, CV adattati, candidature, profilo. Non potrai recuperarli. I log dei consensi prestati verranno anonimizzati e conservati per obblighi di legge.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <div className="space-y-2">
