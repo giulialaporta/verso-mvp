@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Warning, Eye, CaretDown, ListChecks } from "@phosphor-icons/react";
+import { AiLabel } from "@/components/AiLabel";
 import { computeConfidence } from "./wizard-utils";
 import type { TailorResult, AnalyzeResult } from "./wizard-types";
 
