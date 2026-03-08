@@ -71,6 +71,48 @@ export type Database = {
         }
         Relationships: []
       }
+      consent_logs: {
+        Row: {
+          consent_type: string
+          consent_version: string
+          granted: boolean
+          granted_at: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          method: string | null
+          revoked_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          consent_type: string
+          consent_version?: string
+          granted?: boolean
+          granted_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          method?: string | null
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          consent_type?: string
+          consent_version?: string
+          granted?: boolean
+          granted_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          method?: string | null
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       job_cache: {
         Row: {
           created_at: string

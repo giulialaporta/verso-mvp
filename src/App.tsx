@@ -14,6 +14,10 @@ import AppShell from "./components/AppShell";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
+const Termini = lazy(() => import("./pages/Termini"));
+const PrivacyPage = lazy(() => import("./pages/Privacy"));
+const CookiePolicyPage = lazy(() => import("./pages/CookiePolicy"));
+
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Nuova = lazy(() => import("./pages/Nuova"));
 const Candidature = lazy(() => import("./pages/Candidature"));
@@ -35,6 +39,9 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/termini" element={<Suspense fallback={<PageSkeleton />}><Termini /></Suspense>} />
+              <Route path="/privacy" element={<Suspense fallback={<PageSkeleton />}><PrivacyPage /></Suspense>} />
+              <Route path="/cookie-policy" element={<Suspense fallback={<PageSkeleton />}><CookiePolicyPage /></Suspense>} />
               <Route path="/" element={<Navigate to="/app/home" replace />} />
               <Route
                 path="/onboarding"

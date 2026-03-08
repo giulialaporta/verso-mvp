@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { ConsentCheckboxes, saveRegistrationConsents } from "@/components/ConsentCheckboxes";
 
 /** Map Supabase error messages to user-friendly Italian strings (non-revealing). */
 function mapAuthError(msg: string): string {
@@ -34,6 +35,8 @@ export default function Login() {
   const [fullName, setFullName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   // US-S10: Sanitize redirect — only allow internal /app/ paths
   const rawPath = (location.state as any)?.from?.pathname;
@@ -52,8 +55,9 @@ export default function Login() {
   }
 
   // Compute whether form is valid for submit
+  const consentsAccepted = acceptedTerms && acceptedPrivacy;
   const isFormValid = isSignUp
-    ? email.trim() !== "" && password.trim() !== "" && fullName.trim() !== ""
+    ? email.trim() !== "" && password.trim() !== "" && fullName.trim() !== "" && consentsAccepted
     : email.trim() !== "" && password.trim() !== "";
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,7 +66,7 @@ export default function Login() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -71,6 +75,10 @@ export default function Login() {
           },
         });
         if (error) throw error;
+        // Save consent records
+        if (data.user) {
+          await saveRegistrationConsents(data.user.id);
+        }
         toast.success("Controlla la tua email per confermare la registrazione!");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -103,7 +111,10 @@ export default function Login() {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     if (oauthLoading) return;
-    setOauthLoading(true);
+    if (isSignUp && !consentsAccepted) {
+      toast.error("Accetta i Termini e l'Informativa Privacy per continuare");
+      return;
+    }
     try {
       const { error } = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
@@ -232,6 +243,15 @@ export default function Login() {
                   minLength={6}
                 />
               </div>
+
+              {isSignUp && (
+                <ConsentCheckboxes
+                  acceptedTerms={acceptedTerms}
+                  acceptedPrivacy={acceptedPrivacy}
+                  onTermsChange={setAcceptedTerms}
+                  onPrivacyChange={setAcceptedPrivacy}
+                />
+              )}
 
               <Button type="submit" className="w-full" disabled={submitting || !isFormValid}>
                 {submitting

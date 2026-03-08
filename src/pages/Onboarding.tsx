@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { SensitiveDataConsent, hasSensitiveDataConsent } from "@/components/SensitiveDataConsent";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -40,6 +41,16 @@ export default function Onboarding() {
   const [currentRal, setCurrentRal] = useState<string>("");
   const [desiredRal, setDesiredRal] = useState<string>("");
 
+  // Sensitive data consent
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [hasConsent, setHasConsent] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      hasSensitiveDataConsent(user.id).then(setHasConsent);
+    }
+  }, [user]);
+
   const handleFile = useCallback((f: File) => {
     if (f.type !== "application/pdf") {
       toast.error("Solo file PDF sono accettati.");
@@ -62,11 +73,9 @@ export default function Onboarding() {
     [handleFile]
   );
 
-  const handleUploadAndParse = async () => {
+  const doUploadAndParse = async () => {
     if (!file || !user) return;
-
     setStep("parsing");
-
     try {
       const path = `${user.id}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage
@@ -93,6 +102,21 @@ export default function Onboarding() {
       toast.error(e.message || "Errore durante l'analisi del CV. Riprova.");
       setStep("upload");
     }
+  };
+
+  const handleUploadAndParse = () => {
+    if (!file || !user) return;
+    if (!hasConsent) {
+      setShowConsentModal(true);
+      return;
+    }
+    doUploadAndParse();
+  };
+
+  const handleConsentGranted = () => {
+    setShowConsentModal(false);
+    setHasConsent(true);
+    doUploadAndParse();
   };
 
   const handleSave = async () => {
@@ -160,6 +184,12 @@ export default function Onboarding() {
   };
 
   return (
+    <>
+    <SensitiveDataConsent
+      open={showConsentModal}
+      onConsent={handleConsentGranted}
+      onCancel={() => setShowConsentModal(false)}
+    />
     <div className="flex min-h-[100dvh] items-start justify-center bg-background px-3 py-6 sm:px-4 sm:py-12 sm:items-center">
       <div className="w-full max-w-xl space-y-4 sm:space-y-6">
         <div className="text-center">
@@ -403,5 +433,6 @@ export default function Onboarding() {
         </AnimatePresence>
       </div>
     </div>
+    </>
   );
 }
