@@ -613,6 +613,10 @@ function StepTailoring({
   onGenerateCv,
   onAbandon,
   onBack,
+  selectedLanguage,
+  onLanguageChange,
+  overriddenSkills,
+  onToggleSkill,
 }: {
   analyzeResult: AnalyzeResult | null;
   analyzeLoading: boolean;
@@ -620,6 +624,10 @@ function StepTailoring({
   onGenerateCv: () => void;
   onAbandon: () => void;
   onBack: () => void;
+  selectedLanguage: string;
+  onLanguageChange: (lang: string) => void;
+  overriddenSkills: Set<string>;
+  onToggleSkill: (skill: string) => void;
 }) {
   const animatedScore = useAnimatedCounter(analyzeResult?.match_score ?? 0);
   const animatedAts = useAnimatedCounter(analyzeResult?.ats_score ?? 0);
