@@ -1483,6 +1483,8 @@ export default function Nuova() {
     setOriginalCv(null);
     setApplicationId(null);
     setUserAnswers([]);
+    setLanguageOverride(null);
+    setOverriddenSkills(new Set());
     setSearchParams({}, { replace: true });
   };
 
