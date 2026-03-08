@@ -121,9 +121,22 @@ export default function CandidaturaDetail() {
   if (loading) {
     return (
       <div className="mx-auto max-w-2xl space-y-4 px-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-48 w-full" />
+        {/* Header skeleton */}
+        <div className="flex items-start gap-3">
+          <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-7 w-3/4" />
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-3 w-1/4" />
+          </div>
+        </div>
+        {/* Score cards skeleton */}
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+        </div>
+        {/* ATS section skeleton */}
+        <Skeleton className="h-48 rounded-xl" />
       </div>
     );
   }
