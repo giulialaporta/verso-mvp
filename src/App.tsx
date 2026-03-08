@@ -14,6 +14,10 @@ import AppShell from "./components/AppShell";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
+const Termini = lazy(() => import("./pages/Termini"));
+const PrivacyPage = lazy(() => import("./pages/Privacy"));
+const CookiePolicyPage = lazy(() => import("./pages/CookiePolicy"));
+
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Nuova = lazy(() => import("./pages/Nuova"));
 const Candidature = lazy(() => import("./pages/Candidature"));
