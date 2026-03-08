@@ -101,7 +101,7 @@ export function ExportDrawer({
     try {
       const TemplateComponent =
         selectedTemplate === "minimal" ? MinimalTemplate : ClassicoTemplate;
-      const blob = await pdf(<TemplateComponent cv={tailoredCv} />).toBlob();
+      const blob = await pdf(<TemplateComponent cv={tailoredCv} lang={lang} />).toBlob();
 
       const fileName = `CV-${personalName.replace(/\s+/g, "-")}-${companyName.replace(/\s+/g, "-")}.pdf`;
 
