@@ -734,8 +734,8 @@ function StepTailoring({
       {/* Learning Suggestions */}
       {analyzeResult.learning_suggestions && analyzeResult.learning_suggestions.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-          <Card className="border-secondary/20 bg-card/80"><CardContent className="pt-5 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-secondary"><GraduationCap size={18} weight="fill" /> Risorse per colmare i gap</div>
+          <Card className="border-info/20 bg-card/80"><CardContent className="pt-5 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-info"><GraduationCap size={18} weight="fill" /> Risorse per colmare i gap</div>
             <div className="space-y-2">
               {analyzeResult.learning_suggestions.map((ls, i) => (
                 <a key={i} href={ls.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-3 rounded-lg border border-border/30 hover:border-secondary/40 bg-surface/50 hover:bg-surface transition-colors group">
