@@ -1306,7 +1306,7 @@ export default function Nuova() {
     }
   };
 
-  // Step 2 → Step 3: Run TAILOR
+  // Step 2 → Step 3: Run TAILOR + REVIEW
   const handleGenerateCv = async () => {
     if (!user || !jobData || !analyzeResult) return;
     setTailoring(true);
@@ -1324,7 +1324,26 @@ export default function Nuova() {
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
 
-      setTailorResult(result);
+      // Run HR review agent on the tailored CV (non-blocking on failure)
+      let reviewedCv = result.tailored_cv;
+      try {
+        const { data: reviewResult } = await supabase.functions.invoke("cv-review", {
+          body: {
+            cv: result.tailored_cv,
+            detected_language: analyzeResult.detected_language || "it",
+            role_title: jobData.role_title,
+          },
+        });
+        if (reviewResult?.reviewed_cv && !reviewResult?.review_failed) {
+          reviewedCv = reviewResult.reviewed_cv;
+          console.log("CV review applied successfully");
+        }
+      } catch (reviewErr) {
+        console.warn("CV review failed, using original tailored CV:", reviewErr);
+      }
+
+      const finalResult = { ...result, tailored_cv: reviewedCv };
+      setTailorResult(finalResult);
 
       // Fetch original CV for comparison
       if (result.original_cv) {
@@ -1334,13 +1353,13 @@ export default function Nuova() {
         if (mcv?.parsed_data) setOriginalCv(mcv.parsed_data as Record<string, unknown>);
       }
 
-      // Save tailored CV
+      // Save tailored CV (with reviewed version)
       if (applicationId) {
         const tcPayload = {
           user_id: user.id,
           application_id: applicationId,
           master_cv_id: result.master_cv_id,
-          tailored_data: result.tailored_cv as any,
+          tailored_data: reviewedCv as any,
           skills_match: { present: analyzeResult.skills_present || [], missing: analyzeResult.skills_missing || [] } as any,
           suggestions: result.diff as any,
           ats_score: analyzeResult.ats_score,
