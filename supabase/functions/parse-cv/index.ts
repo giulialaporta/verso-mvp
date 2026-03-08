@@ -2,12 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { aiFetch, parseAIResponse } from "../_shared/ai-fetch.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 function extractFirstImage(bytes: Uint8Array): { data: Uint8Array; ext: string } | null {
   const candidates: Array<{ data: Uint8Array; ext: string; size: number }> = [];
@@ -53,6 +48,8 @@ function extractFirstImage(bytes: Uint8Array): { data: Uint8Array; ext: string }
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -113,6 +110,14 @@ serve(async (req) => {
 
     const arrayBuffer = await fileData.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
+
+    // US-S07: Validate PDF magic bytes (%PDF)
+    if (bytes.length < 5 || bytes[0] !== 0x25 || bytes[1] !== 0x50 || bytes[2] !== 0x44 || bytes[3] !== 0x46) {
+      return new Response(
+        JSON.stringify({ error: "Il file non è un PDF valido." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     let binaryStr = "";
     for (let i = 0; i < bytes.length; i++) {
