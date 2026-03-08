@@ -1288,18 +1288,27 @@ export default function Nuova() {
         const urlStep = parseInt(searchParams.get("step") || "3", 10);
         updateStep(urlStep >= 3 ? urlStep : 3);
       } else if (app.job_description) {
-        updateStep(1);
-        setPrescreening(true);
-        // Fetch salary for draft resumption too
-        const { data: draftProfile } = await supabase.from("profiles").select("salary_expectations").eq("user_id", user.id).single();
-        const draftBody: Record<string, unknown> = { job_data: { company_name: app.company_name, role_title: app.role_title, description: app.job_description, location: "", key_requirements: [], required_skills: [] } };
-        if (draftProfile?.salary_expectations) draftBody.salary_expectations = draftProfile.salary_expectations;
-        supabase.functions.invoke("ai-prescreen", {
-          body: draftBody,
-        }).then(({ data: result, error }) => {
-          if (error || result?.error) { toast.error("Errore durante il pre-screening"); updateStep(0); }
-          else setPrescreenResult(result);
-        }).finally(() => setPrescreening(false));
+        // Check for cached prescreen data first
+        if ((app as any).prescreen_data) {
+          setPrescreenResult((app as any).prescreen_data);
+          updateStep(1);
+        } else {
+          updateStep(1);
+          setPrescreening(true);
+          const { data: draftProfile } = await supabase.from("profiles").select("salary_expectations").eq("user_id", user.id).single();
+          const draftBody: Record<string, unknown> = { job_data: { company_name: app.company_name, role_title: app.role_title, description: app.job_description, location: "", key_requirements: [], required_skills: [] } };
+          if (draftProfile?.salary_expectations) draftBody.salary_expectations = draftProfile.salary_expectations;
+          supabase.functions.invoke("ai-prescreen", {
+            body: draftBody,
+          }).then(({ data: result, error }) => {
+            if (error || result?.error) { toast.error("Errore durante il pre-screening"); updateStep(0); }
+            else {
+              setPrescreenResult(result);
+              // Cache for next time
+              supabase.from("applications").update({ prescreen_data: result } as any).eq("id", applicationId).then(() => {});
+            }
+          }).finally(() => setPrescreening(false));
+        }
       }
     })();
   }, [searchParams, user, updateStep]);
