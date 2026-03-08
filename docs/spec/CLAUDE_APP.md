@@ -47,7 +47,7 @@ Questa cartella è la **fonte di verità dell'app Verso**: documenta ciò che è
 | `epics/epic-05-export-dashboard.md` | F5 — Export PDF + Dashboard Home |
 | `epics/epic-06-candidature.md` | F6 — Pagina Candidature (tracker) |
 | `stories/` | 14 stories implementate (dettaglio atomico per epic) |
-| [`../backlog/verso-improvements-v2.md`](../backlog/verso-improvements-v2.md) | Backlog: 17 stories Lovable-ready (9 AI + 8 UX) |
+| [`../backlog/`](../backlog/) | Backlog: epic future + stories per priorita' (vedi README) |
 
 ---
 
