@@ -116,11 +116,19 @@ export default function Login() {
       return;
     }
     try {
+      // Save pending consent flag before redirect so we can persist after OAuth return
+      if (isSignUp) {
+        localStorage.setItem("verso_pending_oauth_consents", "true");
+      }
       const { error } = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
       });
-      if (error) toast.error(mapAuthError((error as any).message || ""));
+      if (error) {
+        localStorage.removeItem("verso_pending_oauth_consents");
+        toast.error(mapAuthError((error as any).message || ""));
+      }
     } catch {
+      localStorage.removeItem("verso_pending_oauth_consents");
       toast.error("Errore durante l'autenticazione. Riprova.");
     } finally {
       setOauthLoading(false);
