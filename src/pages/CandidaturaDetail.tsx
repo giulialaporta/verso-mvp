@@ -262,7 +262,29 @@ export default function CandidaturaDetail() {
         </Card>
       )}
 
-      {/* Diff */}
+      {/* Learning Suggestions */}
+      {learningSuggestions && learningSuggestions.length > 0 && (
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <GraduationCap size={16} className="text-primary" />
+              <span className="text-sm font-medium">Risorse consigliate</span>
+            </div>
+            <div className="space-y-2">
+              {learningSuggestions.map((s: any, i: number) => (
+                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors group">
+                  <span className="font-mono text-[10px] uppercase text-muted-foreground bg-muted px-2 py-0.5 rounded">{s.type}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm group-hover:text-primary transition-colors truncate">{s.resource_name}</p>
+                    <p className="text-xs text-muted-foreground">{s.skill}{s.duration ? ` · ${s.duration}` : ""}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {diff && diff.length > 0 && (
         <Collapsible open={diffOpen} onOpenChange={setDiffOpen}>
           <Card className="border-border/50 bg-card/80">
