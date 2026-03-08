@@ -290,7 +290,7 @@ export default function CandidaturaDetail() {
                 <button
                   key={s}
                   onClick={() => setStatus(s)}
-                  className={`rounded-full px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-all ${
+                  className={`rounded-full px-4 py-2.5 font-mono text-[11px] uppercase tracking-wider transition-all min-h-[44px] ${
                     isActive
                       ? `${style.bg} ${style.text} ring-2 ring-current`
                       : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
