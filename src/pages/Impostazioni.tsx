@@ -90,15 +90,17 @@ export default function Impostazioni() {
     if (!user) return;
     setRevoking("sensitive_data");
     try {
+      const userHash = user.email ? await hashEmail(user.email) : undefined;
       await supabase.from("consent_logs").insert({
         user_id: user.id,
+        user_hash: userHash,
         consent_type: "sensitive_data",
         consent_version: "1.0",
         granted: false,
         user_agent: navigator.userAgent,
         method: "settings_revoke",
         metadata: { screen: "impostazioni" },
-      });
+      } as any);
       // Refresh consents
       const { data } = await supabase
         .from("consent_logs")
