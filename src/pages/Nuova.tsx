@@ -1341,6 +1341,10 @@ export default function Nuova() {
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
       setPrescreenResult(result);
+      // Persist prescreen data to avoid redundant AI calls on draft resume
+      if (applicationId) {
+        supabase.from("applications").update({ prescreen_data: result } as any).eq("id", applicationId).then(() => {});
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Errore durante il pre-screening");
       updateStep(0);
