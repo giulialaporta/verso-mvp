@@ -335,8 +335,8 @@ export default function CandidaturaDetail() {
         </Collapsible>
       )}
 
-      {/* Actions */}
-      <div className="space-y-2 pb-6">
+      {/* Actions — sticky on mobile */}
+      <div className="space-y-2 pb-6 md:pb-6 sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] md:static bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none pt-3 -mx-4 px-4 border-t border-border/30 md:border-0 md:mx-0 z-10">
         <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
           <FloppyDisk size={16} /> {saving ? "Salvataggio..." : "Salva modifiche"}
         </Button>
