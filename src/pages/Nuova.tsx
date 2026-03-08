@@ -1217,6 +1217,8 @@ export default function Nuova() {
   const [applicationId, setApplicationId] = useState<string | null>(searchParams.get("draft"));
   const [userAnswers, setUserAnswers] = useState<{ question: string; answer: string }[]>([]);
   const [originalCv, setOriginalCv] = useState<Record<string, unknown> | null>(null);
+  const [languageOverride, setLanguageOverride] = useState<string | null>(null);
+  const [overriddenSkills, setOverriddenSkills] = useState<Set<string>>(new Set());
   const draftLoadedId = useRef<string | null>(null);
 
   const updateStep = useCallback((newStep: number) => {
