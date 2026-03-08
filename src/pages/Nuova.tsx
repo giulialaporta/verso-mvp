@@ -424,7 +424,7 @@ function StepAnnuncio({
           <Card className="border-primary/30 bg-card/80">
             <CardContent className="pt-6 space-y-4">
               <div className="flex items-start gap-3">
-                <Buildings size={24} className="text-secondary mt-0.5 shrink-0" />
+                <Buildings size={24} className="text-info mt-0.5 shrink-0" />
                 <div className="min-w-0">
                   <h3 className="font-display text-lg font-bold">{jobData.company_name}</h3>
                   <p className="text-primary font-medium">{jobData.role_title}</p>
