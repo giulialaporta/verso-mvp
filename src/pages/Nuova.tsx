@@ -1565,6 +1565,7 @@ export default function Nuova() {
               tailorResult={tailorResult}
               jobData={jobData}
               applicationId={applicationId}
+              cvLang={languageOverride || analyzeResult?.detected_language}
               onBack={() => updateStep(3)}
               onNext={() => updateStep(5)}
             />
