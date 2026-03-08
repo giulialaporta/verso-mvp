@@ -149,6 +149,8 @@ export default function Candidature() {
     <div
       className="rounded-lg border border-border/30 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-colors"
       onClick={() => navigate(`/app/candidatura/${app.id}`)}
+      onMouseEnter={() => prefetch(app.id)}
+      onFocus={() => prefetch(app.id)}
     >
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
