@@ -91,6 +91,14 @@ serve(async (req) => {
       });
     }
 
+    // P0.4 — Ownership validation: filePath must start with user's ID
+    if (!filePath.startsWith(user.id + "/")) {
+      return new Response(JSON.stringify({ error: "Accesso non autorizzato al file." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: fileData, error: downloadError } = await supabase.storage
       .from("cv-uploads")
       .download(filePath);

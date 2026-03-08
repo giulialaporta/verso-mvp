@@ -134,9 +134,11 @@ Deno.serve(async (req) => {
         });
       }
 
+      const safeUrl = validateUrl(url);
+
       let jobText = "";
       try {
-        const pageResponse = await fetch(url, {
+        const pageResponse = await fetch(safeUrl, {
           signal: AbortSignal.timeout(10000),
           headers: {
             "User-Agent": "Mozilla/5.0 (compatible; VersoBot/1.0)",
