@@ -50,13 +50,13 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/spec/verso-prd-app.md` | PRD dell'app sviluppata |
 | `docs/spec/epics/` | 6 epic implementate (F1–F6) |
 | `docs/spec/stories/` | 14 stories implementate |
-| `docs/backlog/` | Cose da costruire: epic future + miglioramenti |
-| `docs/backlog/stories-p0-sicurezza.md` | P0 — 4 fix sicurezza (bloccanti per produzione) |
-| `docs/backlog/verso-improvements-v2.md` | P1 — stories backend AI + moduli shared |
-| `docs/backlog/stories-p2-ux.md` | P2 — 7 stories miglioramenti UX |
-| `docs/backlog/stories-p3-pulizia.md` | P3 — 7 stories pulizia tecnica |
-| `docs/backlog/epic-08-settings.md` | F8 — Impostazioni (gratuita, no freemium) |
-| `docs/backlog/epic-09-legal-privacy.md` | F9 — Legal, Privacy, Trasparenza AI (P0, 10 stories) |
+| `docs/backlog/` | Cose da costruire, organizzate in sub-folder |
+| `docs/backlog/p0-sicurezza/stories.md` | P0 — 4 fix sicurezza (bloccanti per produzione) |
+| `docs/backlog/p1-ai-improvements/stories.md` | P1 — stories backend AI + moduli shared |
+| `docs/backlog/p2-ux/stories.md` | P2 — 7 stories miglioramenti UX |
+| `docs/backlog/p3-pulizia/stories.md` | P3 — 7 stories pulizia tecnica |
+| `docs/backlog/f8-settings/epic.md` | F8 — Impostazioni (gratuita, no freemium) |
+| `docs/backlog/f9-legal-privacy/epic.md` | F9 — Legal, Privacy, Trasparenza AI (10 stories) |
 | `docs/backlog/CLAUDE_epic-template.md` | Template per scrivere nuovi epic |
 | `docs/test/` | Checklist di acceptance criteria per test manuale (6 file, comando `/test`) |
 | `docs/landing-page/` | Prompt per la landing page |
