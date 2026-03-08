@@ -83,7 +83,7 @@ export default function Candidature() {
       await supabase.from("tailored_cvs").delete().eq("application_id", id);
       const { error } = await supabase.from("applications").delete().eq("id", id);
       if (error) throw error;
-      setApps((prev) => prev?.filter((a) => a.id !== id));
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
       toast.success("Candidatura eliminata.");
     } catch (e: any) {
       toast.error(e.message || "Errore durante l'eliminazione.");
