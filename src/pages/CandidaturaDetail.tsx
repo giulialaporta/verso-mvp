@@ -283,7 +283,7 @@ export default function CandidaturaDetail() {
       <Card className="border-border/50 bg-card/80">
         <CardContent className="py-4 space-y-3">
           <label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Stato</label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
             {STATUSES.map((s) => {
               const style = STATUS_STYLES[s] ?? STATUS_STYLES.draft;
               const isActive = status === s;
