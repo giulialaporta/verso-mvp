@@ -1370,8 +1370,8 @@ export default function Nuova() {
       }
 
       setAnalyzeResult(result);
-      // Initialize language override from detected language
       setLanguageOverride(result.detected_language || "it");
+    } catch (e) {
       toast.error(e instanceof Error ? e.message : "Errore durante l'analisi AI");
       updateStep(1);
     } finally {
