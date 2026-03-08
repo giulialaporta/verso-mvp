@@ -16,7 +16,7 @@ export default function Privacy() {
       <section id="titolare">
         <h2>Titolare del Trattamento</h2>
         <p>
-          Verso — [Ragione Sociale in fase di definizione]<br />
+          Verso — Il titolare del trattamento sarà formalmente indicato prima del lancio ufficiale del servizio. Nel frattempo, per qualsiasi richiesta relativa ai dati personali, scrivere a privacy@verso-cv.app.<br />
           Email: privacy@verso-cv.app
         </p>
       </section>

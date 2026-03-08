@@ -1,4 +1,4 @@
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { House, Briefcase, SignOut, List, Plus, Flask, Gear } from "@phosphor-icons/react";
 import { NavLink } from "@/components/NavLink";
@@ -72,17 +72,26 @@ function DesktopSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Bottom: sign out */}
-        <div className="p-2 border-t border-border">
-          <Button
-            variant="ghost"
-            size={collapsed ? "icon" : "default"}
-            className="w-full justify-start text-muted-foreground hover:text-foreground"
-            onClick={() => { signOut(); navigate("/login"); }}
-          >
-            <SignOut size={20} className={collapsed ? "" : "mr-2"} />
-            {!collapsed && "Esci"}
-          </Button>
+        {/* Bottom: legal links + sign out */}
+        <div className="border-t border-border">
+          {!collapsed && (
+            <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 pt-2 pb-1">
+              <Link to="/termini" target="_blank" className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground">T&C</Link>
+              <Link to="/privacy" target="_blank" className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground">Privacy</Link>
+              <Link to="/cookie-policy" target="_blank" className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground">Cookie</Link>
+            </div>
+          )}
+          <div className="p-2">
+            <Button
+              variant="ghost"
+              size={collapsed ? "icon" : "default"}
+              className="w-full justify-start text-muted-foreground hover:text-foreground"
+              onClick={() => { signOut(); navigate("/login"); }}
+            >
+              <SignOut size={20} className={collapsed ? "" : "mr-2"} />
+              {!collapsed && "Esci"}
+            </Button>
+          </div>
         </div>
       </SidebarContent>
     </Sidebar>

@@ -126,6 +126,23 @@ export default function Termini() {
           </a>.
         </p>
       </section>
+
+      <section id="recesso">
+        <h2>Art. 11 — Recesso e Risoluzione</h2>
+        <p>
+          L'utente può recedere dal contratto e cessare l'utilizzo del Servizio in qualsiasi momento,
+          eliminando il proprio account dalla sezione <strong>Impostazioni → Zona pericolosa</strong>.
+        </p>
+        <p>
+          La cancellazione dell'account comporta l'eliminazione permanente e irreversibile di tutti i
+          dati associati (CV, candidature, profilo). I log dei consensi prestati verranno anonimizzati e
+          conservati per il periodo previsto dalla normativa vigente.
+        </p>
+        <p>
+          Il Titolare si riserva il diritto di sospendere o risolvere l'accesso al Servizio in caso di
+          violazione dei presenti Termini, con preavviso ragionevole via email ove possibile.
+        </p>
+      </section>
     </LegalLayout>
   );
 }
