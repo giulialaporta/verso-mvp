@@ -723,18 +723,50 @@ function StepTailoring({
         </motion.div>
       </div>
 
-      {/* Skills */}
+      {/* Skills — with toggle */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="border-primary/20 bg-card/80 h-full"><CardContent className="pt-5 space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-primary"><CheckCircle size={16} weight="fill" /> Hai già</div>
-            <div className="flex flex-wrap gap-2">{analyzeResult.skills_present.filter(s => s.has).map((s) => <span key={s.label} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-mono text-primary">{s.label}</span>)}</div>
+            <div className="flex flex-wrap gap-2">
+              {analyzeResult.skills_present.filter(s => s.has).map((s) => <span key={s.label} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-mono text-primary">{s.label}</span>)}
+              {/* Overridden skills shown in green with dashed border */}
+              {Array.from(overriddenSkills).map((skill) => (
+                <button
+                  key={`override-${skill}`}
+                  onClick={() => onToggleSkill(skill)}
+                  className="rounded-full border border-dashed border-primary/40 bg-primary/10 px-3 py-1 text-xs font-mono text-primary flex items-center gap-1 hover:border-primary/60 transition-colors cursor-pointer"
+                  title="Clicca per annullare"
+                >
+                  {skill}
+                  <XCircle size={12} weight="fill" className="text-primary/50" />
+                </button>
+              ))}
+            </div>
           </CardContent></Card>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
           <Card className="border-destructive/20 bg-card/80 h-full"><CardContent className="pt-5 space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-destructive"><XCircle size={16} weight="fill" /> Ti mancano</div>
-            <div className="flex flex-wrap gap-2">{analyzeResult.skills_missing.map((s) => <span key={s.label} className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-mono text-destructive flex items-center gap-1">{s.label}{(s.importance === "essential" || s.importance === "essenziale") && <Warning size={12} weight="fill" />}</span>)}</div>
+            <div className="flex flex-wrap gap-2">
+              {analyzeResult.skills_missing
+                .filter((s) => !overriddenSkills.has(s.label))
+                .map((s) => (
+                  <button
+                    key={s.label}
+                    onClick={() => onToggleSkill(s.label)}
+                    className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-mono text-destructive flex items-center gap-1 hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                    title="Ce l'ho — sposta in verde"
+                  >
+                    {s.label}
+                    {(s.importance === "essential" || s.importance === "essenziale") && <Warning size={12} weight="fill" />}
+                    <Plus size={12} weight="bold" className="ml-0.5" />
+                  </button>
+                ))}
+            </div>
+            {analyzeResult.skills_missing.length > 0 && (
+              <p className="text-[10px] text-muted-foreground italic">Clicca su una skill per dire che ce l'hai</p>
+            )}
           </CardContent></Card>
         </motion.div>
       </div>
