@@ -14,6 +14,7 @@ import AppShell from "./components/AppShell";
 import Home from "./pages/Home";
 import Nuova from "./pages/Nuova";
 import Candidature from "./pages/Candidature";
+import Impostazioni from "./pages/Impostazioni";
 import NotFound from "./pages/NotFound";
 
 const DevTest = lazy(() => import("./pages/DevTest"));
@@ -51,6 +52,7 @@ const App = () => (
                 <Route path="home" element={<Home />} />
                 <Route path="nuova" element={<Nuova />} />
                 <Route path="candidature" element={<Candidature />} />
+                <Route path="impostazioni" element={<Impostazioni />} />
                 {import.meta.env.DEV && (
                   <Route path="dev-test" element={<Suspense fallback={null}><DevTest /></Suspense>} />
                 )}

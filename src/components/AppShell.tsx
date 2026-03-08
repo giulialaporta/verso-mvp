@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { House, Briefcase, SignOut, List, Plus, Flask } from "@phosphor-icons/react";
+import { House, Briefcase, SignOut, List, Plus, Flask, Gear } from "@phosphor-icons/react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -25,6 +25,7 @@ const navItems = [
 const sidebarItems = [
   ...navItems,
   { title: "Nuova candidatura", url: "/app/nuova", icon: Plus },
+  { title: "Impostazioni", url: "/app/impostazioni", icon: Gear },
   ...(import.meta.env.DEV ? [{ title: "Dev Test", url: "/app/dev-test", icon: Flask }] : []),
 ];
 
@@ -139,6 +140,24 @@ function MobileTabBar() {
             Candidature
           </span>
           {isActive("/app/candidature") && (
+            <span className="absolute bottom-[calc(env(safe-area-inset-bottom)+2px)] h-1 w-1 rounded-full bg-primary" />
+          )}
+        </button>
+
+        {/* Impostazioni tab */}
+        <button
+          onClick={() => navigate("/app/impostazioni")}
+          className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2"
+        >
+          <Gear
+            size={22}
+            weight={isActive("/app/impostazioni") ? "fill" : "regular"}
+            className={isActive("/app/impostazioni") ? "text-primary" : "text-muted-foreground"}
+          />
+          <span className={`text-[10px] font-medium ${isActive("/app/impostazioni") ? "text-primary" : "text-muted-foreground"}`}>
+            Impostazioni
+          </span>
+          {isActive("/app/impostazioni") && (
             <span className="absolute bottom-[calc(env(safe-area-inset-bottom)+2px)] h-1 w-1 rounded-full bg-primary" />
           )}
         </button>
