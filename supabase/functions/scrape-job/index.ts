@@ -8,6 +8,53 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// --- SSRF Protection ---
+function validateUrl(input: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(input);
+  } catch {
+    throw new Error("URL non valido.");
+  }
+
+  if (parsed.protocol !== "https:") {
+    throw new Error("Solo URL HTTPS sono permessi.");
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  // Block internal/private hostnames
+  const blocked = [
+    "localhost", "127.0.0.1", "0.0.0.0", "[::1]",
+    "metadata.google.internal", "169.254.169.254",
+  ];
+  if (blocked.includes(hostname)) {
+    throw new Error("URL non permesso.");
+  }
+
+  // Block private IP ranges
+  const parts = hostname.split(".");
+  if (parts.length === 4 && parts.every(p => /^\d+$/.test(p))) {
+    const a = parseInt(parts[0]);
+    const b = parseInt(parts[1]);
+    if (
+      a === 10 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      a === 0 || a === 127
+    ) {
+      throw new Error("URL non permesso.");
+    }
+  }
+
+  // Block Supabase internal
+  if (hostname.endsWith(".internal") || hostname.endsWith(".local")) {
+    throw new Error("URL non permesso.");
+  }
+
+  return parsed.toString();
+}
+
 async function hashUrl(text: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(text);
