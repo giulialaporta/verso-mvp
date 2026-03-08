@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { hashEmail } from "@/lib/hash-email";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -29,8 +30,10 @@ export function SensitiveDataConsent({ open, onConsent, onCancel }: SensitiveDat
     if (!accepted || !user) return;
     setSaving(true);
     try {
+      const userHash = user.email ? await hashEmail(user.email) : undefined;
       await supabase.from("consent_logs" as any).insert({
         user_id: user.id,
+        user_hash: userHash,
         consent_type: "sensitive_data",
         consent_version: "1.0",
         granted: true,

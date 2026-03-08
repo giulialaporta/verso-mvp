@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { hashEmail } from "@/lib/hash-email";
 
 interface ConsentCheckboxesProps {
   acceptedTerms: boolean;
@@ -47,10 +48,12 @@ export function ConsentCheckboxes({ acceptedTerms, acceptedPrivacy, onTermsChang
 }
 
 /** Save consent records after successful signup */
-export async function saveRegistrationConsents(userId: string) {
+export async function saveRegistrationConsents(userId: string, email: string) {
   const now = new Date().toISOString();
+  const userHash = await hashEmail(email);
   const common = {
     user_id: userId,
+    user_hash: userHash,
     granted: true,
     granted_at: now,
     user_agent: navigator.userAgent,

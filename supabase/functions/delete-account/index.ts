@@ -3,6 +3,14 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 const ANON_UUID = "00000000-0000-0000-0000-000000000000";
 
+async function sha256(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input.toLowerCase().trim());
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -35,6 +43,8 @@ Deno.serve(async (req) => {
     }
 
     const userId = user.id;
+    const userEmail = user.email ?? "";
+    const emailHash = await sha256(userEmail);
 
     // Service role client for admin operations
     const supabaseAdmin = createClient(
@@ -42,14 +52,25 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 0. Audit trail — log deletion request BEFORE wiping data
+    // 0. Stamp user_hash on ALL existing consent_logs for this user (before anonymizing)
+    await supabaseAdmin
+      .from("consent_logs")
+      .update({ user_hash: emailHash })
+      .eq("user_id", userId);
+
+    // 1. Audit trail — log deletion request BEFORE wiping data
     await supabaseAdmin.from("consent_logs").insert({
       user_id: userId,
+      user_hash: emailHash,
       consent_type: "account_deletion",
       consent_version: "1.0",
       granted: true,
       method: "settings_page",
-      metadata: { requested_at: new Date().toISOString() },
+      metadata: {
+        requested_at: new Date().toISOString(),
+        email_hash: emailHash,
+        email: userEmail, // Stored for legal obligation (art. 6.1.c GDPR)
+      },
     });
 
     // 1. Anonymize existing consent_logs (keep for audit, remove PII link)
@@ -58,7 +79,7 @@ Deno.serve(async (req) => {
       .update({ user_id: ANON_UUID })
       .eq("user_id", userId);
 
-    // 2. Delete storage files
+    // 3. Delete storage files
     for (const bucket of ["cv-uploads", "cv-exports"]) {
       const { data: files } = await supabaseAdmin.storage
         .from(bucket)
@@ -69,13 +90,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3. Delete DB records (order matters for FK constraints)
+    // 4. Delete DB records (order matters for FK constraints)
     await supabaseAdmin.from("tailored_cvs").delete().eq("user_id", userId);
     await supabaseAdmin.from("applications").delete().eq("user_id", userId);
     await supabaseAdmin.from("master_cvs").delete().eq("user_id", userId);
     await supabaseAdmin.from("profiles").delete().eq("user_id", userId);
 
-    // 4. Delete auth user
+    // 5. Delete auth user
     const { error: deleteError } =
       await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteError) {
