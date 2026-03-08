@@ -14,6 +14,7 @@ import AppShell from "./components/AppShell";
 import Home from "./pages/Home";
 import Nuova from "./pages/Nuova";
 import Candidature from "./pages/Candidature";
+import Impostazioni from "./pages/Impostazioni";
 import NotFound from "./pages/NotFound";
 
 const DevTest = lazy(() => import("./pages/DevTest"));
