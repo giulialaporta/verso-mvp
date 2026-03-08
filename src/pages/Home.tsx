@@ -456,7 +456,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [cv, setCv] = useState<MasterCV | null | undefined>(undefined);
   const [inactiveCvs, setInactiveCvs] = useState<MasterCV[]>([]);
-  const [apps, setApps] = useState<AppRow[] | undefined>(undefined);
+  const [apps, setApps] = useState<AppRowWithAts[] | undefined>(undefined);
   const [profileName, setProfileName] = useState("");
   const [salaryExpectations, setSalaryExpectations] = useState<{ current_ral: number | null; desired_ral: number | null } | null>(null);
   const [deleting, setDeleting] = useState(false);
