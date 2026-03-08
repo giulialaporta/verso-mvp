@@ -48,7 +48,7 @@ export default function Candidature() {
   const navigate = useNavigate();
   const [apps, setApps] = useState<AppRowWithAts[] | undefined>(undefined);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [selectedApp, setSelectedApp] = useState<AppRow | null>(null);
+  const [selectedApp, setSelectedApp] = useState<AppRowWithAts | null>(null);
   const [drawerStatus, setDrawerStatus] = useState("");
   const [drawerNotes, setDrawerNotes] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
