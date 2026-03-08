@@ -31,6 +31,11 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 95%;
 
+    --info: 207 100% 68%; /* #5DBBFF Arctic Blue */
+    --info-foreground: 228 14% 5%;
+    --warning: 42 100% 70%; /* #FFD166 */
+    --warning-foreground: 228 14% 5%;
+
     --border: 228 10% 15%; /* border-subtle */
     --input: 228 10% 15%;
     --ring: 145 62% 55%;

@@ -162,7 +162,7 @@ export function ExportDrawer({
                 </div>
                 {/* ATS Explanation */}
                 <div className="flex items-start gap-2 p-2 rounded-lg bg-secondary/5 border border-secondary/10">
-                  <Info size={14} className="text-secondary shrink-0 mt-0.5" />
+                  <Info size={14} className="text-info shrink-0 mt-0.5" />
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
                     Il punteggio ATS misura quanto il tuo CV è leggibile dai sistemi automatici di screening usati dalle aziende. Un punteggio alto aumenta le probabilità che il tuo CV venga visto da un recruiter.
                   </p>

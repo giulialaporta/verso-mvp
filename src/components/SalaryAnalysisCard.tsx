@@ -95,7 +95,7 @@ export function SalaryAnalysisCard({ data, delay = 0.5 }: { data: SalaryAnalysis
         <CardContent className="pt-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CurrencyEur size={20} className="text-secondary" />
+              <CurrencyEur size={20} className="text-info" />
               <span className="text-sm font-medium">Analisi Retributiva</span>
             </div>
             <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${dc.bg}`}>
