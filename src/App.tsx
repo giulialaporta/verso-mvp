@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { lazy, Suspense } from "react";
 import { PageSkeleton } from "@/components/PageSkeleton";
+import { CookieBanner } from "@/components/CookieBanner";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import AppShell from "./components/AppShell";
