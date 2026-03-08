@@ -30,16 +30,7 @@ import { DetailContent } from "@/components/candidature/DetailContent";
 import { ResponsiveDetailPanel } from "@/components/candidature/ResponsiveDetailPanel";
 
 
-type AppRow = {
-  id: string;
-  company_name: string;
-  role_title: string;
-  match_score: number | null;
-  ats_score: number | null;
-  status: string;
-  created_at: string;
-  notes: string | null;
-};
+import type { AppRowWithAts } from "@/types/application";
 
 import { StatusChip, STATUS_STYLES } from "@/components/StatusChip";
 

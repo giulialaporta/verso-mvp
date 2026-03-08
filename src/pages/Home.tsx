@@ -52,15 +52,7 @@ type MasterCV = {
   is_active: boolean;
 };
 
-type AppRow = {
-  id: string;
-  company_name: string;
-  role_title: string;
-  match_score: number | null;
-  ats_score: number | null;
-  status: string;
-  created_at: string;
-};
+import type { AppRowWithAts } from "@/types/application";
 
 import { StatusChip } from "@/components/StatusChip";
 
