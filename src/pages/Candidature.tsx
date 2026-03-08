@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,16 +31,9 @@ import { DetailContent } from "@/components/candidature/DetailContent";
 import { ResponsiveDetailPanel } from "@/components/candidature/ResponsiveDetailPanel";
 
 
-type AppRow = {
-  id: string;
-  company_name: string;
-  role_title: string;
-  match_score: number | null;
-  ats_score: number | null;
-  status: string;
-  created_at: string;
-  notes: string | null;
-};
+import { useApplications } from "@/hooks/useApplications";
+import type { AppRowWithAts } from "@/types/application";
+import { usePrefetchApplication } from "@/hooks/usePrefetchApplication";
 
 import { StatusChip, STATUS_STYLES } from "@/components/StatusChip";
 
@@ -55,9 +49,11 @@ function formatDate(dateStr: string) {
 export default function Candidature() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [apps, setApps] = useState<AppRow[] | undefined>(undefined);
+  const queryClient = useQueryClient();
+  const prefetch = usePrefetchApplication();
+  const { data: apps, isLoading: appsLoading } = useApplications(100);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [selectedApp, setSelectedApp] = useState<AppRow | null>(null);
+  const [selectedApp, setSelectedApp] = useState<AppRowWithAts | null>(null);
   const [drawerStatus, setDrawerStatus] = useState("");
   const [drawerNotes, setDrawerNotes] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
@@ -67,22 +63,6 @@ export default function Candidature() {
   const [exportHonestScore, setExportHonestScore] = useState<any>(undefined);
   const [exportCompany, setExportCompany] = useState("");
   const [exportAppId, setExportAppId] = useState("");
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("applications")
-      .select("id, company_name, role_title, match_score, status, created_at, notes, tailored_cvs(ats_score)")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        const rows = (data ?? []).map((d: any) => ({
-          ...d,
-          ats_score: d.tailored_cvs?.[0]?.ats_score ?? null,
-        }));
-        setApps(rows as AppRow[]);
-      });
-  }, [user]);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -105,7 +85,7 @@ export default function Candidature() {
       await supabase.from("tailored_cvs").delete().eq("application_id", id);
       const { error } = await supabase.from("applications").delete().eq("id", id);
       if (error) throw error;
-      setApps((prev) => prev?.filter((a) => a.id !== id));
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
       toast.success("Candidatura eliminata.");
     } catch (e: any) {
       toast.error(e.message || "Errore durante l'eliminazione.");
@@ -114,7 +94,7 @@ export default function Candidature() {
     }
   };
 
-  const handleOpenDetail = (app: AppRow) => {
+  const handleOpenDetail = (app: AppRowWithAts) => {
     setSelectedApp(app);
     setDrawerStatus(app.status.toLowerCase());
     setDrawerNotes(app.notes || "");
@@ -128,9 +108,7 @@ export default function Candidature() {
         .update({ status: drawerStatus, notes: drawerNotes || null } as any)
         .eq("id", selectedApp.id);
       if (error) throw error;
-      setApps((prev) =>
-        prev?.map((a) => (a.id === selectedApp.id ? { ...a, status: drawerStatus, notes: drawerNotes || null } : a))
-      );
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
       toast.success("Stato aggiornato.");
       setSelectedApp(null);
     } catch (e: any) {
@@ -141,7 +119,7 @@ export default function Candidature() {
   const drafts = useMemo(() => (apps ?? []).filter((a) => a.status.toLowerCase() === "draft"), [apps]);
   const active = useMemo(() => (apps ?? []).filter((a) => a.status.toLowerCase() !== "draft"), [apps]);
 
-  if (apps === undefined) {
+  if (appsLoading) {
     return (
       <div className="mx-auto max-w-xl space-y-4 px-4 sm:px-0">
         <Skeleton className="h-8 w-48" />
@@ -167,10 +145,12 @@ export default function Candidature() {
     );
   }
 
-  const AppCard = ({ app }: { app: AppRow }) => (
+  const AppCard = ({ app }: { app: AppRowWithAts }) => (
     <div
       className="rounded-lg border border-border/30 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-colors"
       onClick={() => navigate(`/app/candidatura/${app.id}`)}
+      onMouseEnter={() => prefetch(app.id)}
+      onFocus={() => prefetch(app.id)}
     >
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">

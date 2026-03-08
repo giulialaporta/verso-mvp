@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,22 +46,19 @@ import type { ParsedCV } from "@/types/cv";
 
 type MasterCV = {
   id: string;
-  parsed_data: ParsedCV | null;
+  parsed_data?: any;
   file_name: string | null;
   file_url: string | null;
   created_at: string;
   is_active: boolean;
+  photo_url?: string | null;
 };
 
-type AppRow = {
-  id: string;
-  company_name: string;
-  role_title: string;
-  match_score: number | null;
-  ats_score: number | null;
-  status: string;
-  created_at: string;
-};
+import type { AppRowWithAts } from "@/types/application";
+import { useProfile } from "@/hooks/useProfile";
+import { useApplications } from "@/hooks/useApplications";
+import { useMasterCV } from "@/hooks/useMasterCV";
+import { usePrefetchApplication } from "@/hooks/usePrefetchApplication";
 
 import { StatusChip } from "@/components/StatusChip";
 
@@ -218,8 +216,9 @@ function VirginState() {
 }
 
 // ─── Recent Applications ─────────────────────────────────────
-function RecentApplications({ apps }: { apps: AppRow[] }) {
+function RecentApplications({ apps }: { apps: AppRowWithAts[] }) {
   const navigate = useNavigate();
+  const prefetch = usePrefetchApplication();
 
   if (apps.length === 0) return null;
 
@@ -236,6 +235,8 @@ function RecentApplications({ apps }: { apps: AppRow[] }) {
             key={app.id}
             className="rounded-lg border border-border/30 bg-card/60 px-3 py-2.5 cursor-pointer hover:border-primary/40 transition-colors"
             onClick={() => navigate(`/app/candidatura/${app.id}`)}
+            onMouseEnter={() => prefetch(app.id)}
+            onFocus={() => prefetch(app.id)}
           >
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
@@ -462,58 +463,18 @@ function CVCard({
 export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [cv, setCv] = useState<MasterCV | null | undefined>(undefined);
-  const [inactiveCvs, setInactiveCvs] = useState<MasterCV[]>([]);
-  const [apps, setApps] = useState<AppRow[] | undefined>(undefined);
-  const [profileName, setProfileName] = useState("");
-  const [salaryExpectations, setSalaryExpectations] = useState<{ current_ral: number | null; desired_ral: number | null } | null>(null);
+  const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
+  // React Query hooks
+  const { data: profile } = useProfile();
+  const { data: apps } = useApplications(3);
+  const { active: activeCvQuery, inactive: inactiveCvQuery } = useMasterCV();
 
-    const fetchData = async () => {
-      const [{ data: profile }, { data: activeCvs }, { data: oldCvs }, { data: appRows }] =
-        await Promise.all([
-          supabase
-            .from("profiles")
-            .select("full_name, salary_expectations")
-            .eq("user_id", user.id)
-            .single(),
-          supabase
-            .from("master_cvs")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("is_active", true)
-            .order("created_at", { ascending: false })
-            .limit(1),
-          supabase
-            .from("master_cvs")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("is_active", false)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("applications")
-            .select("id, company_name, role_title, match_score, status, created_at, tailored_cvs(ats_score)")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(20),
-        ]);
-
-      setProfileName(profile?.full_name || "");
-      setSalaryExpectations((profile as any)?.salary_expectations || null);
-      setCv(activeCvs && activeCvs.length > 0 ? (activeCvs[0] as unknown as MasterCV) : null);
-      setInactiveCvs((oldCvs as unknown as MasterCV[]) ?? []);
-      const mappedApps = (appRows ?? []).map((d: any) => ({
-        ...d,
-        ats_score: d.tailored_cvs?.[0]?.ats_score ?? null,
-      }));
-      setApps(mappedApps as AppRow[]);
-    };
-
-    fetchData();
-  }, [user]);
+  const cv = activeCvQuery.data;
+  const inactiveCvs = inactiveCvQuery.data ?? [];
+  const profileName = profile?.full_name || "";
+  const salaryExpectations = (profile as any)?.salary_expectations || null;
 
   const handleDelete = async () => {
     if (!cv || !user) return;
@@ -524,8 +485,7 @@ export default function Home() {
         .update({ is_active: false } as any)
         .eq("id", cv.id);
       if (error) throw error;
-      setInactiveCvs((prev) => [{ ...cv, is_active: false } as MasterCV, ...prev]);
-      setCv(null);
+      queryClient.invalidateQueries({ queryKey: ["masterCV"] });
       toast.success("CV archiviato.");
     } catch (e: any) {
       toast.error(e.message || "Errore durante l'archiviazione.");
@@ -533,6 +493,8 @@ export default function Home() {
       setDeleting(false);
     }
   };
+
+  const invalidateCVs = () => queryClient.invalidateQueries({ queryKey: ["masterCV"] });
 
   const handleReactivate = async (oldCv: MasterCV) => {
     if (!user) return;
@@ -544,14 +506,7 @@ export default function Home() {
       // Activate selected CV
       const { error } = await supabase.from("master_cvs").update({ is_active: true } as any).eq("id", oldCv.id);
       if (error) throw error;
-
-      const reactivated = { ...oldCv, is_active: true } as MasterCV;
-      setInactiveCvs((prev) => {
-        const updated = prev.filter((c) => c.id !== oldCv.id);
-        if (cv) updated.unshift({ ...cv, is_active: false } as MasterCV);
-        return updated;
-      });
-      setCv(reactivated);
+      invalidateCVs();
       toast.success("CV riattivato.");
     } catch (e: any) {
       toast.error(e.message || "Errore durante la riattivazione.");
@@ -565,7 +520,7 @@ export default function Home() {
       }
       const { error } = await supabase.from("master_cvs").delete().eq("id", oldCv.id);
       if (error) throw error;
-      setInactiveCvs((prev) => prev.filter((c) => c.id !== oldCv.id));
+      invalidateCVs();
       toast.success("CV eliminato definitivamente.");
     } catch (e: any) {
       toast.error(e.message || "Errore durante l'eliminazione.");
@@ -573,7 +528,7 @@ export default function Home() {
   };
 
   const firstName = profileName?.split(" ")[0] || "utente";
-  const isLoading = cv === undefined || apps === undefined;
+  const isLoading = activeCvQuery.isLoading || !apps;
   const hasCV = cv !== null && cv !== undefined;
   const activeApps = useMemo(
     () => (apps ?? []).filter((a) => !["ko", "draft"].includes(a.status.toLowerCase())),
@@ -683,7 +638,7 @@ export default function Home() {
                 .from("profiles")
                 .update({ salary_expectations: data } as any)
                 .eq("user_id", user!.id);
-              setSalaryExpectations(data);
+              queryClient.invalidateQueries({ queryKey: ["profile"] });
               toast.success("Aspettative RAL aggiornate.");
             }}
           />

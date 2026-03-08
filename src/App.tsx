@@ -7,18 +7,19 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { lazy, Suspense } from "react";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
-import Onboarding from "./pages/Onboarding";
 import AppShell from "./components/AppShell";
 import Home from "./pages/Home";
-import Nuova from "./pages/Nuova";
-import Candidature from "./pages/Candidature";
-import Impostazioni from "./pages/Impostazioni";
-import CVEdit from "./pages/CVEdit";
-import CandidaturaDetail from "./pages/CandidaturaDetail";
 import NotFound from "./pages/NotFound";
 
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Nuova = lazy(() => import("./pages/Nuova"));
+const Candidature = lazy(() => import("./pages/Candidature"));
+const Impostazioni = lazy(() => import("./pages/Impostazioni"));
+const CVEdit = lazy(() => import("./pages/CVEdit"));
+const CandidaturaDetail = lazy(() => import("./pages/CandidaturaDetail"));
 const DevTest = lazy(() => import("./pages/DevTest"));
 
 const queryClient = new QueryClient();
@@ -39,7 +40,7 @@ const App = () => (
                 path="/onboarding"
                 element={
                   <ProtectedRoute>
-                    <Onboarding />
+                    <Suspense fallback={<PageSkeleton />}><Onboarding /></Suspense>
                   </ProtectedRoute>
                 }
               />
@@ -52,11 +53,11 @@ const App = () => (
                 }
               >
                 <Route path="home" element={<Home />} />
-                <Route path="nuova" element={<Nuova />} />
-                <Route path="candidature" element={<Candidature />} />
-                <Route path="impostazioni" element={<Impostazioni />} />
-                <Route path="cv-edit" element={<CVEdit />} />
-                <Route path="candidatura/:id" element={<CandidaturaDetail />} />
+                <Route path="nuova" element={<Suspense fallback={<PageSkeleton />}><Nuova /></Suspense>} />
+                <Route path="candidature" element={<Suspense fallback={<PageSkeleton />}><Candidature /></Suspense>} />
+                <Route path="impostazioni" element={<Suspense fallback={<PageSkeleton />}><Impostazioni /></Suspense>} />
+                <Route path="cv-edit" element={<Suspense fallback={<PageSkeleton />}><CVEdit /></Suspense>} />
+                <Route path="candidatura/:id" element={<Suspense fallback={<PageSkeleton />}><CandidaturaDetail /></Suspense>} />
                 {import.meta.env.DEV && (
                   <Route path="dev-test" element={<Suspense fallback={null}><DevTest /></Suspense>} />
                 )}
