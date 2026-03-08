@@ -46,11 +46,12 @@ import type { ParsedCV } from "@/types/cv";
 
 type MasterCV = {
   id: string;
-  parsed_data: ParsedCV | null;
+  parsed_data?: any;
   file_name: string | null;
   file_url: string | null;
   created_at: string;
   is_active: boolean;
+  photo_url?: string | null;
 };
 
 import type { AppRowWithAts } from "@/types/application";
