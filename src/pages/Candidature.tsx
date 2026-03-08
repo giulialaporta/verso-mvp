@@ -33,6 +33,7 @@ import { ResponsiveDetailPanel } from "@/components/candidature/ResponsiveDetail
 
 import { useApplications } from "@/hooks/useApplications";
 import type { AppRowWithAts } from "@/types/application";
+import { usePrefetchApplication } from "@/hooks/usePrefetchApplication";
 
 import { StatusChip, STATUS_STYLES } from "@/components/StatusChip";
 
