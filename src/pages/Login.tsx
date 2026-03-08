@@ -50,6 +50,15 @@ export default function Login() {
     );
   }
 
+  // Save pending OAuth consents when user lands back after OAuth signup
+  useEffect(() => {
+    if (!user) return;
+    const pending = localStorage.getItem("verso_pending_oauth_consents");
+    if (!pending) return;
+    localStorage.removeItem("verso_pending_oauth_consents");
+    saveRegistrationConsents(user.id, user.email ?? "").catch(() => {});
+  }, [user]);
+
   if (user) {
     return <Navigate to={fromPath} replace />;
   }
