@@ -1465,6 +1465,7 @@ export default function Nuova() {
           diff: result.diff as any,
           score_note: analyzeResult.score_note || null,
           learning_suggestions: analyzeResult.learning_suggestions as any || null,
+          structural_changes: result.structural_changes as any || null,
         };
 
         const { data: existingTc } = await supabase.from("tailored_cvs").select("id").eq("application_id", applicationId).maybeSingle();
@@ -1472,6 +1473,11 @@ export default function Nuova() {
           await supabase.from("tailored_cvs").update(tcPayload as any).eq("id", existingTc.id);
         } else {
           await supabase.from("tailored_cvs").insert([tcPayload as any]);
+        }
+
+        // Persist overridden skills
+        if (overriddenSkills.size > 0) {
+          await supabase.from("applications").update({ skills_overridden: Array.from(overriddenSkills) } as any).eq("id", applicationId);
         }
       }
 
