@@ -495,7 +495,7 @@ export default function Home() {
             .order("created_at", { ascending: false }),
           supabase
             .from("applications")
-            .select("id, company_name, role_title, match_score, ats_score, status, created_at")
+            .select("id, company_name, role_title, match_score, status, created_at, tailored_cvs(ats_score)")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
             .limit(20),
