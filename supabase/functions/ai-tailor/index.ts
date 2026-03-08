@@ -576,12 +576,16 @@ Deno.serve(async (req) => {
       result.skipped_patches = skipped_patches;
     }
 
-    // Ensure skills arrays
+    // Ensure skills arrays + strip quotes from skill names
     const cvSkills = (tailoredCV as any)?.skills;
     if (cvSkills && typeof cvSkills === "object") {
       for (const key of ["technical", "soft", "tools"]) {
         if (typeof cvSkills[key] === "string") {
-          cvSkills[key] = cvSkills[key].split(",").map((s: string) => s.trim()).filter(Boolean);
+          cvSkills[key] = cvSkills[key].split(",").map((s: string) => s.replace(/^["']+|["']+$/g, "").trim()).filter(Boolean);
+        } else if (Array.isArray(cvSkills[key])) {
+          cvSkills[key] = cvSkills[key].map((s: string) =>
+            typeof s === "string" ? s.replace(/^["']+|["']+$/g, "").trim() : s
+          );
         }
       }
     }
