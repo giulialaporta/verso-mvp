@@ -8,14 +8,19 @@ Checklist per verificare le 4 Edge Functions: parse-cv, scrape-job, ai-prescreen
 
 - [ ] **A1** — Endpoint `POST /functions/v1/parse-cv` risponde correttamente
 - [ ] **A2** — Richiede autenticazione (senza token: errore 401)
-- [ ] **A3** — PDF standard: output JSON con tutti i campi (personal, summary, experience, education, skills, certifications, projects, extra)
-- [ ] **A4** — Campi mancanti nel CV: restituiti come vuoti/null (non inventati)
-- [ ] **A5** — Foto presente nel PDF: estratta e caricata su Storage con URL firmato
-- [ ] **A6** — Foto assente: `photo_url` null, nessun errore
-- [ ] **A7** — Summary assente nel CV: ne viene generato uno automaticamente
-- [ ] **A8** — Lingua del CV preservata nell'output
-- [ ] **A9** — Lingue con livello CEFR quando specificato
-- [ ] **A10** — `raw_text` contiene il testo estratto dal PDF
+- [ ] **A3** — PDF standard: output JSON con tutti i campi (personal, summary, experience, education, skills, certifications, projects, extra_sections)
+- [ ] **A4** — Campi mancanti nel CV: restituiti come `null` (non stringa vuota, non inventati)
+- [ ] **A5** — Foto persona nel PDF: AI rileva `has_photo: true`, foto estratta e caricata su Storage con URL firmato
+- [ ] **A6** — Foto assente: `has_photo: false`, `photo_url` null, nessun errore
+- [ ] **A7** — Logo/icona nel PDF (non foto persona): `has_photo: false` (non confusa con foto)
+- [ ] **A8** — Summary assente nel CV: ne viene generato uno automaticamente (2-3 frasi)
+- [ ] **A9** — Lingua del CV preservata nell'output (mai tradotta)
+- [ ] **A10** — Lingue con livello CEFR + descriptor originale (es. `level: "C1", descriptor: "ottimo"`)
+- [ ] **A11** — `raw_text` restituisce `"multimodal"` (input diretto PDF)
+- [ ] **A12** — CV multi-colonna: sia colonna principale che sidebar vengono estratte
+- [ ] **A13** — Separazione description/bullets: testo narrativo in `description`, punti elenco in `bullets`, mai duplicati
+- [ ] **A14** — Sezioni non standard catturate in `extra_sections` (es. Volontariato, Hobby)
+- [ ] **A15** — Input `filePath`: il PDF viene scaricato da Storage (non piu' base64 nel body)
 
 ---
 
@@ -55,9 +60,12 @@ Checklist per verificare le 4 Edge Functions: parse-cv, scrape-job, ai-prescreen
 
 - [ ] **D1** — Endpoint `POST /functions/v1/ai-tailor` risponde correttamente
 - [ ] **D2** — Richiede autenticazione (senza token: errore 401)
-- [ ] **D3** — Output contiene: patches, structural_changes, match_score, ats_score, ats_checks, honest_score, skills_match
+- [ ] **D3** — Output contiene: patches, structural_changes, match_score, ats_score, ats_checks, honest_score, skills_match, skipped_patches
 - [ ] **D4** — Le patch hanno formato `{ path, value, reason }`
 - [ ] **D5** — match_score e ats_score sono numeri 0-100
+- [ ] **D13** — Patch con path invalido (index out of bounds): skippata senza crash, riportata in `skipped_patches`
+- [ ] **D14** — `skills_match.missing` include `severity` (critical/moderate/minor) per ogni skill mancante
+- [ ] **D15** — Score adjustment: skill critical mancanti penalizzano piu' di moderate/minor
 - [ ] **D6** — ats_checks contiene 7 check con status `pass`, `warning` o `fail`
 - [ ] **D7** — honest_score contiene confidence + contatori (experiences_added, skills_invented, dates_modified, ecc.)
 - [ ] **D8** — Le patch non modificano date, nomi aziende, titoli di ruolo
@@ -75,7 +83,10 @@ Checklist per verificare le 4 Edge Functions: parse-cv, scrape-job, ai-prescreen
 - [ ] **E3** — Token JWT scaduto: errore 401 (non errore generico)
 - [ ] **E4** — Input malformato (JSON invalido): errore 400 con messaggio
 - [ ] **E5** — Timeout dell'AI provider: errore gestito con messaggio comprensibile
-- [ ] **E6** — Retry automatico su errori transitori (se implementato)
+- [ ] **E6** — Retry automatico su errori transitori (max 2 retry, backoff 1s/3s)
+- [ ] **E7** — Fallback model: se il modello primario fallisce dopo retry → tentativo con `gemini-2.0-flash`
+- [ ] **E8** — Errori 401/402/429: non vengono retried (non-retryable)
+- [ ] **E9** — Validazione output AI: campi mancanti loggati come warning (non bloccano la response)
 
 ---
 

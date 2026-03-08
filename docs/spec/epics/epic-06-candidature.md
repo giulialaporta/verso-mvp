@@ -58,18 +58,20 @@ Ogni card mostra:
 
 ---
 
-## Edit Drawer
+## Detail Panel (responsive)
 
-Click su una candidatura → apre un drawer (`EditItemDrawer`):
+Click su una candidatura → apre un pannello di dettaglio:
 
-- **Cambio status:** dropdown con tutti gli stati disponibili
+- **Info:** ruolo, azienda, data, match score
+- **Cambio status:** chip selezionabili (non dropdown) per tutti gli stati disponibili
 - **Note:** campo testo libero per appunti del candidato
-- **Download CV:** link al PDF del CV adattato (se generato)
-- **Elimina:** pulsante di eliminazione con conferma
+- **Salva:** pulsante per salvare status e note
+- **Download CV:** pulsante per scaricare il PDF del CV adattato (via ExportDrawer)
+- **Elimina:** pulsante di eliminazione con AlertDialog di conferma
 
-**Layout:**
-- Mobile: drawer slide-up
-- Desktop: drawer slide-right
+**Layout responsive (`ResponsiveDetailPanel`):**
+- Mobile: `Drawer` slide-up (max 85vh)
+- Desktop: `Sheet` slide-right (400px)
 
 ---
 
@@ -77,11 +79,11 @@ Click su una candidatura → apre un drawer (`EditItemDrawer`):
 
 | Azione | Comportamento |
 |--------|--------------|
-| Cambia status | Aggiorna `applications.status` + `updated_at` |
-| Aggiungi nota | Aggiorna `applications.notes` |
-| Download CV | Apre `tailored_cvs.pdf_url` |
-| Elimina | Conferma → elimina application + tailored_cv associato |
-| Riprendi bozza | Redirect a `/app/nuova` con dati pre-caricati |
+| Cambia status | Seleziona chip → click Salva → aggiorna `applications.status` + `updated_at` |
+| Aggiungi nota | Scrive nel campo → click Salva → aggiorna `applications.notes` |
+| Download CV | Carica `tailored_cvs` → apre ExportDrawer con template PDF |
+| Elimina | AlertDialog conferma → elimina application + tailored_cv + PDF da Storage |
+| Riprendi bozza | Redirect a `/app/nuova?draft=<id>` con dati pre-caricati |
 
 ---
 
@@ -90,7 +92,9 @@ Click su una candidatura → apre un drawer (`EditItemDrawer`):
 | Componente | Scopo |
 |------------|-------|
 | `StatusChip` | Badge colorato per status candidatura |
-| `EditItemDrawer` | Drawer per editing dettagli candidatura |
+| `ResponsiveDetailPanel` | Wrapper responsive (Drawer mobile / Sheet desktop) |
+| `DetailContent` | Contenuto del pannello: info, status, note, azioni |
+| `ExportDrawer` | Drawer per export/download PDF |
 
 ---
 
