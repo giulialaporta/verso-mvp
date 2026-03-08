@@ -25,5 +25,6 @@ Ogni file e' una checklist con checkbox markdown (`- [ ]`) da usare per il test 
 | `check-export-dashboard.md` | Export PDF, Dashboard Home | F5 |
 | `check-candidature.md` | Lista candidature, Stati, Note, Bozze | F6 |
 | `check-persistenza.md` | Sessione, dati CV, bozze, candidature, eliminazione | Cross |
+| `check-legal-privacy.md` | T&C, Privacy, Cookie, Consensi, Trasparenza AI, GDPR | F9 |
 
 > I file non ancora creati verranno generati al primo lancio di `/test`.

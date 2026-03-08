@@ -56,6 +56,7 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/backlog/stories-p2-ux.md` | P2 — 7 stories miglioramenti UX |
 | `docs/backlog/stories-p3-pulizia.md` | P3 — 7 stories pulizia tecnica |
 | `docs/backlog/epic-08-settings.md` | F8 — Impostazioni (gratuita, no freemium) |
+| `docs/backlog/epic-09-legal-privacy.md` | F9 — Legal, Privacy, Trasparenza AI (P0, 10 stories) |
 | `docs/backlog/CLAUDE_epic-template.md` | Template per scrivere nuovi epic |
 | `docs/test/` | Checklist di acceptance criteria per test manuale (6 file, comando `/test`) |
 | `docs/landing-page/` | Prompt per la landing page |
