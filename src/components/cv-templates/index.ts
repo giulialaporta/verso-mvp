@@ -1,5 +1,6 @@
 export { ClassicoTemplate } from "./ClassicoTemplate";
 export { MinimalTemplate } from "./MinimalTemplate";
+export { clean, ensureArray, h, MAX_SIDEBAR_SKILLS } from "./template-utils";
 
 export const TEMPLATES = [
   { id: "classico", name: "Classico", free: true },
