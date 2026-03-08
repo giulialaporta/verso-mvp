@@ -14,44 +14,37 @@ Quattro Supabase Edge Functions (Deno) che alimentano Verso. Tutte usano il gate
 
 **Endpoint:** `POST /functions/v1/parse-cv`
 
-**Input:** `{ "filePath": "user_id/filename.pdf" }` — path del file su Supabase Storage (`cv-uploads`)
+**Input:** PDF come base64
 
 **Processo:**
-1. Scarica il PDF da Supabase Storage tramite `filePath`
-2. Input multimodale diretto a Gemini 2.5 Flash (il PDF viene passato al modello come base64)
-3. L'AI rileva se il CV contiene una foto persona (`has_photo` + `photo_position`)
-4. Se AI conferma foto: scansione binaria per marker JPG/PNG, euristica dimensione (5KB-500KB), upload su Storage → URL firmato
-5. Se AI non rileva foto: nessun tentativo di estrazione
+1. Riceve il PDF in base64
+2. Input multimodale diretto a Gemini 2.5 Flash (il PDF viene passato al modello, non estratto come testo)
+3. Scansione binaria del PDF per marker JPG/PNG → estrazione foto
+4. Se presente foto: upload su Supabase Storage → URL firmato
 
 **Output:**
 ```json
 {
   "parsed_data": {
-    "personal": { "name": "", "email": "", "phone": "", "location": "", "date_of_birth": "", "linkedin": "", "website": "" },
+    "personal": { "name": "", "email": "", "phone": "", "location": "", "linkedin": "", "website": "" },
     "summary": "",
-    "experience": [{ "company": "", "role": "", "location": "", "start": "", "end": "", "current": false, "description": "", "bullets": [] }],
-    "education": [{ "institution": "", "degree": "", "field": "", "start": "", "end": "", "grade": "", "honors": "", "program": "", "publication": "" }],
-    "skills": { "technical": [], "soft": [], "tools": [], "languages": [{ "language": "", "level": "", "descriptor": "" }] },
+    "experience": [{ "company": "", "role": "", "start": "", "end": "", "current": false, "description": "", "bullets": [] }],
+    "education": [{ "institution": "", "degree": "", "field": "", "start": "", "end": "", "grades": "", "honors": "", "programs": "", "publications": "" }],
+    "skills": { "technical": [], "soft": [], "tools": [], "languages": [{ "language": "", "level": "" }] },
     "certifications": [{ "name": "", "issuer": "", "year": "" }],
     "projects": [{ "name": "", "description": "" }],
-    "extra_sections": [{ "title": "", "items": [] }]
+    "extra": []
   },
-  "has_photo": true,
   "photo_url": "...",
-  "raw_text": "multimodal"
+  "raw_text": "..."
 }
 ```
 
-**Regole prompt:**
-- Preserva la lingua originale del CV (mai tradurre)
-- Se il summary non è presente, ne sintetizza uno (2-3 frasi) dai dati disponibili
-- Lingue con livello CEFR + descriptor originale (es. `"level": "C1", "descriptor": "ottimo"`)
-- Null handling: campi assenti → `null`, non stringa vuota
-- Section mapping multilingua (IT, EN, DE, FR, ES)
-- Multi-column layout: legge colonna principale + sidebar
-- Description vs bullets: separazione netta, mai duplicare
-- Foto detection via AI: distingue foto persona da loghi/icone/QR
-- Extra sections: qualsiasi sezione non standard viene catturata in `extra_sections`
+**Regole:**
+- Preserva la lingua originale del CV
+- Se il summary non è presente, ne sintetizza uno dai dati disponibili
+- Lingue con livello CEFR (A1-C2) quando specificato
+- Non inventa nulla — se un campo manca, lo lascia vuoto
 
 ---
 
@@ -168,7 +161,6 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 - Ogni patch: `{ "path": "experience[0].bullets[2]", "value": "nuovo testo" }`
 - Solo i campi effettivamente modificati
 - Le patch vengono applicate al CV master dal frontend
-- `applyPatches` con validazione path: bounds check array, verifica nodi intermedi, patch invalide skippate (non crash)
 
 **Due livelli:**
 
@@ -201,9 +193,8 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
   },
   "skills_match": {
     "present": [{ "label": "...", "has": true }],
-    "missing": [{ "label": "...", "importance": "...", "severity": "critical|moderate|minor" }]
-  },
-  "skipped_patches": ["path/that/failed"]
+    "missing": [{ "label": "...", "importance": "..." }]
+  }
 }
 ```
 
@@ -213,18 +204,6 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 - Mai rimuovere tutte le esperienze (minimo 2)
 - Max 50% di rimozione esperienze
 - Rilevamento lingua: CV output nella lingua dell'annuncio
-- Patch path validation: index out of bounds e nodi inesistenti → patch skippata
-- Score adjustment basato su severity skill mancanti (critical/moderate/minor)
-
----
-
-## Moduli shared (implementati)
-
-| Modulo | Scopo |
-|--------|-------|
-| `_shared/compact-cv.ts` | Compatta CV: rimuove null, placeholder, photo_base64 |
-| `_shared/ai-fetch.ts` | Fetch AI con retry (2x, backoff 1s/3s), fallback model, parseAIResponse |
-| `_shared/validate-output.ts` | Validazione schema output AI (log warning, non blocca) |
 
 ---
 

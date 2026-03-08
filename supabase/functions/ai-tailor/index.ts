@@ -158,6 +158,11 @@ If the job posting is in Italian, the ENTIRE CV must be in Italian.
 Common mistake to AVOID: translating some bullets but leaving others in the original language.
 Check EVERY bullet and EVERY section before finalizing.
 
+## SKILL LABEL RULES
+- Translate generic/descriptive skills to detected_language ("Project Management" → "Gestione progetti", "Team Leadership" → "Leadership del team", "Cross-functional Collaboration" → "Collaborazione interfunzionale").
+- Keep proper nouns and technology names as-is: React, SQL, Figma, AWS, Jira, Python, etc.
+- NEVER wrap skill names in quotes. Wrong: "React". Correct: React.
+
 ## LANGUAGE POLICY EXAMPLES
 - Job posting in English → ALL patches values in English, but diff reasons in Italian: "Aggiunto keyword rilevante..."
 - Job posting in Italian → ALL patches values in Italian, but diff reasons still in Italian
@@ -200,7 +205,8 @@ Each patch has:
 - path: JSON path in the CV (e.g. "summary", "experience[0].bullets", "skills.technical", "experience")
 - value: the new value for that field
 
-Do NOT return the entire CV. Return ONLY the fields you actually changed.
+Return ONLY the fields you actually changed.
+CRITICAL EXCEPTION: if the CV language differs from detected_language, you MUST generate patches for ALL text fields to translate them completely. This includes: summary, every experience's description and bullets, skills.technical, skills.soft, skills.tools, all education fields, certifications, and projects. In this case, translation IS tailoring — every text field needs a patch.
 
 ## FUNDAMENTAL RULES
 - You CANNOT invent new experiences, degrees, or certifications
@@ -570,12 +576,16 @@ Deno.serve(async (req) => {
       result.skipped_patches = skipped_patches;
     }
 
-    // Ensure skills arrays
+    // Ensure skills arrays + strip quotes from skill names
     const cvSkills = (tailoredCV as any)?.skills;
     if (cvSkills && typeof cvSkills === "object") {
       for (const key of ["technical", "soft", "tools"]) {
         if (typeof cvSkills[key] === "string") {
-          cvSkills[key] = cvSkills[key].split(",").map((s: string) => s.trim()).filter(Boolean);
+          cvSkills[key] = cvSkills[key].split(",").map((s: string) => s.replace(/^["']+|["']+$/g, "").trim()).filter(Boolean);
+        } else if (Array.isArray(cvSkills[key])) {
+          cvSkills[key] = cvSkills[key].map((s: string) =>
+            typeof s === "string" ? s.replace(/^["']+|["']+$/g, "").trim() : s
+          );
         }
       }
     }

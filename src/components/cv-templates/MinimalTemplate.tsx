@@ -1,4 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
+import { clean, ensureArray, MAX_SIDEBAR_SKILLS, h } from "./template-utils";
 
 Font.register({
   family: "Inter",
@@ -8,20 +9,6 @@ Font.register({
     { src: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hjQ.ttf", fontWeight: 700 },
   ],
 });
-
-const NONE_VALUES = ["None", "none", "null", "N/A", "n/a", "undefined", "N/D", "n/d"];
-const clean = (val: unknown): string | null => {
-  if (typeof val !== "string") return null;
-  const trimmed = val.trim();
-  if (!trimmed || NONE_VALUES.includes(trimmed)) return null;
-  return trimmed;
-};
-
-const ensureArray = (val: unknown): string[] => {
-  if (Array.isArray(val)) return val.map(v => clean(String(v))).filter(Boolean) as string[];
-  if (typeof val === "string") return val.split(",").map(s => s.trim()).filter(s => s && !NONE_VALUES.includes(s));
-  return [];
-};
 
 const SIDEBAR_BG = "#F5F5F5";
 const SIDEBAR_TEXT = "#1a1a1a";
@@ -62,7 +49,7 @@ const s = StyleSheet.create({
   projLink: { fontSize: 9, color: LINK_COLOR, marginTop: 1 },
 });
 
-export function MinimalTemplate({ cv }: { cv: Record<string, any> }) {
+export function MinimalTemplate({ cv, lang }: { cv: Record<string, any>; lang?: string }) {
   const personal = cv.personal || {};
   const summary = clean(cv.summary);
   const experience = cv.experience || [];
@@ -75,37 +62,36 @@ export function MinimalTemplate({ cv }: { cv: Record<string, any> }) {
 
   const contactParts = [clean(personal.email), clean(personal.phone), clean(personal.location)].filter(Boolean) as string[];
 
-  const allSkills = skills
+  const allSkills = (skills
     ? Array.isArray(skills)
       ? skills.filter((sk: string) => clean(sk))
       : [...ensureArray(skills.technical), ...ensureArray(skills.soft), ...ensureArray(skills.tools)]
-    : [];
+    : []).slice(0, MAX_SIDEBAR_SKILLS);
 
   const languages = skills?.languages && Array.isArray(skills.languages) ? skills.languages : [];
 
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        {/* ===== SIDEBAR (30%) ===== */}
         <View style={s.sidebar}>
           {photoUrl && <Image src={photoUrl} style={s.photo} />}
           <Text style={s.sidebarName}>{clean(personal.name) || "Nome Cognome"}</Text>
 
-          <Text style={s.sidebarSection}>Contatti</Text>
+          <Text style={s.sidebarSection}>{h("contacts", lang)}</Text>
           {contactParts.map((c, i) => <Text key={i} style={s.contactItem}>{c}</Text>)}
           {clean(personal.linkedin) && <Text style={s.contactLink}>{personal.linkedin}</Text>}
           {clean(personal.website) && <Text style={s.contactLink}>{personal.website}</Text>}
 
           {allSkills.length > 0 && (
             <>
-              <Text style={s.sidebarSection}>Competenze</Text>
+              <Text style={s.sidebarSection}>{h("skills", lang)}</Text>
               {allSkills.map((sk: string, i: number) => <Text key={i} style={s.skillChip}>• {sk}</Text>)}
             </>
           )}
 
           {languages.length > 0 && (
             <>
-              <Text style={s.sidebarSection}>Lingue</Text>
+              <Text style={s.sidebarSection}>{h("languages", lang)}</Text>
               {languages.map((l: any, i: number) => (
                 <Text key={i} style={s.langItem}>
                   {l.language}{clean(l.level) ? ` — ${l.level}` : ""}
@@ -116,7 +102,7 @@ export function MinimalTemplate({ cv }: { cv: Record<string, any> }) {
 
           {certifications.length > 0 && (
             <>
-              <Text style={s.sidebarSection}>Certificazioni</Text>
+              <Text style={s.sidebarSection}>{h("certifications", lang)}</Text>
               {certifications.map((cert: any, i: number) => (
                 <View key={i}>
                   <Text style={s.certName}>{cert.name}{clean(cert.issuer) ? ` — ${cert.issuer}` : ""}</Text>
@@ -127,7 +113,6 @@ export function MinimalTemplate({ cv }: { cv: Record<string, any> }) {
           )}
         </View>
 
-        {/* ===== MAIN (70%) ===== */}
         <View style={s.main}>
           <Text style={s.mainName}>{clean(personal.name) || "Nome Cognome"}</Text>
           {contactParts.length > 0 && <Text style={s.mainSubtitle}>{contactParts.join("  |  ")}</Text>}
@@ -135,7 +120,7 @@ export function MinimalTemplate({ cv }: { cv: Record<string, any> }) {
           {summary && (
             <>
               <View style={s.divider} />
-              <Text style={s.sectionTitle}>Profilo</Text>
+              <Text style={s.sectionTitle}>{h("profile", lang)}</Text>
               <Text style={s.summary}>{summary}</Text>
             </>
           )}
@@ -143,9 +128,9 @@ export function MinimalTemplate({ cv }: { cv: Record<string, any> }) {
           {experience.length > 0 && (
             <>
               <View style={s.divider} />
-              <Text style={s.sectionTitle}>Esperienza</Text>
+              <Text style={s.sectionTitle}>{h("experience", lang)}</Text>
               {experience.map((exp: any, i: number) => (
-                <View key={i} style={s.expBlock}>
+                <View key={i} style={s.expBlock} wrap={false}>
                   <Text style={s.expRole}>
                     {clean(exp.role) || clean(exp.title)} — {exp.company}
                   </Text>
@@ -167,7 +152,7 @@ export function MinimalTemplate({ cv }: { cv: Record<string, any> }) {
           {education.length > 0 && (
             <>
               <View style={s.divider} />
-              <Text style={s.sectionTitle}>Formazione</Text>
+              <Text style={s.sectionTitle}>{h("education", lang)}</Text>
               {education.map((ed: any, i: number) => (
                 <View key={i} style={s.eduBlock}>
                   <Text style={s.eduTitle}>
@@ -185,7 +170,7 @@ export function MinimalTemplate({ cv }: { cv: Record<string, any> }) {
           {projects.length > 0 && (
             <>
               <View style={s.divider} />
-              <Text style={s.sectionTitle}>Progetti</Text>
+              <Text style={s.sectionTitle}>{h("projects", lang)}</Text>
               {projects.map((proj: any, i: number) => (
                 <View key={i} style={s.projBlock}>
                   <Text style={s.projName}>{proj.name}</Text>

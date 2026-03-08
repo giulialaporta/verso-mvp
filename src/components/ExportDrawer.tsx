@@ -73,6 +73,7 @@ type Props = {
   companyName: string;
   applicationId?: string;
   userId?: string;
+  lang?: string;
 };
 
 export function ExportDrawer({
@@ -85,6 +86,7 @@ export function ExportDrawer({
   companyName,
   applicationId,
   userId,
+  lang,
 }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("classico");
   const [downloading, setDownloading] = useState(false);
@@ -99,7 +101,7 @@ export function ExportDrawer({
     try {
       const TemplateComponent =
         selectedTemplate === "minimal" ? MinimalTemplate : ClassicoTemplate;
-      const blob = await pdf(<TemplateComponent cv={tailoredCv} />).toBlob();
+      const blob = await pdf(<TemplateComponent cv={tailoredCv} lang={lang} />).toBlob();
 
       const fileName = `CV-${personalName.replace(/\s+/g, "-")}-${companyName.replace(/\s+/g, "-")}.pdf`;
 

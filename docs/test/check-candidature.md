@@ -36,17 +36,15 @@ Checklist per verificare la pagina candidature: lista, stati, note, bozze, downl
 
 ---
 
-## D. Detail Panel (responsive)
+## D. Edit Drawer
 
-- [ ] **D1** — Click su una candidatura: apre il pannello di dettaglio
-- [ ] **D2** — Mobile: Drawer slide-up (max 85vh). Desktop: Sheet slide-right (400px)
-- [ ] **D3** — Chip selezionabili per cambiare status (inviata, visualizzata, contattato, follow-up, ko)
+- [ ] **D1** — Click su una candidatura: apre il drawer di dettaglio
+- [ ] **D2** — Il drawer e' slide-up su mobile e slide-right su desktop
+- [ ] **D3** — Dropdown per cambiare status con tutti gli stati disponibili
 - [ ] **D4** — Campo note: testo libero, salvato in `applications.notes`
 - [ ] **D5** — Le note vengono salvate e persistono al ricaricamento
-- [ ] **D6** — Pulsante "Scarica PDF": apre ExportDrawer con il CV adattato
-- [ ] **D7** — Pulsante "Elimina candidatura" con AlertDialog di conferma
-- [ ] **D8** — Pulsante "Salva": salva status + note in un'unica operazione
-- [ ] **D9** — Info visibili nel pannello: ruolo, azienda, data, match score
+- [ ] **D6** — Link/pulsante per scaricare il CV adattato (PDF)
+- [ ] **D7** — Pulsante elimina con conferma prima della cancellazione
 
 ---
 
