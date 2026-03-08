@@ -245,6 +245,25 @@ export default function Impostazioni() {
             )}
           </div>
 
+          {/* Export data */}
+          <div className="border-t border-border pt-4 space-y-2">
+            <h3 className="text-sm font-medium text-foreground">Portabilità dei dati (art. 20 GDPR)</h3>
+            <p className="text-[12px] text-muted-foreground">
+              Scarica tutti i tuoi dati in formato JSON strutturato: profilo, CV, candidature, consensi.
+              Il file contiene tutti i tuoi dati personali — conservalo in modo sicuro.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={exporting}
+              onClick={handleExportData}
+            >
+              <DownloadSimple size={16} />
+              {exporting ? "Preparazione..." : "Esporta i miei dati"}
+            </Button>
+          </div>
+
           {/* Legal links */}
           <div className="border-t border-border pt-4 space-y-2">
             <h3 className="text-sm font-medium text-foreground">Documenti legali</h3>
