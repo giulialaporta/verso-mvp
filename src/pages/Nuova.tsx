@@ -749,7 +749,7 @@ function StepTailoring({
                       {ls.duration && <><span className="text-border">·</span><span className="font-mono text-[10px] text-muted-foreground">{ls.duration}</span></>}
                     </div>
                   </div>
-                  <ArrowRight size={14} className="text-muted-foreground group-hover:text-secondary mt-1 shrink-0 transition-colors" />
+                  <ArrowRight size={14} className="text-muted-foreground group-hover:text-info mt-1 shrink-0 transition-colors" />
                 </a>
               ))}
             </div>
