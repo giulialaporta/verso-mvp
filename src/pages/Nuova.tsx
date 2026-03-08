@@ -1261,6 +1261,7 @@ export default function Nuova() {
       });
       if (app.job_url) setJobUrl(app.job_url);
       if ((app as any).user_answers) setUserAnswers((app as any).user_answers);
+      if ((app as any).skills_overridden) setOverriddenSkills(new Set((app as any).skills_overridden));
 
       const { data: tc } = await supabase.from("tailored_cvs").select("*").eq("application_id", draftId).maybeSingle();
 
