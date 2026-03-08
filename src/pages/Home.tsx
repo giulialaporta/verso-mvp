@@ -501,14 +501,7 @@ export default function Home() {
       // Activate selected CV
       const { error } = await supabase.from("master_cvs").update({ is_active: true } as any).eq("id", oldCv.id);
       if (error) throw error;
-
-      const reactivated = { ...oldCv, is_active: true } as MasterCV;
-      setInactiveCvs((prev) => {
-        const updated = prev.filter((c) => c.id !== oldCv.id);
-        if (cv) updated.unshift({ ...cv, is_active: false } as MasterCV);
-        return updated;
-      });
-      setCv(reactivated);
+      invalidateCVs();
       toast.success("CV riattivato.");
     } catch (e: any) {
       toast.error(e.message || "Errore durante la riattivazione.");
