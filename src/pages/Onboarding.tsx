@@ -184,6 +184,12 @@ export default function Onboarding() {
   };
 
   return (
+    <>
+    <SensitiveDataConsent
+      open={showConsentModal}
+      onConsent={handleConsentGranted}
+      onCancel={() => setShowConsentModal(false)}
+    />
     <div className="flex min-h-[100dvh] items-start justify-center bg-background px-3 py-6 sm:px-4 sm:py-12 sm:items-center">
       <div className="w-full max-w-xl space-y-4 sm:space-y-6">
         <div className="text-center">
