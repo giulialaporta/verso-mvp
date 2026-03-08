@@ -1,51 +1,50 @@
 
 
-# Story 17 — Analisi Retributiva nello Step 2
+# Story 1 — Eliminazione account
 
-## Acceptance Criteria
+## Obiettivo
+Permettere all'utente di eliminare il proprio account (GDPR art. 17). Pagina Impostazioni con flow di conferma + edge function che elimina tutti i dati.
 
-1. **AC-1**: Se `salary_expectations` è presente nel profilo utente, viene inviato nel body della request a `ai-prescreen`
-2. **AC-2**: Il prompt di `ai-prescreen` include istruzioni per generare `salary_analysis` quando riceve `salary_expectations`
-3. **AC-3**: Il tool schema di `ai-prescreen` include la struttura `salary_analysis` come campo opzionale
-4. **AC-4**: Nello Step 1 (Verifica), se `salary_analysis` è presente nel response, appare la card "Analisi Retributiva" con:
-   - Due barre orizzontali proporzionali (candidato vs posizione)
-   - Range RAL formattati (es. "€35-42K")
-   - Badge fonte per ogni barra (Da te / Dall'annuncio / Stimata)
-   - Delta percentuale colorato (verde ↑ / giallo → / rosso ↓)
-   - Nota esplicativa dall'AI
-   - Disclaimer in testo muted
-5. **AC-5**: Se `salary_analysis` è assente nel response → nessuna sezione, nessun errore
-6. **AC-6**: Se l'utente non ha `salary_expectations` nel profilo → `salary_expectations` non viene inviato, e l'AI può comunque stimare dalla posizione se il range è esplicito nell'annuncio
+## Modifiche
 
-## Piano di implementazione
+### 1. Nuova Edge Function `delete-account`
+- File: `supabase/functions/delete-account/index.ts`
+- Config: `verify_jwt = false` in `supabase/config.toml`
+- Logica:
+  1. Verifica auth (Bearer token → `getUser`)
+  2. Con service role client:
+     - Lista e rimuovi file da `cv-uploads` (prefisso `userId/`)
+     - Lista e rimuovi file da `cv-exports` (prefisso `userId/`)
+     - `DELETE FROM tailored_cvs WHERE user_id = ?`
+     - `DELETE FROM applications WHERE user_id = ?`
+     - `DELETE FROM master_cvs WHERE user_id = ?`
+     - `DELETE FROM profiles WHERE user_id = ?`
+     - `auth.admin.deleteUser(userId)`
+  3. Ritorna `{ success: true }`
 
-### 1. Edge Function `ai-prescreen` (2 modifiche)
+### 2. Nuova pagina `src/pages/Impostazioni.tsx`
+- Sezioni:
+  - **Account**: email (read-only), full_name (read-only)
+  - **Zona pericolosa**: pulsante "Elimina account" (rosso, ghost)
+- Modal di conferma (AlertDialog):
+  - Warning chiaro: "Tutti i tuoi dati verranno eliminati permanentemente"
+  - Input di conferma: l'utente digita "ELIMINA"
+  - Pulsante conferma rosso, disabilitato finché non digita correttamente
+- Post-eliminazione: `signOut()` → redirect `/login` → toast "Account eliminato"
 
-**Prompt**: Aggiungere sezione che istruisce l'AI a produrre `salary_analysis` quando riceve `salary_expectations` o quando l'annuncio contiene un range esplicito.
-
-**Tool schema**: Aggiungere `salary_analysis` come proprietà opzionale con struttura:
-```
-salary_analysis: {
-  candidate_estimate: { min, max, source, basis }
-  position_estimate: { min, max, source, basis }
-  delta: "positive" | "neutral" | "negative"
-  delta_percentage: string
-  note: string
-}
-```
-
-**Request body**: Leggere `salary_expectations` dal body della request e includerlo nel messaggio user all'AI.
-
-### 2. Frontend `Nuova.tsx` (2 modifiche)
-
-**Chiamata**: Fetch `salary_expectations` dal profilo utente e passarlo nel body di `ai-prescreen`.
-
-**Componente `SalaryAnalysisCard`**: Nuova sezione dentro `StepVerifica`, renderizzata condizionalmente. Implementa barre proporzionali, badge fonte, delta colorato, disclaimer.
+### 3. Route + Navigazione
+- `src/App.tsx`: aggiungere route `/app/impostazioni`
+- `src/components/AppShell.tsx`:
+  - Desktop sidebar: aggiungere "Impostazioni" con icona `Gear` in fondo (prima di "Esci")
+  - Mobile tab bar: aggiungere icona `Gear` come quarto tab (prima del FAB)
 
 ### File coinvolti
 
-| File | Modifiche |
-|------|-----------|
-| `supabase/functions/ai-prescreen/index.ts` | Prompt + schema + body handling |
-| `src/pages/Nuova.tsx` | Fetch salary, pass to API, render card |
+| File | Azione |
+|------|--------|
+| `supabase/functions/delete-account/index.ts` | Nuovo |
+| `supabase/config.toml` | Aggiungere `[functions.delete-account]` |
+| `src/pages/Impostazioni.tsx` | Nuovo |
+| `src/App.tsx` | Nuova route |
+| `src/components/AppShell.tsx` | Nav item Impostazioni |
 
