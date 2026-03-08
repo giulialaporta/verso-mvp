@@ -234,6 +234,8 @@ function RecentApplications({ apps }: { apps: AppRowWithAts[] }) {
             key={app.id}
             className="rounded-lg border border-border/30 bg-card/60 px-3 py-2.5 cursor-pointer hover:border-primary/40 transition-colors"
             onClick={() => navigate(`/app/candidatura/${app.id}`)}
+            onMouseEnter={() => prefetch(app.id)}
+            onFocus={() => prefetch(app.id)}
           >
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
