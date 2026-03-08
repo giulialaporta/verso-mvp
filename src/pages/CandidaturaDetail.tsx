@@ -202,12 +202,14 @@ export default function CandidaturaDetail() {
             </div>
             <div className="grid grid-cols-1 gap-2">
               {atsChecks.map((check: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 text-xs">
-                  <span className={`h-2 w-2 rounded-full shrink-0 ${
+                <div key={i} className="flex items-start gap-2 text-xs">
+                  <span className={`h-2 w-2 rounded-full shrink-0 mt-1.5 ${
                     check.status === "pass" ? "bg-primary" : check.status === "warning" ? "bg-warning" : "bg-destructive"
                   }`} />
-                  <span className="text-muted-foreground flex-1">{check.label || check.check}</span>
-                  {check.detail && <span className="text-muted-foreground/60 text-right truncate max-w-[50%]">{check.detail}</span>}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-muted-foreground">{check.label || check.check}</span>
+                    {check.detail && <p className="text-muted-foreground/60 whitespace-normal break-words mt-0.5">{check.detail}</p>}
+                  </div>
                 </div>
               ))}
             </div>
