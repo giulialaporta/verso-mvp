@@ -480,8 +480,7 @@ export default function Home() {
         .update({ is_active: false } as any)
         .eq("id", cv.id);
       if (error) throw error;
-      setInactiveCvs((prev) => [{ ...cv, is_active: false } as MasterCV, ...prev]);
-      setCv(null);
+      queryClient.invalidateQueries({ queryKey: ["masterCV"] });
       toast.success("CV archiviato.");
     } catch (e: any) {
       toast.error(e.message || "Errore durante l'archiviazione.");
@@ -489,6 +488,8 @@ export default function Home() {
       setDeleting(false);
     }
   };
+
+  const invalidateCVs = () => queryClient.invalidateQueries({ queryKey: ["masterCV"] });
 
   const handleReactivate = async (oldCv: MasterCV) => {
     if (!user) return;
