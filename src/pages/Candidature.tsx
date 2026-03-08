@@ -71,7 +71,7 @@ export default function Candidature() {
           ...d,
           ats_score: d.tailored_cvs?.[0]?.ats_score ?? null,
         }));
-        setApps(rows as AppRow[]);
+        setApps(rows as AppRowWithAts[]);
       });
   }, [user]);
 
