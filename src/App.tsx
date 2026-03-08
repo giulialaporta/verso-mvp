@@ -16,6 +16,7 @@ import Nuova from "./pages/Nuova";
 import Candidature from "./pages/Candidature";
 import Impostazioni from "./pages/Impostazioni";
 import CVEdit from "./pages/CVEdit";
+import CandidaturaDetail from "./pages/CandidaturaDetail";
 import NotFound from "./pages/NotFound";
 
 const DevTest = lazy(() => import("./pages/DevTest"));
