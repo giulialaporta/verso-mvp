@@ -40,7 +40,7 @@ const App = () => (
                 path="/onboarding"
                 element={
                   <ProtectedRoute>
-                    <Onboarding />
+                    <Suspense fallback={<PageSkeleton />}><Onboarding /></Suspense>
                   </ProtectedRoute>
                 }
               />
@@ -53,11 +53,11 @@ const App = () => (
                 }
               >
                 <Route path="home" element={<Home />} />
-                <Route path="nuova" element={<Nuova />} />
-                <Route path="candidature" element={<Candidature />} />
-                <Route path="impostazioni" element={<Impostazioni />} />
-                <Route path="cv-edit" element={<CVEdit />} />
-                <Route path="candidatura/:id" element={<CandidaturaDetail />} />
+                <Route path="nuova" element={<Suspense fallback={<PageSkeleton />}><Nuova /></Suspense>} />
+                <Route path="candidature" element={<Suspense fallback={<PageSkeleton />}><Candidature /></Suspense>} />
+                <Route path="impostazioni" element={<Suspense fallback={<PageSkeleton />}><Impostazioni /></Suspense>} />
+                <Route path="cv-edit" element={<Suspense fallback={<PageSkeleton />}><CVEdit /></Suspense>} />
+                <Route path="candidatura/:id" element={<Suspense fallback={<PageSkeleton />}><CandidaturaDetail /></Suspense>} />
                 {import.meta.env.DEV && (
                   <Route path="dev-test" element={<Suspense fallback={null}><DevTest /></Suspense>} />
                 )}
