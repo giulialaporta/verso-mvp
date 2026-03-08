@@ -26,6 +26,7 @@ export type Database = {
           notes: string | null
           prescreen_data: Json | null
           role_title: string
+          skills_overridden: Json | null
           status: string
           template_id: string | null
           updated_at: string
@@ -43,6 +44,7 @@ export type Database = {
           notes?: string | null
           prescreen_data?: Json | null
           role_title: string
+          skills_overridden?: Json | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -60,6 +62,7 @@ export type Database = {
           notes?: string | null
           prescreen_data?: Json | null
           role_title?: string
+          skills_overridden?: Json | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -176,6 +179,7 @@ export type Database = {
           score_note: string | null
           seniority_match: Json | null
           skills_match: Json | null
+          structural_changes: Json | null
           suggestions: Json | null
           tailored_data: Json | null
           template_id: string | null
@@ -195,6 +199,7 @@ export type Database = {
           score_note?: string | null
           seniority_match?: Json | null
           skills_match?: Json | null
+          structural_changes?: Json | null
           suggestions?: Json | null
           tailored_data?: Json | null
           template_id?: string | null
@@ -214,6 +219,7 @@ export type Database = {
           score_note?: string | null
           seniority_match?: Json | null
           skills_match?: Json | null
+          structural_changes?: Json | null
           suggestions?: Json | null
           tailored_data?: Json | null
           template_id?: string | null
