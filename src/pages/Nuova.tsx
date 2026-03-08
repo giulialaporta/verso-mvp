@@ -384,7 +384,7 @@ function StepAnnuncio({
                   <CollapsibleContent>
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }} className="mt-3 rounded-lg border border-border/50 bg-surface p-4 space-y-3 text-xs text-muted-foreground">
                       <div className="flex items-start gap-2">
-                        <LinkedinLogo size={16} className="text-secondary shrink-0 mt-0.5" />
+                        <LinkedinLogo size={16} className="text-info shrink-0 mt-0.5" />
                         <div>
                           <p className="text-foreground font-medium mb-1">LinkedIn</p>
                           <ol className="list-decimal list-inside space-y-0.5">
