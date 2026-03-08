@@ -242,6 +242,7 @@ export default function Candidature() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        aria-label={`Elimina bozza ${draft.role_title}`}
                       >
                         <Trash size={14} />
                       </Button>
