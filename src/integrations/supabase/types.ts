@@ -170,8 +170,10 @@ export type Database = {
           diff: Json | null
           honest_score: Json | null
           id: string
+          learning_suggestions: Json | null
           master_cv_id: string
           pdf_url: string | null
+          score_note: string | null
           seniority_match: Json | null
           skills_match: Json | null
           suggestions: Json | null
@@ -187,8 +189,10 @@ export type Database = {
           diff?: Json | null
           honest_score?: Json | null
           id?: string
+          learning_suggestions?: Json | null
           master_cv_id: string
           pdf_url?: string | null
+          score_note?: string | null
           seniority_match?: Json | null
           skills_match?: Json | null
           suggestions?: Json | null
@@ -204,8 +208,10 @@ export type Database = {
           diff?: Json | null
           honest_score?: Json | null
           id?: string
+          learning_suggestions?: Json | null
           master_cv_id?: string
           pdf_url?: string | null
+          score_note?: string | null
           seniority_match?: Json | null
           skills_match?: Json | null
           suggestions?: Json | null
