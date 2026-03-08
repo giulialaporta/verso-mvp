@@ -1403,7 +1403,7 @@ export default function Nuova() {
         const { data: reviewResult } = await supabase.functions.invoke("cv-review", {
           body: {
             cv: result.tailored_cv,
-            detected_language: analyzeResult.detected_language || "it",
+            detected_language: languageOverride || analyzeResult.detected_language || "it",
             role_title: jobData.role_title,
           },
         });
