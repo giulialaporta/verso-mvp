@@ -217,7 +217,7 @@ Target language: ${lang}
 Target role: ${role}
 
 ## CV TO REVIEW
-${JSON.stringify(cvForReview, null, 2)}
+${JSON.stringify(cvForReview)}
 
 Apply all 10 rules and return the corrected CV. Remember: EVERY text field must be in "${lang}". Fix ALL bullets to start with action verbs. Remove all artifacts and clichés.`;
 
