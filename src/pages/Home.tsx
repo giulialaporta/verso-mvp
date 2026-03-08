@@ -435,6 +435,15 @@ function CVCard({
           <Button
             variant="outline"
             size="sm"
+            onClick={() => navigate("/app/cv-edit")}
+            className="gap-2"
+          >
+            <PencilSimple size={16} /> Modifica CV
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => navigate("/onboarding")}
             className="gap-2"
           >
