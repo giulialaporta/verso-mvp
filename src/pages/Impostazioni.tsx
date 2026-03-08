@@ -116,20 +116,22 @@ export default function Impostazioni() {
     }
   };
 
-  const handleResetCookies = () => {
+  const handleResetCookies = async () => {
     resetCookieConsent();
     toast({ title: "Preferenze cookie ripristinate", description: "Il banner cookie riapparirà alla prossima visita." });
     // Also log revocation
     if (user) {
+      const userHash = user.email ? await hashEmail(user.email) : undefined;
       supabase.from("consent_logs").insert({
         user_id: user.id,
+        user_hash: userHash,
         consent_type: "analytics_cookies",
         consent_version: "1.0",
         granted: false,
         user_agent: navigator.userAgent,
         method: "settings_reset",
         metadata: { screen: "impostazioni" },
-      });
+      } as any);
     }
   };
 
