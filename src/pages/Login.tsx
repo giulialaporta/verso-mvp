@@ -35,6 +35,8 @@ export default function Login() {
   const [fullName, setFullName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   // US-S10: Sanitize redirect — only allow internal /app/ paths
   const rawPath = (location.state as any)?.from?.pathname;
