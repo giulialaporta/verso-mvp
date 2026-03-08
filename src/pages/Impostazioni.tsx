@@ -18,7 +18,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   Trash, User, Warning, Lock, SignOut, ShieldCheck,
-  Cookie, ArrowSquareOut, CheckCircle, XCircle,
+  Cookie, ArrowSquareOut, CheckCircle, XCircle, DownloadSimple,
 } from "@phosphor-icons/react";
 import { resetCookieConsent, getCookieConsent } from "@/components/CookieBanner";
 
