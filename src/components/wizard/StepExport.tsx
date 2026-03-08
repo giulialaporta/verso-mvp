@@ -89,24 +89,19 @@ export function StepExport({
         <div className="grid grid-cols-2 gap-3">
           {TEMPLATES.map((t) => {
             const isSelected = selectedTemplate === t.id;
-            const isLocked = !t.free;
             return (
               <button
                 key={t.id}
-                disabled={isLocked}
                 onClick={() => setSelectedTemplate(t.id)}
                 className={`relative rounded-xl border-2 p-6 text-center transition-all ${
                   isSelected ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                  : isLocked ? "border-border/30 bg-muted/20 opacity-50 cursor-not-allowed"
                   : "border-border/50 hover:border-primary/40"
                 }`}
               >
-                {isLocked && <Lock size={14} className="absolute top-2 right-2 text-muted-foreground" />}
                 <div className="h-16 flex items-center justify-center mb-3">
                   <div className={`w-12 h-16 rounded border ${t.id === "classico" ? "bg-gradient-to-b from-card to-background border-primary/30" : "bg-background border-border"}`} />
                 </div>
                 <p className="text-sm font-medium">{t.name}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{isLocked ? "Pro" : "Free"}</p>
               </button>
             );
           })}
