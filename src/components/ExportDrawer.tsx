@@ -73,6 +73,7 @@ type Props = {
   companyName: string;
   applicationId?: string;
   userId?: string;
+  lang?: string;
 };
 
 export function ExportDrawer({
