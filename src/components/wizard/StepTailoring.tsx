@@ -7,6 +7,7 @@ import {
 } from "@phosphor-icons/react";
 import { useAnimatedCounter, ATS_LABELS_IT } from "./wizard-utils";
 import type { AnalyzeResult } from "./wizard-types";
+import { AiLabel } from "@/components/AiLabel";
 
 export function StepTailoring({
   analyzeResult,
