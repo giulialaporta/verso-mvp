@@ -1,12 +1,12 @@
-# Epic 04 — AI Engine (5 Edge Functions) (Implementato)
+# Epic 04 — AI Engine (6 Edge Functions) (Implementato)
 
 ---
 
 ## Cosa è stato costruito
 
-Cinque Supabase Edge Functions (Deno) che alimentano Verso. Tutte usano il gateway Lovable API → Google Gemini 2.5 Flash.
+Sei Supabase Edge Functions (Deno) che alimentano Verso. Tutte usano il gateway Lovable API → Google Gemini 2.5 Flash. Tutte condividono il modulo `_shared/cors.ts` per CORS dinamico.
 
-> **Differenza dal piano MVP:** il piano prevedeva 3 funzioni con Claude API. Implementate 5 funzioni (aggiunte `ai-prescreen` e `cv-review`) con Lovable Gateway → Gemini.
+> **Differenza dal piano MVP:** il piano prevedeva 3 funzioni con Claude API. Implementate 6 funzioni (aggiunte `ai-prescreen`, `cv-review`, `delete-account`) con Lovable Gateway → Gemini.
 
 ---
 
@@ -255,11 +255,43 @@ Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` e lo 
 
 ---
 
+## Edge Function 6: `delete-account` (NUOVA — GDPR art. 17)
+
+**Endpoint:** `POST /functions/v1/delete-account`
+
+**Input:** nessun body — usa il Bearer token per identificare l'utente.
+
+**Processo (sequenza):**
+1. Verifica Bearer token con anon client
+2. Crea audit log in `consent_logs` (tipo `account_deletion`)
+3. Anonimizza i consent_logs dell'utente (user_id → UUID anonimo)
+4. Cancella file da Storage: `cv-uploads/*` e `cv-exports/*`
+5. Cancella record DB in ordine FK: tailored_cvs → applications → master_cvs → profiles
+6. Cancella utente auth con service role
+
+**Output:** `{ "success": true }` o errore JSON con dettaglio.
+
+**Nota:** i consent_logs vengono anonimizzati (non cancellati) per obblighi legali di audit trail.
+
+---
+
+## Moduli condivisi
+
+| Modulo | Scopo |
+|--------|-------|
+| `_shared/ai-fetch.ts` | Wrapper per chiamate AI con retry e parsing |
+| `_shared/compact-cv.ts` | Compattazione CV per ridurre token |
+| `_shared/validate-output.ts` | Validazione output AI |
+| `_shared/cors.ts` | CORS dinamico con whitelist origini |
+
+---
+
 ## Sicurezza (implementata)
 
 - API key gestita tramite Lovable Gateway (non esposta al client)
 - Tutte le chiamate AI passano solo attraverso edge functions
 - Edge functions verificano autenticazione (`Authorization: Bearer <token>`)
+- **CORS dinamico:** tutte le edge functions usano `getCorsHeaders(req)` da `_shared/cors.ts` con whitelist (verso-cv.lovable.app, localhost:5173, localhost:8080). No più `Access-Control-Allow-Origin: *`
 
 ---
 
@@ -280,7 +312,7 @@ Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` e lo 
 | Area | Piano | Implementato |
 |------|-------|-------------|
 | Provider AI | Claude API (Anthropic) | Lovable Gateway → Google Gemini 2.5 Flash |
-| Numero funzioni | 3 | 5 (+ ai-prescreen, cv-review) |
+| Numero funzioni | 3 | 6 (+ ai-prescreen, cv-review, delete-account) |
 | parse-cv | Estrazione testo + prompt Claude | Input multimodale diretto (PDF → Gemini) |
 | ai-tailor | Output = CV completo | Output = patch JSON (solo modifiche) |
 | scrape-job | Senza cache | Con cache SHA-256, 7 giorni |

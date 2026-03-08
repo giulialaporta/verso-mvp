@@ -21,7 +21,7 @@ Fondamenta dell'app: design system dark mode, autenticazione Supabase con 3 meto
 
 ## 2. Database (implementato)
 
-5 tabelle create attraverso 9 migrazioni:
+6 tabelle create attraverso 9 migrazioni:
 
 | Tabella | Scopo |
 |---------|-------|
@@ -30,6 +30,7 @@ Fondamenta dell'app: design system dark mode, autenticazione Supabase con 3 meto
 | `applications` | Candidature con status e score |
 | `tailored_cvs` | CV adattati con analisi completa |
 | `job_cache` | Cache scraping URL (7 giorni) |
+| `consent_logs` | Tracciamento consensi GDPR (user_id, consent_type, consent_version, granted, granted_at, revoked_at, ip_address, user_agent, method, metadata) |
 
 **RLS:** attivo su tutte le tabelle — ogni utente vede solo i propri dati (`auth.uid() = user_id`).
 
@@ -52,9 +53,14 @@ Fondamenta dell'app: design system dark mode, autenticazione Supabase con 3 meto
 
 **Flusso signup:**
 1. Email → password → nome completo
-2. Supabase invia email di conferma
-3. Click conferma → utente può fare login
-4. Profilo auto-creato via trigger
+2. 2 checkbox obbligatorie (T&C + Privacy Policy), non pre-spuntate
+3. Pulsante "Crea account" disabilitato finché entrambe le checkbox non sono spuntate
+4. Supabase invia email di conferma
+5. Dopo la registrazione, i consensi vengono salvati in `consent_logs`
+6. Click conferma → utente può fare login
+7. Profilo auto-creato via trigger
+
+**Google OAuth:** bloccato se le checkbox T&C + Privacy non sono spuntate.
 
 **Flusso login:**
 - Email + password OPPURE Google OAuth
@@ -86,12 +92,29 @@ Route `/app` — layout wrapper per tutte le pagine autenticate.
   - Home → `House`
   - Candidature → icona lista
   - Nuova → `Plus` (accent)
+  - Impostazioni → `GearSix`
 - Nome utente in fondo
 
 **Mobile (<1024px) — Bottom tab bar:**
 - Background blur con backdrop-filter
 - 3 tab: Home | + (FAB accent, più grande) | Candidature
 - Tab attiva: dot accent sotto l'icona
+
+**Route:**
+
+| Route | Tipo | Descrizione |
+|-------|------|-------------|
+| `/login` | pubblica | Login / signup |
+| `/reset-password` | pubblica | Reset password |
+| `/termini` | pubblica | Termini e condizioni |
+| `/privacy` | pubblica | Privacy policy |
+| `/cookie-policy` | pubblica | Cookie policy |
+| `/app/home` | protetta | Dashboard |
+| `/app/candidature` | protetta | Lista candidature |
+| `/app/impostazioni` | protetta | Impostazioni utente |
+| `/app/cv-edit` | protetta | Editor CV master |
+| `/app/candidatura/:id` | protetta | Dettaglio candidatura |
+| `*` | pubblica | Pagina 404 (in italiano) |
 
 ---
 
@@ -103,6 +126,26 @@ Route `/app` — layout wrapper per tutte le pagine autenticate.
 | `ProtectedRoute` | Auth guard per route protette |
 | `ErrorBoundary` | Gestione errori globale |
 | Logo "VERSO" | Syne 800, "O" in accent |
+| `ConsentCheckboxes` | Checkbox T&C + Privacy per form signup |
+| `CookieBanner` | Banner cookie bottom sticky |
+| `AiLabel` | Label trasparenza AI |
+| `LegalLayout` | Wrapper per pagine legali (/termini, /privacy, /cookie-policy) |
+| `PageSkeleton` | Loading placeholder |
+| `SensitiveDataConsent` | Modal art. 9 GDPR pre-upload CV |
+
+---
+
+## Sicurezza
+
+- **CORS dinamico:** modulo `_shared/cors.ts` con whitelist (`verso-cv.lovable.app`, `localhost`). Tutte le edge functions usano `getCorsHeaders()` invece di `Access-Control-Allow-Origin: *`.
+- **Redirect sanitizer:** nel flusso Login, solo path `/app/*` ammessi come redirect post-login.
+
+---
+
+## Note aggiuntive
+
+- **Pagina 404:** ora in italiano.
+- **`Index.tsx` eliminata:** la pagina placeholder è stata rimossa.
 
 ---
 

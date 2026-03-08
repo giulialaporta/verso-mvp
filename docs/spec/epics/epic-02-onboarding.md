@@ -1,12 +1,12 @@
-# Epic 02 — Onboarding (3 Step) (Implementato)
+# Epic 02 — Onboarding (4 Step) (Implementato)
 
 ---
 
 ## Cosa è stato costruito
 
-Pagina `/onboarding` — wizard a 3 step dove l'utente carica il CV in PDF, Verso lo analizza con AI multimodale, e l'utente può rivedere e modificare i dati estratti inline.
+Pagina `/onboarding` — wizard a 4 step dove l'utente carica il CV in PDF, Verso lo analizza con AI multimodale, l'utente può rivedere e modificare i dati estratti inline, e infine indicare le proprie aspettative RAL.
 
-> **Differenza dal piano MVP:** il piano prevedeva 1 step (upload + anteprima). Implementati 3 step con editing inline completo e suggerimenti AI.
+> **Differenza dal piano MVP:** il piano prevedeva 1 step (upload + anteprima). Implementati 4 step con editing inline completo, suggerimenti AI, consenso GDPR art. 9 e step RAL.
 
 ---
 
@@ -69,6 +69,10 @@ Il PDF viene inviato alla Edge Function `parse-cv`.
 **Honesty note:** messaggio che Verso usa solo ciò che è scritto nel CV, non aggiunge nulla.
 
 **Al click "Continua":**
+- Se è il primo upload CV dell'utente: appare il modal **SensitiveDataConsent** (art. 9 GDPR)
+  - Il modal informa l'utente sui dati sensibili che il CV potrebbe contenere (categorie particolari di dati personali)
+  - L'upload è bloccato finché il consenso non viene dato
+  - Consenso salvato in `consent_logs`
 - Salva in `master_cvs`:
   - `parsed_data` = JSON strutturato (con eventuali modifiche dell'utente)
   - `file_name` = nome del file PDF
@@ -76,14 +80,36 @@ Il PDF viene inviato alla Edge Function `parse-cv`.
   - `raw_text` = testo estratto
   - `source` = 'upload'
   - `photo_url` = URL firmato della foto (se estratta)
+- Procede allo step 4
+
+---
+
+## Step 4: Aspettative RAL
+
+**Scopo:** raccogliere le aspettative retributive dell'utente per il matching futuro con le offerte.
+
+**Campi:**
+- **RAL attuale** — input numerico, opzionale
+- **RAL desiderata** — input numerico, opzionale
+
+**Comportamento:**
+- Entrambi i campi sono opzionali: l'utente può saltare lo step senza compilarli
+- Valori formattati con locale IT (separatore migliaia: punto, decimali: virgola)
+- Se compilati, salvati in `profiles.salary_expectations`
+- Se non compilati, il campo `salary_expectations` resta `null`
+
+**Al click "Continua":**
 - Redirect a `/app/home`
 
 ---
 
 ## Gestione CV Master
 
-- **Un solo CV per utente** — il nuovo upload sostituisce il precedente
-- Dalla home è possibile eliminare il CV o caricarne uno nuovo
+- **Un solo CV attivo per utente** — il nuovo upload sostituisce il precedente
+- **Soft delete:** disattivazione del CV tramite `is_active=false`
+- **Riattivazione:** possibilità di riattivare un CV precedentemente disattivato
+- **Hard delete:** rimozione definitiva del file dallo storage + cancellazione del record dal DB
+- **Pagina `/app/cv-edit`:** consente di modificare il CV parsato senza ri-upload del PDF
 
 ---
 
@@ -102,10 +128,13 @@ Il PDF viene inviato alla Edge Function `parse-cv`.
 
 | Area | Piano | Implementato |
 |------|-------|-------------|
-| Step | 1 (upload + anteprima) | 3 (upload → parse → preview + edit) |
+| Step | 1 (upload + anteprima) | 4 (upload → parse → preview + edit → RAL) |
 | Parsing | Estrazione testo + Claude API | Multimodale diretto Gemini 2.5 Flash |
 | Foto CV | Non prevista | Estratta dal binario PDF |
 | Schema CV | 7 sezioni base | 12+ sezioni (LinkedIn, CEFR, honors, extra...) |
 | Edit inline | Non previsto | Completo su tutti i campi |
 | Suggerimenti AI | Non previsti | Componente CVSuggestions |
 | Summary | Solo se presente | Sintetizzato automaticamente se mancante |
+| Consenso GDPR | Non previsto | Modal SensitiveDataConsent (art. 9) al primo upload |
+| Aspettative RAL | Non previste | Step 4 con RAL attuale e desiderata |
+| Gestione CV | Sostituzione semplice | Soft delete, riattivazione, hard delete, edit senza ri-upload |

@@ -6,7 +6,8 @@
 
 1. Sistema template PDF con 2 layout (entrambi free)
 2. Generazione PDF nel browser con download + upload automatico
-3. Dashboard home con 3 stati e statistiche
+3. Dashboard home con 3 stati, statistiche, CV card collapsible e gestione CV
+4. Pagina CVEdit per modificare il CV master senza ri-upload
 
 > **Differenza dal piano MVP:** il piano prevedeva 4 template (2 free + 2 pro), export DOCX, e drawer ATS separato. Implementati 2 template free, export solo PDF, e pannelli ATS/Honest Score integrati nel wizard.
 
@@ -69,32 +70,51 @@ Route `/app/home` — pagina principale dopo il login.
 ### Stato 1: Nessun CV (virgin state)
 
 - Saluto "Ciao [Nome]"
-- Messaggio onboarding
-- CTA "Carica il tuo CV" → redirect a `/onboarding`
-- Vista di benvenuto che guida l'utente
+- Flusso onboarding a 3 step visualizzato con card locked (non solo CTA)
+- I 3 step sono bloccati e indicano la sequenza: carica CV → compila dati → crea candidatura
+- Click sullo step 1 → redirect a `/onboarding`
+- Vista di benvenuto che guida l'utente passo dopo passo
 
 ### Stato 2: CV caricato, nessuna candidatura
 
 - Saluto "Ciao [Nome]"
-- CV card con anteprima dati (esperienze, formazione)
-- Possibilità di eliminare il CV o caricarne uno nuovo
+- CV Card collapsible (vedi sotto)
 - CTA "Nuova candidatura" → redirect a `/app/nuova`
 
 ### Stato 3: CV + candidature presenti
 
-**CV Card:**
-- Preview del CV con dati principali
-- Azioni: elimina CV, carica nuovo
+**StatsBar:**
+- 3 card con icone Phosphor:
+  - **Briefcase** — numero candidature attive
+  - **ChartLineUp** — score medio di match
+  - **FileText** — stato CV (caricato/aggiornato)
 
-**Stats (in alto):**
-- Numero candidature attive
-- Score medio di match
-- Stato CV (caricato/aggiornato)
+**CV Card (collapsible):**
+- Espandibile/collassabile con toggle
+- Mostra `CVSections` editabile inline (esperienze, formazione, competenze)
+- `SalaryDisplay` integrato: mostra RAL attuale e RAL desiderata con toggle per edit inline
+- Azioni CV:
+  - **Modifica CV** → redirect a `/app/cv-edit`
+  - **Soft delete** → imposta `is_active = false`, il CV non è più visibile ma resta in DB
+  - **Riattivazione** → possibilità di riattivare un CV precedente (ripristina `is_active = true`)
+  - **Hard delete** → elimina file da Supabase Storage + record dal DB (con conferma)
 
 **Candidature recenti:**
 - Mostra le ultime 3 candidature
 - Card con: ruolo, azienda, match score, ATS score, data
+- Hover su una card → prefetch dei dati candidatura (`usePrefetchApplication`)
 - Link a pagina completa candidature
+
+---
+
+## 4. Pagina CVEdit
+
+Route `/app/cv-edit` — pagina dedicata alla modifica del CV master.
+
+- Permette di modificare il CV caricato senza dover fare un nuovo upload
+- Editing inline delle sezioni del CV (esperienze, formazione, competenze, ecc.)
+- Salvataggio modifiche su DB
+- Redirect alla home dopo il salvataggio
 
 ---
 
@@ -105,6 +125,10 @@ Route `/app/home` — pagina principale dopo il login.
 | `ClassicoTemplate` | Template PDF tradizionale |
 | `MinimalTemplate` | Template PDF moderno/pulito |
 | `ExportDrawer` | Pannello export con template picker + score |
+| `StatsBar` | 3 card statistiche con icone Phosphor (interno a Home.tsx) |
+| `RecentApplications` | Lista ultime 3 candidature con hover prefetch (interno a Home.tsx) |
+| `CVCard` | Card collapsible con CVSections editabile e azioni CV (interno a Home.tsx) |
+| `SalaryDisplay` | Mostra RAL attuale/desiderata con inline edit (interno a Home.tsx) |
 
 ---
 

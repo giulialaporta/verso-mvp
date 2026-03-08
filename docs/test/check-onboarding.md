@@ -1,6 +1,6 @@
 # Check — Onboarding: Acceptance Criteria
 
-Checklist per verificare il flusso di onboarding a 3 step: Upload CV, Parsing AI, Preview + Edit.
+Checklist per verificare il flusso di onboarding a 4 step: Upload CV, Parsing AI, Preview + Edit, Aspettative RAL.
 
 ---
 
@@ -55,21 +55,57 @@ Checklist per verificare il flusso di onboarding a 3 step: Upload CV, Parsing AI
 
 ---
 
-## E. Salvataggio e completamento
+## E. Consenso GDPR art. 9 (Step 3 → Continua)
 
-- [ ] **E1** — Click "Continua": i dati vengono salvati in `master_cvs` con `parsed_data` JSON
-- [ ] **E2** — `file_name`, `file_url`, `raw_text`, `source`, `photo_url` vengono salvati correttamente
-- [ ] **E3** — Dopo il salvataggio: redirect a `/app/home`
-- [ ] **E4** — La dashboard mostra i dati del CV appena caricato
-- [ ] **E5** — Un secondo upload sostituisce il CV precedente (un solo CV per utente)
+- [ ] **E1** — Al primo upload CV, click "Continua" sullo step 3: appare il modal `SensitiveDataConsent`
+- [ ] **E2** — Il modal informa l'utente sui dati sensibili (categorie particolari art. 9 GDPR)
+- [ ] **E3** — L'upload e' bloccato finche' il consenso non viene dato
+- [ ] **E4** — Consenso salvato in `consent_logs` con tipo `sensitive_data`
+- [ ] **E5** — Se l'utente ha gia' dato il consenso in precedenza: il modal non riappare
+- [ ] **E6** — "Annulla" chiude il modal senza bloccare l'utente permanentemente
 
 ---
 
-## F. Edge case
+## F. Salvataggio e completamento (Step 3)
 
-- [ ] **F1** — CV con molte pagine (5+): il parsing funziona comunque
-- [ ] **F2** — CV con formattazione complessa (tabelle, colonne multiple): i dati vengono estratti ragionevolmente
-- [ ] **F3** — CV quasi vuoto (solo nome e email): il parsing non crasha, mostra i dati disponibili
-- [ ] **F4** — Refresh della pagina durante il parsing: comportamento gestito (no crash)
-- [ ] **F5** — La pagina di onboarding e' responsive (funziona su mobile)
-- [ ] **F6** — Navigazione indietro tra gli step funziona senza perdere i dati
+- [ ] **F1** — Click "Continua" (dopo consenso): i dati vengono salvati in `master_cvs` con `parsed_data` JSON
+- [ ] **F2** — `file_name`, `file_url`, `raw_text`, `source`, `photo_url` vengono salvati correttamente
+- [ ] **F3** — Le modifiche inline fatte dall'utente nello step 3 sono incluse nel `parsed_data` salvato
+- [ ] **F4** — Un solo CV attivo per utente: il nuovo upload sostituisce il precedente
+
+---
+
+## G. Step 4 — Aspettative RAL
+
+- [ ] **G1** — Lo step 4 e' visibile dopo il salvataggio del CV (step 3)
+- [ ] **G2** — Campo "RAL attuale": input numerico, opzionale
+- [ ] **G3** — Campo "RAL desiderata": input numerico, opzionale
+- [ ] **G4** — Entrambi i campi possono essere lasciati vuoti (l'utente puo' saltare)
+- [ ] **G5** — Valori formattati con locale IT (separatore migliaia: punto)
+- [ ] **G6** — Se compilati: salvati in `profiles.salary_expectations`
+- [ ] **G7** — Se non compilati: `salary_expectations` resta `null`
+- [ ] **G8** — Click "Continua": redirect a `/app/home`
+- [ ] **G9** — La dashboard mostra i dati del CV appena caricato
+
+---
+
+## H. Gestione CV Master
+
+- [ ] **H1** — Un solo CV attivo per utente
+- [ ] **H2** — Soft delete: disattivazione tramite `is_active=false`, il CV non e' piu' visibile
+- [ ] **H3** — Riattivazione: possibilita' di riattivare un CV precedentemente disattivato (`is_active=true`)
+- [ ] **H4** — Hard delete: rimozione file dallo storage + cancellazione record dal DB
+- [ ] **H5** — Hard delete richiede conferma prima di procedere
+- [ ] **H6** — Pagina `/app/cv-edit`: consente di modificare il CV parsato senza ri-upload del PDF
+
+---
+
+## I. Edge case
+
+- [ ] **I1** — CV con molte pagine (5+): il parsing funziona comunque
+- [ ] **I2** — CV con formattazione complessa (tabelle, colonne multiple): i dati vengono estratti ragionevolmente
+- [ ] **I3** — CV quasi vuoto (solo nome e email): il parsing non crasha, mostra i dati disponibili
+- [ ] **I4** — Refresh della pagina durante il parsing: comportamento gestito (no crash)
+- [ ] **I5** — La pagina di onboarding e' responsive (funziona su mobile)
+- [ ] **I6** — Navigazione indietro tra gli step (4 step totali) funziona senza perdere i dati
+- [ ] **I7** — Step indicator mostra 4 step: Upload, Parsing, Preview + Edit, RAL

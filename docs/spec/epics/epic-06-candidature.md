@@ -4,9 +4,11 @@
 
 ## Cosa è stato costruito
 
-Pagina `/app/candidature` — lista di tutte le candidature dell'utente con gestione stati, note, e download CV adattato.
+1. Pagina `/app/candidature` — lista di tutte le candidature con gestione stati, note, e download CV adattato
+2. Pagina `/app/candidatura/:id` — dettaglio completo della singola candidatura con scores, diff AI, CV preview e azioni
+3. ResponsiveDetailPanel al posto del vecchio EditItemDrawer
 
-> **Questo epic non era nel piano MVP.** Il piano prevedeva solo la lista nella dashboard home. È stata implementata una pagina dedicata con funzionalità di tracking.
+> **Questo epic non era nel piano MVP.** Il piano prevedeva solo la lista nella dashboard home. È stata implementata una pagina dedicata con funzionalità di tracking e una pagina di dettaglio completa.
 
 ---
 
@@ -29,6 +31,7 @@ Route `/app/candidature` — accessibile dalla sidebar (desktop) e tab bar (mobi
 
 - Ordinate per data di creazione (più recenti in alto)
 - Card per ogni candidatura
+- Hover su una card → prefetch dei dati candidatura (`usePrefetchApplication`)
 
 ---
 
@@ -58,18 +61,39 @@ Ogni card mostra:
 
 ---
 
-## Edit Drawer
+## Pagina CandidaturaDetail
 
-Click su una candidatura → apre un drawer (`EditItemDrawer`):
+Route `/app/candidatura/:id` — dettaglio completo di una singola candidatura.
 
-- **Cambio status:** dropdown con tutti gli stati disponibili
-- **Note:** campo testo libero per appunti del candidato
-- **Download CV:** link al PDF del CV adattato (se generato)
-- **Elimina:** pulsante di eliminazione con conferma
+### Contenuto
 
-**Layout:**
-- Mobile: drawer slide-up
-- Desktop: drawer slide-right
+- **Scores:** match score e ATS score con visualizzazione prominente
+- **ATS Checks:** lista dei controlli ATS superati/falliti (`ats_checks`)
+- **Seniority:** livello di seniority rilevato
+- **Learning Suggestions:** suggerimenti di apprendimento basati sui gap
+- **Modifiche AI (collapsible):** sezione espandibile con la lista delle differenze tra CV originale e CV adattato (diff list)
+- **CV Preview:** `CVSections` collassabile con il contenuto del CV adattato
+- **Status selector:** 5 stati selezionabili come chip (inviata, visualizzata, contattato, follow-up, ko)
+- **Notes:** textarea per appunti liberi del candidato
+
+### Sticky Action Bar
+
+Barra fissa in basso con 3 azioni:
+
+- **Salva** — salva status e note modificati
+- **Scarica PDF** — apre `ExportDrawer` per selezionare template e scaricare il PDF
+- **Elimina** — eliminazione con conferma
+
+---
+
+## ResponsiveDetailPanel
+
+Sostituisce il vecchio `EditItemDrawer`. Layout responsive:
+
+- **Desktop:** Sheet laterale, larghezza 400px, slide-right
+- **Mobile:** Drawer bottom-sheet, altezza 85vh
+
+Usato sia dalla lista candidature che dalla pagina di dettaglio per azioni contestuali.
 
 ---
 
@@ -79,9 +103,18 @@ Click su una candidatura → apre un drawer (`EditItemDrawer`):
 |--------|--------------|
 | Cambia status | Aggiorna `applications.status` + `updated_at` |
 | Aggiungi nota | Aggiorna `applications.notes` |
-| Download CV | Apre `tailored_cvs.pdf_url` |
+| Scarica PDF | Apre `ExportDrawer` → genera e scarica PDF |
 | Elimina | Conferma → elimina application + tailored_cv associato |
 | Riprendi bozza | Redirect a `/app/nuova` con dati pre-caricati |
+
+---
+
+## Hooks
+
+| Hook | Scopo |
+|------|-------|
+| `useApplications` | Fetch candidature con join su `tailored_cvs` per recuperare `ats_score` |
+| `usePrefetchApplication` | Prefetch dati candidatura su hover della card |
 
 ---
 
@@ -90,7 +123,8 @@ Click su una candidatura → apre un drawer (`EditItemDrawer`):
 | Componente | Scopo |
 |------------|-------|
 | `StatusChip` | Badge colorato per status candidatura |
-| `EditItemDrawer` | Drawer per editing dettagli candidatura |
+| `ResponsiveDetailPanel` | Panel responsive (Sheet desktop 400px / Drawer mobile 85vh) |
+| `ExportDrawer` | Pannello export con template picker + download PDF |
 
 ---
 

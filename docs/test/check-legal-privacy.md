@@ -11,11 +11,12 @@ Checklist per verificare l'implementazione degli aspetti legali, privacy GDPR e 
 - [ ] **A3** — Pagina `/cookie-policy` accessibile senza autenticazione
 - [ ] **A4** — Tutte le pagine in italiano con linguaggio chiaro
 - [ ] **A5** — Layout dark mode, responsive, font DM Sans
-- [ ] **A6** — Footer con versione e data ultimo aggiornamento
-- [ ] **A7** — Header con link "Torna al login" / "Torna all'app"
-- [ ] **A8** — T&C contengono: oggetto, descrizione servizio, limiti AI, registrazione, obblighi utente, contenuti utente, IP Verso, disponibilita', limitazione responsabilita', legge applicabile
-- [ ] **A9** — Privacy Policy contiene: titolare, dati trattati, finalita', basi giuridiche, sub-processori, diritti utente, sicurezza, conservazione
-- [ ] **A10** — Cookie Policy contiene: categorie cookie, come gestirli
+- [ ] **A6** — `LegalLayout` condiviso: metadata con versione del documento e data di ultimo aggiornamento
+- [ ] **A7** — `LegalLayout`: header con backlink per tornare alla pagina precedente
+- [ ] **A8** — Desktop: sidebar con Table of Contents (TOC) navigabile
+- [ ] **A9** — T&C contengono 11 articoli: oggetto, descrizione servizio, limiti AI, account/registrazione, obblighi utente, contenuti utente, proprieta' intellettuale, disponibilita', limitazione responsabilita', legge applicabile, diritto di recesso
+- [ ] **A10** — Privacy Policy contiene: dati trattati (identificativi, CV, navigazione), art. 9 GDPR, finalita'/basi giuridiche (consenso, esecuzione contratto, legittimo interesse), sub-processori (Supabase, Google Gemini, Google OAuth), diritti interessato, misure sicurezza, conservazione (30 giorni dopo cancellazione)
+- [ ] **A11** — Cookie Policy contiene: cookie tecnici (si'), analitici (no), profilazione (no), come gestirli
 
 ---
 
@@ -75,49 +76,82 @@ Checklist per verificare l'implementazione degli aspetti legali, privacy GDPR e 
 - [ ] **F3** — Eliminati: profilo, CV master, candidature, tailored_cvs
 - [ ] **F4** — Eliminati: file da cv-uploads e cv-exports in Storage
 - [ ] **F5** — Cancellazione registrata in `consent_logs`
-- [ ] **F6** — L'utente viene disconnesso e reindirizzato a /login
+- [ ] **F6** — L'utente viene disconnesso e reindirizzato alla landing page
 - [ ] **F7** — Toast di conferma dopo l'eliminazione
 - [ ] **F8** — Dopo eliminazione, le credenziali non funzionano piu'
 
 ---
 
-## G. Export dati (portabilita' GDPR)
+## G. Export dati — Data Portability (Art. 20 GDPR)
 
-- [ ] **G1** — Pulsante "Esporta i miei dati" accessibile
-- [ ] **G2** — Genera un file ZIP
-- [ ] **G3** — Il ZIP contiene: profilo.json, cv-master.json, candidature.json, cv-adattati/, consensi.json
-- [ ] **G4** — I file JSON sono formattati e leggibili
-- [ ] **G5** — README.txt spiega il contenuto
-- [ ] **G6** — Download automatico dopo la generazione
+- [ ] **G1** — Pulsante "Scarica i miei dati" accessibile nelle Impostazioni
+- [ ] **G2** — Genera un file JSON strutturato con dati da 5 tabelle: profiles, master_cvs, applications, tailored_cvs, consent_logs
+- [ ] **G3** — I dati JSON sono formattati e leggibili
+- [ ] **G4** — Download diretto nel browser
 
 ---
 
-## H. Sezione Privacy nelle Impostazioni
+## H. Pagina Impostazioni — Account
 
-- [ ] **H1** — Sezione "Privacy e Dati" visibile nelle impostazioni
-- [ ] **H2** — Lista consensi prestati con data e stato
-- [ ] **H3** — Link ai documenti legali (T&C, Privacy, Cookie Policy)
-- [ ] **H4** — Pulsante "Esporta i miei dati" presente e funzionante
-- [ ] **H5** — Pulsante "Gestisci cookie" riapre il banner cookie
-- [ ] **H6** — Pulsante "Elimina account" presente e funzionante
-- [ ] **H7** — "Zona pericolosa" visivamente distinta (bordo rosso)
+- [ ] **H1** — Route `/app/impostazioni` accessibile dalla sidebar (desktop) e tab bar (mobile)
+- [ ] **H2** — Sezione Account mostra email dell'utente (sola lettura)
+- [ ] **H3** — Sezione Account mostra nome utente dal profilo (sola lettura)
 
 ---
 
-## I. Footer legale
+## I. Pagina Impostazioni — Privacy e Dati
 
-- [ ] **I1** — Footer con link legali nelle pagine pubbliche
-- [ ] **I2** — Link legali nella sidebar desktop
-- [ ] **I3** — Tutti i link portano alle pagine corrette
-- [ ] **I4** — Lo stile e' discreto e coerente
+- [ ] **I1** — Sezione "Privacy e Dati" visibile nelle impostazioni
+- [ ] **I2** — `ConsentRow` per ogni consenso mostra: icona stato, label, data concessione/revoca
+- [ ] **I3** — Consenso `terms`: non revocabile (pulsante Revoca assente)
+- [ ] **I4** — Consenso `privacy`: non revocabile (pulsante Revoca assente)
+- [ ] **I5** — Consenso `sensitive_data`: revocabile con warning ("Non potrai caricare nuovi CV...")
+- [ ] **I6** — Consenso `cookies`: revocabile tramite `resetCookieConsent()`, ripristina il banner cookie
+- [ ] **I7** — Pulsante "Scarica i miei dati" presente e funzionante
 
 ---
 
-## J. Database consent_logs
+## J. Pagina Impostazioni — Assistenza
 
-- [ ] **J1** — Tabella `consent_logs` esiste nel database
-- [ ] **J2** — RLS attiva: ogni utente vede solo i propri record
-- [ ] **J3** — I consensi di registrazione vengono salvati correttamente
-- [ ] **J4** — I consensi di upload CV vengono salvati correttamente
-- [ ] **J5** — I consensi cookie vengono salvati (se utente autenticato)
-- [ ] **J6** — La cancellazione account viene registrata prima dell'eliminazione
+- [ ] **J1** — Contatto supporto generale: supporto@verso-cv.app
+- [ ] **J2** — Contatto privacy e dati: privacy@verso-cv.app
+- [ ] **J3** — Tempi di risposta indicati: entro 48h lavorative
+
+---
+
+## K. Pagina Impostazioni — Sicurezza
+
+- [ ] **K1** — Cambio password: flusso Supabase Auth per reset password
+- [ ] **K2** — Logout: termina sessione, redirect alla landing page
+
+---
+
+## L. Pagina Impostazioni — Zona pericolosa
+
+- [ ] **L1** — Sezione visivamente separata con stile destructive
+- [ ] **L2** — Pulsante "Elimina account" presente
+- [ ] **L3** — Conferma richiede di digitare `ELIMINA`
+- [ ] **L4** — Chiama la edge function `/delete-account`
+- [ ] **L5** — Dopo conferma: eliminazione account, logout e redirect
+
+---
+
+## M. Footer legale
+
+- [ ] **M1** — Footer con link legali nelle pagine pubbliche
+- [ ] **M2** — Link legali nella sidebar desktop
+- [ ] **M3** — Tutti i link portano alle pagine corrette
+- [ ] **M4** — Lo stile e' discreto e coerente
+
+---
+
+## N. Database consent_logs
+
+- [ ] **N1** — Tabella `consent_logs` esiste nel database
+- [ ] **N2** — RLS attiva: ogni utente vede solo i propri record
+- [ ] **N3** — Indici su `user_id` e su `(user_id, consent_type)`
+- [ ] **N4** — I consensi di registrazione vengono salvati correttamente (tipo `terms` e `privacy`)
+- [ ] **N5** — I consensi di upload CV vengono salvati correttamente (tipo `sensitive_data`)
+- [ ] **N6** — I consensi cookie vengono salvati se utente autenticato (tipo `cookies`)
+- [ ] **N7** — La cancellazione account viene registrata prima dell'eliminazione (tipo `account_deletion`)
+- [ ] **N8** — Campi salvati: user_id, consent_type, status (granted/revoked), ip_address, user_agent, created_at

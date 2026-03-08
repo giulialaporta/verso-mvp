@@ -170,10 +170,31 @@ Step finale che guida l'utente dopo l'export.
 
 ---
 
+## Architettura componenti
+
+Il wizard è stato refactored da monolitico (Nuova.tsx ~1450 righe) a componenti modulari:
+
+| Componente | Step | File |
+|------------|------|------|
+| `StepAnnuncio` | 0 | `src/components/wizard/StepAnnuncio.tsx` |
+| `StepVerifica` | 1 | `src/components/wizard/StepVerifica.tsx` |
+| `StepTailoring` | 2 | `src/components/wizard/StepTailoring.tsx` |
+| `StepRevisione` | 3 | `src/components/wizard/StepRevisione.tsx` |
+| `StepExport` | 4 | `src/components/wizard/StepExport.tsx` |
+| `StepCompleta` | 5 | `src/components/wizard/StepCompleta.tsx` |
+| `StepIndicator` | — | `src/components/wizard/StepIndicator.tsx` |
+| `wizard-types.ts` | — | Type definitions (JobData, PrescreenResult, AnalyzeResult, TailorResult) |
+| `wizard-utils.ts` | — | Utilities (applyPatchesFrontend, computeConfidence, useAnimatedCounter, getDomainHint) |
+
+**State management:** step corrente via URL query param `?step=N`. Draft resumption via `?draft=ID`.
+
+---
+
 ## Supporto bozze
 
-- Una candidatura può essere salvata come **draft** in qualsiasi momento
-- Le bozze sono riprendibili dalla pagina Candidature con pulsante "Riprendi"
+- Una candidatura viene creata come `draft` all'inizio dello Step 1
+- Le bozze sono riprendibili dalla pagina Candidature con pulsante "Riprendi" (`?draft=ID`)
+- Il resume ricarica: jobData, userAnswers, overriddenSkills, analyzeResult, tailorResult
 - Status iniziale di ogni candidatura: `draft`
 
 ---

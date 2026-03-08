@@ -1,6 +1,6 @@
 # Check — AI Engine: Acceptance Criteria
 
-Checklist per verificare le 5 Edge Functions: parse-cv, scrape-job, ai-prescreen, ai-tailor, cv-review.
+Checklist per verificare le 6 Edge Functions: parse-cv, scrape-job, ai-prescreen, ai-tailor, cv-review, delete-account.
 
 ---
 
@@ -96,19 +96,46 @@ Checklist per verificare le 5 Edge Functions: parse-cv, scrape-job, ai-prescreen
 - [ ] **F4** — Input malformato (JSON invalido): errore 400 con messaggio
 - [ ] **F5** — Timeout dell'AI provider: errore gestito con messaggio comprensibile
 - [ ] **F6** — Retry automatico su errori transitori (se implementato)
+- [ ] **F7** — CORS dinamico: tutte le edge functions usano `getCorsHeaders(req)` con whitelist (verso-cv.lovable.app, localhost:5173, localhost:8080)
+- [ ] **F8** — Nessuna edge function usa `Access-Control-Allow-Origin: *`
 
 ---
 
-## G. Configurazione modelli
+## G. delete-account
 
-- [ ] **G1** — `parse-cv` usa `google/gemini-2.5-flash`
-- [ ] **G2** — `scrape-job` usa `google/gemini-2.5-flash`
-- [ ] **G3** — `ai-prescreen` usa `google/gemini-2.5-pro`
-- [ ] **G4** — `ai-tailor` usa `google/gemini-2.5-pro`
-- [ ] **G5** — `cv-review` usa `google/gemini-2.5-flash`
-- [ ] **G6** — Il fallback model resta `google/gemini-2.0-flash` per tutti
-- [ ] **G7** — Il summary riscritto da ai-tailor e' specifico per il ruolo (non generico)
-- [ ] **G8** — I bullet point contengono verbi d'azione e metriche
-- [ ] **G9** — Il tempo di risposta di ai-tailor resta sotto i 30 secondi
-- [ ] **G10** — Il tempo di risposta di ai-prescreen resta sotto i 20 secondi
-- [ ] **G11** — Il tempo di risposta di cv-review resta sotto i 15 secondi
+- [ ] **G1** — Endpoint `POST /functions/v1/delete-account` risponde correttamente
+- [ ] **G2** — Richiede autenticazione (senza token: errore 401)
+- [ ] **G3** — Non richiede body: usa il Bearer token per identificare l'utente
+- [ ] **G4** — Crea audit log in `consent_logs` con tipo `account_deletion`
+- [ ] **G5** — Anonimizza i `consent_logs` dell'utente (user_id sostituito con UUID anonimo)
+- [ ] **G6** — Cancella file da Storage: `cv-uploads/*` e `cv-exports/*`
+- [ ] **G7** — Cancella record DB in ordine FK: tailored_cvs -> applications -> master_cvs -> profiles
+- [ ] **G8** — Cancella utente auth con service role
+- [ ] **G9** — Output `{ "success": true }` in caso di successo
+- [ ] **G10** — Errore: restituisce JSON con dettaglio dell'errore
+- [ ] **G11** — I consent_logs vengono anonimizzati (non cancellati) per audit trail legale
+
+---
+
+## H. Configurazione modelli
+
+- [ ] **H1** — `parse-cv` usa `google/gemini-2.5-flash`
+- [ ] **H2** — `scrape-job` usa `google/gemini-2.5-flash`
+- [ ] **H3** — `ai-prescreen` usa `google/gemini-2.5-pro`
+- [ ] **H4** — `ai-tailor` usa `google/gemini-2.5-pro`
+- [ ] **H5** — `cv-review` usa `google/gemini-2.5-flash`
+- [ ] **H6** — Il fallback model resta `google/gemini-2.0-flash` per tutti
+- [ ] **H7** — Il summary riscritto da ai-tailor e' specifico per il ruolo (non generico)
+- [ ] **H8** — I bullet point contengono verbi d'azione e metriche
+- [ ] **H9** — Il tempo di risposta di ai-tailor resta sotto i 30 secondi
+- [ ] **H10** — Il tempo di risposta di ai-prescreen resta sotto i 20 secondi
+- [ ] **H11** — Il tempo di risposta di cv-review resta sotto i 15 secondi
+
+---
+
+## I. Moduli condivisi
+
+- [ ] **I1** — `_shared/ai-fetch.ts`: wrapper per chiamate AI con retry e parsing funziona
+- [ ] **I2** — `_shared/compact-cv.ts`: compattazione CV riduce token senza perdere dati
+- [ ] **I3** — `_shared/validate-output.ts`: validazione output AI rileva JSON malformati
+- [ ] **I4** — `_shared/cors.ts`: CORS dinamico con whitelist origini funziona

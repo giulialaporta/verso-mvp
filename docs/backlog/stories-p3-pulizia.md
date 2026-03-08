@@ -1,32 +1,7 @@
-# P3 — Pulizia Tecnica (7 stories)
+# P3 — Pulizia Tecnica (4 stories)
 
 > **Queste stories non cambiano il comportamento visibile dell'app.** Migliorano manutenibilita', type safety e performance.
 > **Ogni story e' un prompt autonomo per Lovable.**
-
----
-
-## Story P3.1 — Rigenerare tipi Supabase
-
-### Problema
-
-I tipi auto-generati in `src/integrations/supabase/types.ts` non sono allineati con lo schema reale del database. Il codice e' pieno di `as any` per aggirare errori TypeScript. Colonne come `is_active`, `raw_text`, `source`, `photo_url`, `salary_expectations`, `user_answers`, `notes` non esistono nei tipi.
-
-### Cosa fare
-
-1. Rigenerare i tipi con `npx supabase gen types typescript --project-id <project-id> > src/integrations/supabase/types.ts`
-2. Rimuovere tutti i `as any` nelle operazioni Supabase in:
-   - `src/pages/Home.tsx`
-   - `src/pages/Onboarding.tsx`
-   - `src/pages/Candidature.tsx`
-   - `src/pages/Nuova.tsx`
-3. Sostituire ogni `as any` con il tipo corretto ora disponibile
-
-### Criteri di accettazione
-
-- [ ] `types.ts` riflette lo schema attuale del database
-- [ ] Nessun `as any` rimasto nelle operazioni Supabase
-- [ ] L'app compila senza errori TypeScript
-- [ ] Nessuna regressione funzionale
 
 ---
 
@@ -38,25 +13,17 @@ Il `package.json` contiene dipendenze che non sono usate nel codice, aumentando 
 
 ### Cosa fare
 
-Rimuovere le seguenti dipendenze (verificare prima che non siano effettivamente usate cercando gli import nel codice):
+Verificare e rimuovere le dipendenze non importate nel codice. In particolare:
 
-- `lucide-react` — l'app usa `@phosphor-icons/react`
-- `react-hook-form` + `@hookform/resolvers` — i form usano `useState`
-- `zod` — non usato
-- `recharts` — non usato in nessun componente
-- `next-themes` — l'app e' dark mode only, non usa theme switching
-- `date-fns` — le date usano `toLocaleDateString`
+- `zod` — non importato in nessun file
 
-Comando: `npm uninstall lucide-react react-hook-form @hookform/resolvers zod recharts next-themes date-fns`
-
-Dopo la rimozione, verificare che l'app compili e funzioni.
+> **Nota:** `lucide-react`, `recharts` e `next-themes` erano nel backlog originale ma risultano effettivamente usati (lucide-react in 19+ file, recharts in ui/chart.tsx, next-themes in ui/sonner.tsx). NON rimuoverli.
 
 ### Criteri di accettazione
 
 - [ ] Le dipendenze inutilizzate sono state rimosse dal `package.json`
 - [ ] L'app compila senza errori
 - [ ] Nessuna regressione funzionale
-- [ ] Il bundle size e' ridotto
 
 ---
 
@@ -88,47 +55,6 @@ const photoUrl = parsedData.photo_url ?? parsedData.photo_base64;
 
 ---
 
-## Story P3.4 — Auth consistente nelle Edge Functions
-
-### Problema
-
-`parse-cv` usa `supabase.auth.getUser()` (verifica server-side del token), le altre funzioni usano metodi diversi. L'approccio dovrebbe essere uniforme.
-
-### Cosa fare
-
-In tutte e 4 le Edge Functions, usare lo stesso pattern di autenticazione:
-
-```typescript
-const authHeader = req.headers.get("Authorization");
-if (!authHeader) {
-  return new Response(
-    JSON.stringify({ error: "Token di autenticazione mancante" }),
-    { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  global: { headers: { Authorization: authHeader } },
-});
-
-const { data: { user }, error: authError } = await supabase.auth.getUser();
-if (authError || !user) {
-  return new Response(
-    JSON.stringify({ error: "Non autorizzato" }),
-    { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
-}
-```
-
-### Criteri di accettazione
-
-- [ ] Tutte e 4 le Edge Functions usano `getUser()` per l'autenticazione
-- [ ] Token mancante: errore 401 con messaggio chiaro
-- [ ] Token invalido/scaduto: errore 401
-- [ ] Il flusso dell'app funziona normalmente
-
----
-
 ## Story P3.5 — Policy DELETE su job_cache
 
 ### Problema
@@ -141,12 +67,11 @@ Creare una migrazione SQL:
 
 ```sql
 -- Permetti al service role di eliminare cache scadute
--- (le RLS policies non bloccano il service role, ma e' buona pratica documentare)
 CREATE POLICY "Service role can delete expired cache"
 ON public.job_cache FOR DELETE
 USING (true);
 
--- Opzionale: creare una funzione di pulizia chiamabile periodicamente
+-- Funzione di pulizia chiamabile periodicamente
 CREATE OR REPLACE FUNCTION cleanup_expired_job_cache()
 RETURNS void AS $$
 BEGIN
@@ -164,41 +89,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ---
 
-## Story P3.6 — Spezzare Nuova.tsx in componenti
-
-### Problema
-
-`src/pages/Nuova.tsx` e' un monolite di ~1450 righe con 6 componenti step, utility functions e tipi, tutto in un unico file.
-
-### Cosa fare
-
-Creare la cartella `src/components/wizard/` e estrarre:
-
-| File | Contenuto |
-|------|-----------|
-| `StepAnnuncio.tsx` | Step 1 — Job input (URL/testo) |
-| `StepPrescreen.tsx` | Step 2 — Pre-screening AI |
-| `StepTailoring.tsx` | Step 3 — CV tailoring |
-| `StepAnalisi.tsx` | Step 4 — Score e analisi |
-| `StepExport.tsx` | Step 5 — Export PDF |
-| `wizard-utils.ts` | Utility: `applyPatchesFrontend`, `ATS_LABELS_IT`, tipi locali |
-
-`Nuova.tsx` resta come orchestratore del wizard: gestisce lo state, gli step, e importa i componenti.
-
-### Criteri di accettazione
-
-- [ ] Ogni step e' un componente separato in `src/components/wizard/`
-- [ ] `Nuova.tsx` e' ridotto a < 300 righe (orchestratore)
-- [ ] Nessuna regressione funzionale (tutti e 5 gli step funzionano)
-- [ ] `ATS_LABELS_IT` e' definito in un solo posto (wizard-utils.ts) e importato dove serve
-
----
-
 ## Story P3.7 — Spezzare Home.tsx in componenti
 
 ### Problema
 
-`src/pages/Home.tsx` e' ~770 righe con 5 componenti inline (`StatsBar`, `VirginState`, `RecentApplications`, `SalaryDisplay`, `CVCard`).
+`src/pages/Home.tsx` contiene componenti inline (`StatsBar`, `VirginState`, `RecentApplications`, `SalaryDisplay`, `CVCard`) che andrebbero estratti.
 
 ### Cosa fare
 

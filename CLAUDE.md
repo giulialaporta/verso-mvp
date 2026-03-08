@@ -48,16 +48,12 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/spec/CLAUDE_APP.md` | Istruzioni e indice della cartella spec |
 | `docs/spec/verso-prd.md` | PRD principale (v1.1) — visione di prodotto |
 | `docs/spec/verso-prd-app.md` | PRD dell'app sviluppata |
-| `docs/spec/epics/` | 6 epic implementate (F1–F6) |
+| `docs/spec/epics/` | 8 epic implementate (F1–F6, F8–F9) |
 | `docs/spec/stories/` | 14 stories implementate |
 | `docs/backlog/` | Cose da costruire (flat, come spec/) |
-| `docs/backlog/stories-p0-sicurezza.md` | P0 — 3 fix sicurezza (bloccanti per produzione) |
-| `docs/backlog/stories-p2-ux.md` | P2 — 7 stories miglioramenti UX |
-| `docs/backlog/stories-p3-pulizia.md` | P3 — 7 stories pulizia tecnica |
-| `docs/backlog/epic-08-settings.md` | F8 — Impostazioni (gratuita, no freemium) |
-| `docs/backlog/epic-09-legal-privacy.md` | F9 — Legal, Privacy, Trasparenza AI (10 stories) |
+| `docs/backlog/stories-p3-pulizia.md` | P3 — 4 stories pulizia tecnica |
 | `docs/backlog/CLAUDE_epic-template.md` | Template per scrivere nuovi epic |
-| `docs/test/` | Checklist di acceptance criteria per test manuale (6 file, comando `/test`) |
+| `docs/test/` | Checklist di acceptance criteria per test manuale (7 file, comando `/test`) |
 | `docs/landing-page/` | Prompt per la landing page |
 | `docs/contesto/` | File di contesto progetto |
 | `docs/contesto/legal-pack/` | Documenti legali |

@@ -1,6 +1,6 @@
-# Check — Auth: Acceptance Criteria
+# Check — Auth + App Shell + Brand: Acceptance Criteria
 
-Checklist completa per verificare che tutti i flussi di autenticazione funzionino correttamente.
+Checklist completa per verificare autenticazione, app shell, design system, CORS e consensi.
 Ogni criterio va testato manualmente e marcato come Pass / Fail.
 
 ---
@@ -16,8 +16,12 @@ Ogni criterio va testato manualmente e marcato come Pass / Fail.
 - [ ] **A7** — Click sul link di conferma: l'utente puo' fare login
 - [ ] **A8** — Tentativo di login prima della conferma email mostra errore chiaro (non generico)
 - [ ] **A9** — Registrarsi con email gia' esistente mostra errore senza rivelare se l'email esiste
-- [ ] **A10** — Dopo signup + conferma, esiste una riga nella tabella `profiles` con `id` e `full_name` corretti (verificare in Supabase Dashboard > Table Editor)
-- [ ] **A11** — Il pulsante mostra stato di loading durante la chiamata (nessun doppio click possibile)
+- [ ] **A10** — Due checkbox obbligatorie (T&C + Privacy Policy) sono presenti nel form di registrazione
+- [ ] **A11** — Le checkbox NON sono pre-spuntate (requisito GDPR)
+- [ ] **A12** — Il pulsante "Crea account" e' disabilitato finche' entrambe le checkbox non sono spuntate
+- [ ] **A13** — Dopo signup + conferma, esiste una riga nella tabella `profiles` con `id` e `full_name` corretti (verificare in Supabase Dashboard > Table Editor)
+- [ ] **A14** — Dopo la registrazione, i consensi vengono salvati in `consent_logs` (tipo `terms` e `privacy`)
+- [ ] **A15** — Il pulsante mostra stato di loading durante la chiamata (nessun doppio click possibile)
 
 ---
 
@@ -69,8 +73,9 @@ Ogni criterio va testato manualmente e marcato come Pass / Fail.
 - [ ] **E4** — L'utente viene creato in Supabase Auth con provider Google (verificare in Supabase Dashboard > Authentication)
 - [ ] **E5** — Il trigger crea la riga in `profiles` con `full_name` preso da Google (verificare in Table Editor)
 - [ ] **E6** — Un secondo login con lo stesso account Google funziona (non crea duplicati)
-- [ ] **E7** — Se l'utente ha gia' un account email con la stessa email Google, il comportamento e' gestito (merge o errore chiaro)
-- [ ] **E8** — Se l'utente annulla il flusso Google (chiude il popup), torna alla pagina login senza errori
+- [ ] **E7** — Google OAuth e' bloccato se le checkbox T&C + Privacy non sono spuntate
+- [ ] **E8** — Se l'utente ha gia' un account email con la stessa email Google, il comportamento e' gestito (merge o errore chiaro)
+- [ ] **E9** — Se l'utente annulla il flusso Google (chiude il popup), torna alla pagina login senza errori
 
 ---
 
@@ -93,3 +98,41 @@ Ogni criterio va testato manualmente e marcato come Pass / Fail.
 - [ ] **G5** — Nessun dato sensibile (password, token) nei log della console del browser
 - [ ] **G6** — La pagina login e' responsive (funziona su viewport mobile)
 - [ ] **G7** — Il form supporta l'invio con Enter (non serve cliccare il pulsante)
+
+---
+
+## H. App Shell
+
+- [ ] **H1** — Desktop (>=1024px): sidebar sinistra con logo "VERSO", link navigazione (Home, Candidature, Nuova, Impostazioni), nome utente in fondo
+- [ ] **H2** — Mobile (<1024px): bottom tab bar con 3 tab (Home, + FAB accent, Candidature)
+- [ ] **H3** — Tab attiva su mobile: dot accent sotto l'icona
+- [ ] **H4** — Sidebar collassata funziona nella fascia 1024-1279px
+- [ ] **H5** — Logo "VERSO" in Syne 800, lettera "O" in accent (`#A8FF78`)
+- [ ] **H6** — Navigazione sidebar: Home -> House, Candidature -> icona lista, Nuova -> Plus (accent), Impostazioni -> GearSix
+
+---
+
+## I. Design System e Brand
+
+- [ ] **I1** — Dark mode only: background `#0C0D10`, `<html class="dark">` permanente
+- [ ] **I2** — Font Syne (700, 800) per headline, DM Sans (400, 500) per body, JetBrains Mono (400, 500) per numeri/chip
+- [ ] **I3** — Accent `#A8FF78` usato per CTA, score, elementi interattivi
+- [ ] **I4** — Icone Phosphor (@phosphor-icons/react) con pesi duotone, regular, fill
+- [ ] **I5** — Animazioni Framer Motion per transizioni
+
+---
+
+## J. Route e 404
+
+- [ ] **J1** — Route `/termini`, `/privacy`, `/cookie-policy` sono pubbliche (accessibili senza login)
+- [ ] **J2** — Route `/app/home`, `/app/candidature`, `/app/impostazioni`, `/app/cv-edit`, `/app/candidatura/:id` sono protette
+- [ ] **J3** — Pagina 404 in italiano per URL non riconosciuti
+- [ ] **J4** — Redirect sanitizer: solo path `/app/*` ammessi come redirect post-login
+
+---
+
+## K. CORS e Sicurezza
+
+- [ ] **K1** — Edge functions usano `getCorsHeaders()` da `_shared/cors.ts` (non `Access-Control-Allow-Origin: *`)
+- [ ] **K2** — Whitelist CORS include: `verso-cv.lovable.app`, `localhost`
+- [ ] **K3** — RLS attivo su tutte le tabelle: ogni utente vede solo i propri dati

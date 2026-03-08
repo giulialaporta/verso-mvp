@@ -47,39 +47,57 @@ Checklist per verificare il sistema di export PDF e la dashboard home.
 
 ---
 
-## E. Dashboard — Stato 1: Nessun CV
+## E. Dashboard — Stato 1: Nessun CV (virgin state)
 
 - [ ] **E1** — Saluto "Ciao [Nome]" con il nome dell'utente
-- [ ] **E2** — Messaggio di onboarding visibile
-- [ ] **E3** — CTA "Carica il tuo CV": redirect a `/onboarding`
-- [ ] **E4** — Nessuna sezione statistiche o candidature visibile
+- [ ] **E2** — Flusso onboarding a 3 step visualizzato con card locked
+- [ ] **E3** — I 3 step indicano la sequenza: carica CV -> compila dati -> crea candidatura
+- [ ] **E4** — Click sullo step 1: redirect a `/onboarding`
+- [ ] **E5** — Nessuna sezione statistiche o candidature visibile
 
 ---
 
 ## F. Dashboard — Stato 2: CV caricato, nessuna candidatura
 
 - [ ] **F1** — Saluto "Ciao [Nome]"
-- [ ] **F2** — CV card con anteprima dati (esperienze, formazione)
-- [ ] **F3** — Possibilita' di eliminare il CV
-- [ ] **F4** — Possibilita' di caricare un nuovo CV (sostituisce il precedente)
-- [ ] **F5** — CTA "Nuova candidatura": redirect a `/app/nuova`
+- [ ] **F2** — CV Card collapsible con toggle espandi/comprimi
+- [ ] **F3** — CV Card mostra `CVSections` editabile inline (esperienze, formazione, competenze)
+- [ ] **F4** — `SalaryDisplay` integrato: mostra RAL attuale e RAL desiderata con toggle per edit inline
+- [ ] **F5** — Azione "Modifica CV": redirect a `/app/cv-edit`
+- [ ] **F6** — Azione "Soft delete": imposta `is_active = false`, il CV non e' piu' visibile ma resta in DB
+- [ ] **F7** — Azione "Riattivazione": possibilita' di riattivare un CV precedente (`is_active = true`)
+- [ ] **F8** — Azione "Hard delete": elimina file da Supabase Storage + record dal DB (con conferma)
+- [ ] **F9** — CTA "Nuova candidatura": redirect a `/app/nuova`
 
 ---
 
 ## G. Dashboard — Stato 3: CV + candidature
 
-- [ ] **G1** — CV card con dati principali e azioni (elimina, carica nuovo)
-- [ ] **G2** — Stats visibili: numero candidature attive, score medio, stato CV
+- [ ] **G1** — CV card collapsible con dati principali e azioni (modifica, soft delete, hard delete, riattivazione)
+- [ ] **G2** — StatsBar con 3 card: Briefcase (candidature attive), ChartLineUp (score medio), FileText (stato CV)
 - [ ] **G3** — Candidature recenti: mostra le ultime 3
 - [ ] **G4** — Ogni card candidatura mostra: ruolo, azienda, match score, ATS score, data
-- [ ] **G5** — Link alla pagina completa candidature
+- [ ] **G5** — Hover su una card candidatura: prefetch dei dati (`usePrefetchApplication`)
+- [ ] **G6** — Link alla pagina completa candidature
 
 ---
 
-## H. Dashboard — Edge case
+## H. Pagina CVEdit
 
-- [ ] **H1** — Eliminare il CV: la dashboard torna allo stato 1
-- [ ] **H2** — Caricare un nuovo CV: redirect a onboarding, poi la dashboard si aggiorna
-- [ ] **H3** — La dashboard e' responsive (funziona su mobile)
-- [ ] **H4** — Refresh della pagina: i dati si ricaricano correttamente
-- [ ] **H5** — Se le query al DB falliscono: comportamento gestito (no pagina bianca)
+- [ ] **H1** — Route `/app/cv-edit` accessibile dalla dashboard
+- [ ] **H2** — Permette di modificare il CV caricato senza dover fare un nuovo upload
+- [ ] **H3** — Editing inline delle sezioni del CV (esperienze, formazione, competenze, ecc.)
+- [ ] **H4** — Salvataggio modifiche su DB
+- [ ] **H5** — Redirect alla home dopo il salvataggio
+
+---
+
+## I. Dashboard — Edge case
+
+- [ ] **I1** — Soft delete del CV: la dashboard torna allo stato 1
+- [ ] **I2** — Hard delete del CV: file rimosso da Storage e record cancellato dal DB
+- [ ] **I3** — Riattivare un CV dopo soft delete: la dashboard torna allo stato 2 o 3
+- [ ] **I4** — Caricare un nuovo CV: redirect a onboarding, poi la dashboard si aggiorna
+- [ ] **I5** — La dashboard e' responsive (funziona su mobile)
+- [ ] **I6** — Refresh della pagina: i dati si ricaricano correttamente
+- [ ] **I7** — Se le query al DB falliscono: comportamento gestito (no pagina bianca)

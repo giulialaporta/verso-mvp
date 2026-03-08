@@ -9,16 +9,9 @@ Naming coerente con `docs/spec/`: epic = `epic-XX-nome.md`, stories = `stories-p
 
 | File | Priorita' | Descrizione |
 |------|-----------|-------------|
-| `stories-p0-sicurezza.md` | **P0 — Bloccante** | 3 fix sicurezza per produzione |
-| `stories-p2-ux.md` | **P2 — Media** | 7 miglioramenti UX |
-| `stories-p3-pulizia.md` | **P3 — Bassa** | 7 stories pulizia tecnica |
+| `stories-p3-pulizia.md` | **P3 — Bassa** | 4 stories pulizia tecnica |
 
-## Epic future
-
-| File | Epic | Descrizione |
-|------|------|-------------|
-| `epic-08-settings.md` | F8 | Impostazioni (gratuita, no freemium) |
-| `epic-09-legal-privacy.md` | F9 | Legal, Privacy, Trasparenza AI, GDPR (10 stories) |
+> **P0 (sicurezza)** e **P2 (UX)** completati e rimossi. Epic F8 (Impostazioni) e F9 (Legal/Privacy) implementati e spostati in `docs/spec/epics/`.
 
 ## Utility
 

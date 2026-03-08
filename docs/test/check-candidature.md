@@ -1,6 +1,6 @@
 # Check — Candidature: Acceptance Criteria
 
-Checklist per verificare la pagina candidature: lista, stati, note, bozze, download CV.
+Checklist per verificare la pagina candidature (lista, stati, bozze) e la pagina CandidaturaDetail (dettaglio singola candidatura).
 
 ---
 
@@ -11,6 +11,7 @@ Checklist per verificare la pagina candidature: lista, stati, note, bozze, downl
 - [ ] **A3** — Ogni card mostra: ruolo, azienda, match score, ATS score, status, data
 - [ ] **A4** — Il match score e l'ATS score hanno badge colorati
 - [ ] **A5** — Lo status ha un chip colorato (`StatusChip`)
+- [ ] **A6** — Hover su una card: prefetch dei dati candidatura (`usePrefetchApplication`)
 
 ---
 
@@ -36,30 +37,51 @@ Checklist per verificare la pagina candidature: lista, stati, note, bozze, downl
 
 ---
 
-## D. Edit Drawer
+## D. Pagina CandidaturaDetail
 
-- [ ] **D1** — Click su una candidatura: apre il drawer di dettaglio
-- [ ] **D2** — Il drawer e' slide-up su mobile e slide-right su desktop
-- [ ] **D3** — Dropdown per cambiare status con tutti gli stati disponibili
-- [ ] **D4** — Campo note: testo libero, salvato in `applications.notes`
-- [ ] **D5** — Le note vengono salvate e persistono al ricaricamento
-- [ ] **D6** — Link/pulsante per scaricare il CV adattato (PDF)
-- [ ] **D7** — Pulsante elimina con conferma prima della cancellazione
-
----
-
-## E. Eliminazione
-
-- [ ] **E1** — Eliminare una candidatura richiede conferma
-- [ ] **E2** — Dopo l'eliminazione, la candidatura scompare dalla lista
-- [ ] **E3** — Viene eliminato anche il `tailored_cv` associato
-- [ ] **E4** — La lista si aggiorna senza refresh della pagina
+- [ ] **D1** — Route `/app/candidatura/:id` accessibile dal click su una candidatura
+- [ ] **D2** — Scores: match score e ATS score con visualizzazione prominente
+- [ ] **D3** — ATS Checks: lista dei controlli ATS superati/falliti (`ats_checks`)
+- [ ] **D4** — Seniority: livello di seniority rilevato visibile
+- [ ] **D5** — Learning Suggestions: suggerimenti di apprendimento basati sui gap
+- [ ] **D6** — Modifiche AI (collapsible): sezione espandibile con lista differenze tra CV originale e CV adattato
+- [ ] **D7** — CV Preview: `CVSections` collassabile con il contenuto del CV adattato
+- [ ] **D8** — Status selector: 5 stati selezionabili come chip (inviata, visualizzata, contattato, follow-up, ko)
+- [ ] **D9** — Notes: textarea per appunti liberi del candidato
+- [ ] **D10** — Le note vengono salvate e persistono al ricaricamento
 
 ---
 
-## F. Empty state e edge case
+## E. Sticky Action Bar (CandidaturaDetail)
 
-- [ ] **F1** — Nessuna candidatura: messaggio "Nessuna candidatura ancora" + CTA per crearne una
-- [ ] **F2** — Molte candidature (10+): la lista funziona senza problemi di performance
-- [ ] **F3** — La pagina e' responsive (funziona su mobile)
-- [ ] **F4** — Refresh della pagina: i dati si ricaricano correttamente
+- [ ] **E1** — Barra fissa in basso nella pagina CandidaturaDetail
+- [ ] **E2** — Pulsante "Salva": salva status e note modificati
+- [ ] **E3** — Pulsante "Scarica PDF": apre `ExportDrawer` per selezionare template e scaricare il PDF
+- [ ] **E4** — Pulsante "Elimina": eliminazione con conferma
+
+---
+
+## F. ResponsiveDetailPanel
+
+- [ ] **F1** — Desktop: Sheet laterale, larghezza 400px, slide-right
+- [ ] **F2** — Mobile: Drawer bottom-sheet, altezza 85vh
+
+---
+
+## G. Eliminazione
+
+- [ ] **G1** — Eliminare una candidatura richiede conferma
+- [ ] **G2** — Dopo l'eliminazione, la candidatura scompare dalla lista
+- [ ] **G3** — Viene eliminato anche il `tailored_cv` associato
+- [ ] **G4** — La lista si aggiorna senza refresh della pagina
+
+---
+
+## H. Empty state e edge case
+
+- [ ] **H1** — Nessuna candidatura: messaggio "Nessuna candidatura ancora" + CTA per crearne una
+- [ ] **H2** — Molte candidature (10+): la lista funziona senza problemi di performance
+- [ ] **H3** — La pagina lista e' responsive (funziona su mobile)
+- [ ] **H4** — La pagina CandidaturaDetail e' responsive (funziona su mobile)
+- [ ] **H5** — Refresh della pagina: i dati si ricaricano correttamente
+- [ ] **H6** — Candidatura con ID inesistente: errore gestito (no pagina bianca)
