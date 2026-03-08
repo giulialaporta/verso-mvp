@@ -31,7 +31,7 @@ import { DetailContent } from "@/components/candidature/DetailContent";
 import { ResponsiveDetailPanel } from "@/components/candidature/ResponsiveDetailPanel";
 
 
-import type { AppRowWithAts } from "@/types/application";
+import { useApplications } from "@/hooks/useApplications";
 
 import { StatusChip, STATUS_STYLES } from "@/components/StatusChip";
 
