@@ -852,9 +852,9 @@ function StepRevisione({
         <Card className="border-border/50 bg-card/80">
           <CardContent className="py-4 text-center space-y-1">
             <p className="text-[10px] font-mono text-muted-foreground uppercase">ATS</p>
-            <p className="font-mono text-xl font-bold text-secondary">{atsScore}%</p>
+            <p className="font-mono text-xl font-bold text-info">{atsScore}%</p>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <div className="h-full rounded-full bg-secondary" style={{ width: `${atsScore}%` }} />
+              <div className="h-full rounded-full bg-info" style={{ width: `${atsScore}%` }} />
             </div>
           </CardContent>
         </Card>
