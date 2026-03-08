@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { House, Briefcase, SignOut, List, Plus, Flask } from "@phosphor-icons/react";
+import { House, Briefcase, SignOut, List, Plus, Flask, Gear } from "@phosphor-icons/react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
