@@ -1057,7 +1057,7 @@ function StepExport({
       {/* Compact badges */}
       <div className="flex gap-2 flex-wrap">
         <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary">Match {matchScore}%</span>
-        <span className="rounded-full bg-secondary/15 px-3 py-1 font-mono text-xs text-secondary">ATS {atsScore}%</span>
+        <span className="rounded-full bg-info/15 px-3 py-1 font-mono text-xs text-info">ATS {atsScore}%</span>
         <span className={`rounded-full px-3 py-1 font-mono text-xs ${stats.confidence >= 90 ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning"}`}>
           Confidence {stats.confidence}%
         </span>

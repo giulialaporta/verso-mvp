@@ -184,7 +184,7 @@ export default function Candidature() {
           </span>
         )}
         {app.ats_score !== null && (
-          <span className="font-mono text-sm font-bold text-secondary">
+          <span className="font-mono text-sm font-bold text-info">
             ATS {app.ats_score}%
           </span>
         )}
