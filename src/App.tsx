@@ -7,18 +7,19 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { lazy, Suspense } from "react";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
-import Onboarding from "./pages/Onboarding";
 import AppShell from "./components/AppShell";
 import Home from "./pages/Home";
-import Nuova from "./pages/Nuova";
-import Candidature from "./pages/Candidature";
-import Impostazioni from "./pages/Impostazioni";
-import CVEdit from "./pages/CVEdit";
-import CandidaturaDetail from "./pages/CandidaturaDetail";
 import NotFound from "./pages/NotFound";
 
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Nuova = lazy(() => import("./pages/Nuova"));
+const Candidature = lazy(() => import("./pages/Candidature"));
+const Impostazioni = lazy(() => import("./pages/Impostazioni"));
+const CVEdit = lazy(() => import("./pages/CVEdit"));
+const CandidaturaDetail = lazy(() => import("./pages/CandidaturaDetail"));
 const DevTest = lazy(() => import("./pages/DevTest"));
 
 const queryClient = new QueryClient();
