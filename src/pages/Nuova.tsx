@@ -1026,6 +1026,7 @@ function StepExport({
   tailorResult,
   jobData,
   applicationId,
+  cvLang,
   onBack,
   onNext,
 }: {
@@ -1034,6 +1035,7 @@ function StepExport({
   tailorResult: TailorResult;
   jobData: JobData;
   applicationId: string;
+  cvLang?: string;
   onBack: () => void;
   onNext: () => void;
 }) {
