@@ -700,7 +700,7 @@ function StepTailoring({
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="border-border/50 bg-card/80 h-full"><CardContent className="py-4 text-center">
             <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Punteggio ATS</p>
-            <span className="font-mono text-2xl font-bold text-secondary">{animatedAts}%</span>
+            <span className="font-mono text-2xl font-bold text-info">{animatedAts}%</span>
           </CardContent></Card>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
