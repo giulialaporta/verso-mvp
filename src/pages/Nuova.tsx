@@ -738,10 +738,10 @@ function StepTailoring({
             <div className="flex items-center gap-2 text-sm font-medium text-info"><GraduationCap size={18} weight="fill" /> Risorse per colmare i gap</div>
             <div className="space-y-2">
               {analyzeResult.learning_suggestions.map((ls, i) => (
-                <a key={i} href={ls.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-3 rounded-lg border border-border/30 hover:border-secondary/40 bg-surface/50 hover:bg-surface transition-colors group">
-                  <GraduationCap size={18} className="text-secondary mt-0.5 shrink-0" />
+                <a key={i} href={ls.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-3 rounded-lg border border-border/30 hover:border-info/40 bg-surface/50 hover:bg-surface transition-colors group">
+                  <GraduationCap size={18} className="text-info mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium group-hover:text-secondary transition-colors">{ls.resource_name}</p>
+                    <p className="text-sm font-medium group-hover:text-info transition-colors">{ls.resource_name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="font-mono text-[10px] uppercase text-muted-foreground">{ls.skill}</span>
                       <span className="text-border">·</span>
