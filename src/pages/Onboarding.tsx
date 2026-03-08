@@ -73,17 +73,9 @@ export default function Onboarding() {
     [handleFile]
   );
 
-  const handleUploadAndParse = async () => {
+  const doUploadAndParse = async () => {
     if (!file || !user) return;
-
-    // Check consent first
-    if (!hasConsent) {
-      setShowConsentModal(true);
-      return;
-    }
-
-    doUploadAndParse();
-
+    setStep("parsing");
     try {
       const path = `${user.id}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage
@@ -110,6 +102,21 @@ export default function Onboarding() {
       toast.error(e.message || "Errore durante l'analisi del CV. Riprova.");
       setStep("upload");
     }
+  };
+
+  const handleUploadAndParse = () => {
+    if (!file || !user) return;
+    if (!hasConsent) {
+      setShowConsentModal(true);
+      return;
+    }
+    doUploadAndParse();
+  };
+
+  const handleConsentGranted = () => {
+    setShowConsentModal(false);
+    setHasConsent(true);
+    doUploadAndParse();
   };
 
   const handleSave = async () => {
