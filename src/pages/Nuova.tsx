@@ -1056,7 +1056,7 @@ function StepExport({
     setDownloading(true);
     try {
       const TemplateComponent = selectedTemplate === "minimal" ? MinimalTemplate : ClassicoTemplate;
-      const cvLang = analyzeResult?.detected_language;
+      const blob = await pdf(<TemplateComponent cv={tailoredCv} lang={cvLang} />).toBlob();
       const blob = await pdf(<TemplateComponent cv={tailoredCv} lang={cvLang} />).toBlob();
       const fileName = `CV-${personalName.replace(/\s+/g, "-")}-${jobData.company_name.replace(/\s+/g, "-")}.pdf`;
 
