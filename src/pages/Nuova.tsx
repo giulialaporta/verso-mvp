@@ -613,6 +613,10 @@ function StepTailoring({
   onGenerateCv,
   onAbandon,
   onBack,
+  selectedLanguage,
+  onLanguageChange,
+  overriddenSkills,
+  onToggleSkill,
 }: {
   analyzeResult: AnalyzeResult | null;
   analyzeLoading: boolean;
@@ -620,6 +624,10 @@ function StepTailoring({
   onGenerateCv: () => void;
   onAbandon: () => void;
   onBack: () => void;
+  selectedLanguage: string;
+  onLanguageChange: (lang: string) => void;
+  overriddenSkills: Set<string>;
+  onToggleSkill: (skill: string) => void;
 }) {
   const animatedScore = useAnimatedCounter(analyzeResult?.match_score ?? 0);
   const animatedAts = useAnimatedCounter(analyzeResult?.ats_score ?? 0);
@@ -715,18 +723,50 @@ function StepTailoring({
         </motion.div>
       </div>
 
-      {/* Skills */}
+      {/* Skills — with toggle */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="border-primary/20 bg-card/80 h-full"><CardContent className="pt-5 space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-primary"><CheckCircle size={16} weight="fill" /> Hai già</div>
-            <div className="flex flex-wrap gap-2">{analyzeResult.skills_present.filter(s => s.has).map((s) => <span key={s.label} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-mono text-primary">{s.label}</span>)}</div>
+            <div className="flex flex-wrap gap-2">
+              {analyzeResult.skills_present.filter(s => s.has).map((s) => <span key={s.label} className="rounded-full bg-primary/10 px-3 py-1 text-xs font-mono text-primary">{s.label}</span>)}
+              {/* Overridden skills shown in green with dashed border */}
+              {Array.from(overriddenSkills).map((skill) => (
+                <button
+                  key={`override-${skill}`}
+                  onClick={() => onToggleSkill(skill)}
+                  className="rounded-full border border-dashed border-primary/40 bg-primary/10 px-3 py-1 text-xs font-mono text-primary flex items-center gap-1 hover:border-primary/60 transition-colors cursor-pointer"
+                  title="Clicca per annullare"
+                >
+                  {skill}
+                  <XCircle size={12} weight="fill" className="text-primary/50" />
+                </button>
+              ))}
+            </div>
           </CardContent></Card>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
           <Card className="border-destructive/20 bg-card/80 h-full"><CardContent className="pt-5 space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-destructive"><XCircle size={16} weight="fill" /> Ti mancano</div>
-            <div className="flex flex-wrap gap-2">{analyzeResult.skills_missing.map((s) => <span key={s.label} className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-mono text-destructive flex items-center gap-1">{s.label}{(s.importance === "essential" || s.importance === "essenziale") && <Warning size={12} weight="fill" />}</span>)}</div>
+            <div className="flex flex-wrap gap-2">
+              {analyzeResult.skills_missing
+                .filter((s) => !overriddenSkills.has(s.label))
+                .map((s) => (
+                  <button
+                    key={s.label}
+                    onClick={() => onToggleSkill(s.label)}
+                    className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-mono text-destructive flex items-center gap-1 hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                    title="Ce l'ho — sposta in verde"
+                  >
+                    {s.label}
+                    {(s.importance === "essential" || s.importance === "essenziale") && <Warning size={12} weight="fill" />}
+                    <Plus size={12} weight="bold" className="ml-0.5" />
+                  </button>
+                ))}
+            </div>
+            {analyzeResult.skills_missing.length > 0 && (
+              <p className="text-[10px] text-muted-foreground italic">Clicca su una skill per dire che ce l'hai</p>
+            )}
           </CardContent></Card>
         </motion.div>
       </div>
@@ -792,6 +832,36 @@ function StepTailoring({
           </CardContent></Card>
         </motion.div>
       )}
+
+      {/* Language selector */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}>
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <Globe size={18} className="text-info" />
+              <span className="text-sm font-medium">Lingua del CV</span>
+              <span className="font-mono text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                Rilevata: {analyzeResult.detected_language === "en" ? "English" : "Italiano"}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              {[{ code: "it", label: "Italiano" }, { code: "en", label: "English" }].map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => onLanguageChange(lang.code)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-mono font-medium transition-all ${
+                    selectedLanguage === lang.code
+                      ? "bg-primary/20 text-primary border border-primary/40"
+                      : "bg-muted/50 text-muted-foreground border border-border/50 hover:border-primary/30 hover:text-foreground"
+                  }`}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {!isLowScore && (
         <Button onClick={onGenerateCv} className="w-full gap-2">
@@ -956,6 +1026,7 @@ function StepExport({
   tailorResult,
   jobData,
   applicationId,
+  cvLang,
   onBack,
   onNext,
 }: {
@@ -964,6 +1035,7 @@ function StepExport({
   tailorResult: TailorResult;
   jobData: JobData;
   applicationId: string;
+  cvLang?: string;
   onBack: () => void;
   onNext: () => void;
 }) {
@@ -984,7 +1056,6 @@ function StepExport({
     setDownloading(true);
     try {
       const TemplateComponent = selectedTemplate === "minimal" ? MinimalTemplate : ClassicoTemplate;
-      const cvLang = analyzeResult?.detected_language;
       const blob = await pdf(<TemplateComponent cv={tailoredCv} lang={cvLang} />).toBlob();
       const fileName = `CV-${personalName.replace(/\s+/g, "-")}-${jobData.company_name.replace(/\s+/g, "-")}.pdf`;
 
@@ -1147,6 +1218,8 @@ export default function Nuova() {
   const [applicationId, setApplicationId] = useState<string | null>(searchParams.get("draft"));
   const [userAnswers, setUserAnswers] = useState<{ question: string; answer: string }[]>([]);
   const [originalCv, setOriginalCv] = useState<Record<string, unknown> | null>(null);
+  const [languageOverride, setLanguageOverride] = useState<string | null>(null);
+  const [overriddenSkills, setOverriddenSkills] = useState<Set<string>>(new Set());
   const draftLoadedId = useRef<string | null>(null);
 
   const updateStep = useCallback((newStep: number) => {
@@ -1298,6 +1371,7 @@ export default function Nuova() {
       }
 
       setAnalyzeResult(result);
+      setLanguageOverride(result.detected_language || "it");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Errore durante l'analisi AI");
       updateStep(1);
@@ -1318,7 +1392,7 @@ export default function Nuova() {
           job_data: jobData,
           user_answers: userAnswers.length > 0 ? userAnswers : undefined,
           mode: "tailor",
-          analyze_context: { match_score: analyzeResult.match_score, skills_missing: analyzeResult.skills_missing, detected_language: analyzeResult.detected_language },
+          analyze_context: { match_score: analyzeResult.match_score, skills_missing: analyzeResult.skills_missing.filter(s => !overriddenSkills.has(s.label)), detected_language: languageOverride || analyzeResult.detected_language, skills_overridden: Array.from(overriddenSkills) },
         },
       });
       if (error) throw error;
@@ -1330,7 +1404,7 @@ export default function Nuova() {
         const { data: reviewResult } = await supabase.functions.invoke("cv-review", {
           body: {
             cv: result.tailored_cv,
-            detected_language: analyzeResult.detected_language || "it",
+            detected_language: languageOverride || analyzeResult.detected_language || "it",
             role_title: jobData.role_title,
           },
         });
@@ -1409,6 +1483,8 @@ export default function Nuova() {
     setOriginalCv(null);
     setApplicationId(null);
     setUserAnswers([]);
+    setLanguageOverride(null);
+    setOverriddenSkills(new Set());
     setSearchParams({}, { replace: true });
   };
 
@@ -1463,6 +1539,15 @@ export default function Nuova() {
               onGenerateCv={handleGenerateCv}
               onAbandon={handleAbandon}
               onBack={() => updateStep(1)}
+              selectedLanguage={languageOverride || analyzeResult?.detected_language || "it"}
+              onLanguageChange={setLanguageOverride}
+              overriddenSkills={overriddenSkills}
+              onToggleSkill={(skill) => setOverriddenSkills((prev) => {
+                const next = new Set(prev);
+                if (next.has(skill)) next.delete(skill);
+                else next.add(skill);
+                return next;
+              })}
             />
           )}
           {step === 3 && tailorResult && (
@@ -1481,6 +1566,7 @@ export default function Nuova() {
               tailorResult={tailorResult}
               jobData={jobData}
               applicationId={applicationId}
+              cvLang={languageOverride || analyzeResult?.detected_language}
               onBack={() => updateStep(3)}
               onNext={() => updateStep(5)}
             />

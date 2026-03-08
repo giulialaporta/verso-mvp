@@ -1,46 +1,51 @@
 
 
-# Piano: Selettore lingua CV + Toggle skill mancanti
+# Story 17 — Analisi Retributiva nello Step 2
 
-## Due modifiche in `src/pages/Nuova.tsx`
+## Acceptance Criteria
 
-### 1. Selettore lingua CV (Step 2 — StepTailoring)
+1. **AC-1**: Se `salary_expectations` è presente nel profilo utente, viene inviato nel body della request a `ai-prescreen`
+2. **AC-2**: Il prompt di `ai-prescreen` include istruzioni per generare `salary_analysis` quando riceve `salary_expectations`
+3. **AC-3**: Il tool schema di `ai-prescreen` include la struttura `salary_analysis` come campo opzionale
+4. **AC-4**: Nello Step 1 (Verifica), se `salary_analysis` è presente nel response, appare la card "Analisi Retributiva" con:
+   - Due barre orizzontali proporzionali (candidato vs posizione)
+   - Range RAL formattati (es. "€35-42K")
+   - Badge fonte per ogni barra (Da te / Dall'annuncio / Stimata)
+   - Delta percentuale colorato (verde ↑ / giallo → / rosso ↓)
+   - Nota esplicativa dall'AI
+   - Disclaimer in testo muted
+5. **AC-5**: Se `salary_analysis` è assente nel response → nessuna sezione, nessun errore
+6. **AC-6**: Se l'utente non ha `salary_expectations` nel profilo → `salary_expectations` non viene inviato, e l'AI può comunque stimare dalla posizione se il range è esplicito nell'annuncio
 
-Aggiungere un selettore IT/EN prima del pulsante "Genera il CV adattato":
+## Piano di implementazione
 
-- Nuovo state nel wizard principale: `languageOverride: string | null` (default `null`)
-- Inizializzato a `analyzeResult.detected_language` quando l'analisi completa
-- UI: card compatta con due chip pill ("Italiano" / "English"), quello attivo evidenziato con sfondo accent
-- Il valore scelto viene passato a:
-  - `handleGenerateCv` → `analyze_context.detected_language`
-  - `cv-review` → `detected_language`
-  - `StepExport` → `cvLang` per il PDF
+### 1. Edge Function `ai-prescreen` (2 modifiche)
 
-**Props da aggiungere a StepTailoring:** `selectedLanguage`, `onLanguageChange`
+**Prompt**: Aggiungere sezione che istruisce l'AI a produrre `salary_analysis` quando riceve `salary_expectations` o quando l'annuncio contiene un range esplicito.
 
-### 2. Toggle skill mancanti → "Ce l'ho" (Step 2 — StepTailoring)
+**Tool schema**: Aggiungere `salary_analysis` come proprietà opzionale con struttura:
+```
+salary_analysis: {
+  candidate_estimate: { min, max, source, basis }
+  position_estimate: { min, max, source, basis }
+  delta: "positive" | "neutral" | "negative"
+  delta_percentage: string
+  note: string
+}
+```
 
-Rendere i chip nella card "Ti mancano" cliccabili per spostarli nella card "Hai già":
+**Request body**: Leggere `salary_expectations` dal body della request e includerlo nel messaggio user all'AI.
 
-- Nuovo state nel wizard principale: `overriddenSkills: Set<string>`
-- Nella card rossa, ogni chip ha un'icona `+` — click sposta la skill in verde
-- Nella card verde, le skill overridden hanno bordo tratteggiato e icona `×` per annullare
-- Le skill overridden vengono passate a `handleGenerateCv` → `analyze_context.skills_overridden`
-- Il `match_score` visualizzato viene ricalcolato localmente (+ punti per ogni skill overridden)
+### 2. Frontend `Nuova.tsx` (2 modifiche)
 
-**Props da aggiungere a StepTailoring:** `overriddenSkills`, `onToggleSkill`
+**Chiamata**: Fetch `salary_expectations` dal profilo utente e passarlo nel body di `ai-prescreen`.
 
-### 3. Propagazione ai passaggi successivi
-
-- `handleGenerateCv`: usa `languageOverride ?? analyzeResult.detected_language` per `ai-tailor` e `cv-review`
-- `StepExport`: riceve `cvLang` dal parent (non più da `analyzeResult.detected_language`)
-- Le `skills_overridden` vengono passate in `analyze_context` così l'AI non le tratta come gap
+**Componente `SalaryAnalysisCard`**: Nuova sezione dentro `StepVerifica`, renderizzata condizionalmente. Implementa barre proporzionali, badge fonte, delta colorato, disclaimer.
 
 ### File coinvolti
 
-| File | Modifica |
-|------|----------|
-| `src/pages/Nuova.tsx` | Selettore lingua, toggle skill, propagazione valori |
-
-Nessuna modifica backend — le edge function già accettano `detected_language` e `skills_overridden` in `analyze_context`.
+| File | Modifiche |
+|------|-----------|
+| `supabase/functions/ai-prescreen/index.ts` | Prompt + schema + body handling |
+| `src/pages/Nuova.tsx` | Fetch salary, pass to API, render card |
 
