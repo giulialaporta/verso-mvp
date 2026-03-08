@@ -1,85 +1,51 @@
 
 
-# Piano: Creare stories mancanti in docs/spec/stories
+# Story 17 — Analisi Retributiva nello Step 2
 
-## Analisi gap
+## Acceptance Criteria
 
-**14 stories esistenti** coprono Epic 01, 02, 03 (parziale), 05 (parziale), 06 (parziale).
+1. **AC-1**: Se `salary_expectations` è presente nel profilo utente, viene inviato nel body della request a `ai-prescreen`
+2. **AC-2**: Il prompt di `ai-prescreen` include istruzioni per generare `salary_analysis` quando riceve `salary_expectations`
+3. **AC-3**: Il tool schema di `ai-prescreen` include la struttura `salary_analysis` come campo opzionale
+4. **AC-4**: Nello Step 1 (Verifica), se `salary_analysis` è presente nel response, appare la card "Analisi Retributiva" con:
+   - Due barre orizzontali proporzionali (candidato vs posizione)
+   - Range RAL formattati (es. "€35-42K")
+   - Badge fonte per ogni barra (Da te / Dall'annuncio / Stimata)
+   - Delta percentuale colorato (verde ↑ / giallo → / rosso ↓)
+   - Nota esplicativa dall'AI
+   - Disclaimer in testo muted
+5. **AC-5**: Se `salary_analysis` è assente nel response → nessuna sezione, nessun errore
+6. **AC-6**: Se l'utente non ha `salary_expectations` nel profilo → `salary_expectations` non viene inviato, e l'AI può comunque stimare dalla posizione se il range è esplicito nell'annuncio
 
-**Stories mancanti** (feature implementate senza documentazione):
+## Piano di implementazione
 
-| ID | Story | Epic di riferimento |
-|----|-------|---------------------|
-| 03.6 | Step Revisione (diff view + score compatti) | Epic 03 |
-| 03.7 | Step Completa (prossimi passi) | Epic 03 |
-| 04.1 | Edge Function parse-cv | Epic 04 |
-| 04.2 | Edge Function scrape-job | Epic 04 |
-| 04.3 | Edge Function ai-prescreen | Epic 04 |
-| 04.4 | Edge Function ai-tailor | Epic 04 |
-| 04.5 | Edge Function cv-review | Epic 04 |
-| 06.2 | Dettaglio Candidatura | Epic 06 |
-| 08.1 | Pagina Impostazioni (account, privacy, zona pericolosa) | Epic 08 (backlog → implementato) |
-| 09.1 | Database consent_logs | Epic 09 (backlog → implementato) |
-| 09.2 | Pagine legali (T&C, Privacy, Cookie Policy) | Epic 09 |
-| 09.3 | Consensi in registrazione | Epic 09 |
-| 09.4 | Consenso dati sensibili pre-upload | Epic 09 |
-| 09.5 | Trasparenza AI (disclaimer + label) | Epic 09 |
-| 09.6 | Cookie banner | Epic 09 |
-| 09.7 | Sezione Privacy in Impostazioni | Epic 09 |
-| 09.8 | Eliminazione account (Edge Function + UI) | Epic 09 |
-| 09.9 | Export dati personali | Epic 09 |
-| 09.10 | Pseudonimizzazione consensi (user_hash) | Epic 09 |
-| 10.1 | CV Edit (editor master CV) | Nuova — non in epic |
-| 10.2 | Salary Analysis Card | Nuova — non in epic |
-| 10.3 | Template unlock (tutti free) | Nuova — non in epic |
+### 1. Edge Function `ai-prescreen` (2 modifiche)
 
-## Cosa creare
+**Prompt**: Aggiungere sezione che istruisce l'AI a produrre `salary_analysis` quando riceve `salary_expectations` o quando l'annuncio contiene un range esplicito.
 
-**22 file** in `docs/spec/stories/`, seguendo esattamente il template delle stories esistenti:
-
+**Tool schema**: Aggiungere `salary_analysis` come proprietà opzionale con struttura:
 ```
-# Story XX.Y — Nome Story (Implementata)
-
-**Epic:** XX — Nome Epic
-**Status:** Completata
-
----
-
-## Cosa è stato implementato
-
-[descrizione 2-3 righe]
-
-### Comportamento
-[lista comportamenti]
-
-### Note / Differenze dal piano MVP
-[se applicabile]
+salary_analysis: {
+  candidate_estimate: { min, max, source, basis }
+  position_estimate: { min, max, source, basis }
+  delta: "positive" | "neutral" | "negative"
+  delta_percentage: string
+  note: string
+}
 ```
 
-Ogni story sara' concisa (stesse dimensioni delle esistenti, ~30-60 righe), documentando solo il comportamento implementato.
+**Request body**: Leggere `salary_expectations` dal body della request e includerlo nel messaggio user all'AI.
 
-## File da creare
+### 2. Frontend `Nuova.tsx` (2 modifiche)
 
-1. `story-03.6-revisione.md`
-2. `story-03.7-completa.md`
-3. `story-04.1-parse-cv.md`
-4. `story-04.2-scrape-job.md`
-5. `story-04.3-ai-prescreen.md`
-6. `story-04.4-ai-tailor.md`
-7. `story-04.5-cv-review.md`
-8. `story-06.2-dettaglio-candidatura.md`
-9. `story-08.1-impostazioni.md`
-10. `story-09.1-consent-db.md`
-11. `story-09.2-pagine-legali.md`
-12. `story-09.3-consensi-registrazione.md`
-13. `story-09.4-consenso-dati-sensibili.md`
-14. `story-09.5-trasparenza-ai.md`
-15. `story-09.6-cookie-banner.md`
-16. `story-09.7-privacy-impostazioni.md`
-17. `story-09.8-eliminazione-account.md`
-18. `story-09.9-export-dati.md`
-19. `story-09.10-pseudonimizzazione-consensi.md`
-20. `story-10.1-cv-edit.md`
-21. `story-10.2-salary-analysis.md`
-22. `story-10.3-template-unlock.md`
+**Chiamata**: Fetch `salary_expectations` dal profilo utente e passarlo nel body di `ai-prescreen`.
+
+**Componente `SalaryAnalysisCard`**: Nuova sezione dentro `StepVerifica`, renderizzata condizionalmente. Implementa barre proporzionali, badge fonte, delta colorato, disclaimer.
+
+### File coinvolti
+
+| File | Modifiche |
+|------|-----------|
+| `supabase/functions/ai-prescreen/index.ts` | Prompt + schema + body handling |
+| `src/pages/Nuova.tsx` | Fetch salary, pass to API, render card |
 
