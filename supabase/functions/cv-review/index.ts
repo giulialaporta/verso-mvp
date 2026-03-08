@@ -1,3 +1,4 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { aiFetch, parseAIResponse } from "../_shared/ai-fetch.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
