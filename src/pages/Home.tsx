@@ -634,7 +634,7 @@ export default function Home() {
                 .from("profiles")
                 .update({ salary_expectations: data } as any)
                 .eq("user_id", user!.id);
-              setSalaryExpectations(data);
+              queryClient.invalidateQueries({ queryKey: ["profile"] });
               toast.success("Aspettative RAL aggiornate.");
             }}
           />
