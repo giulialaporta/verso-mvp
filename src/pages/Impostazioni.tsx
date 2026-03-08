@@ -168,6 +168,7 @@ export default function Impostazioni() {
     }
   };
 
+  const handleDelete = async () => {
     if (confirmText !== "ELIMINA") return;
     setDeleting(true);
     try {
