@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { ConsentCheckboxes, saveRegistrationConsents } from "@/components/ConsentCheckboxes";
 
 /** Map Supabase error messages to user-friendly Italian strings (non-revealing). */
 function mapAuthError(msg: string): string {
