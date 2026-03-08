@@ -1536,6 +1536,15 @@ export default function Nuova() {
               onGenerateCv={handleGenerateCv}
               onAbandon={handleAbandon}
               onBack={() => updateStep(1)}
+              selectedLanguage={languageOverride || analyzeResult?.detected_language || "it"}
+              onLanguageChange={setLanguageOverride}
+              overriddenSkills={overriddenSkills}
+              onToggleSkill={(skill) => setOverriddenSkills((prev) => {
+                const next = new Set(prev);
+                if (next.has(skill)) next.delete(skill);
+                else next.add(skill);
+                return next;
+              })}
             />
           )}
           {step === 3 && tailorResult && (
