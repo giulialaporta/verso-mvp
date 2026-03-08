@@ -205,7 +205,8 @@ Each patch has:
 - path: JSON path in the CV (e.g. "summary", "experience[0].bullets", "skills.technical", "experience")
 - value: the new value for that field
 
-Do NOT return the entire CV. Return ONLY the fields you actually changed.
+Return ONLY the fields you actually changed.
+CRITICAL EXCEPTION: if the CV language differs from detected_language, you MUST generate patches for ALL text fields to translate them completely. This includes: summary, every experience's description and bullets, skills.technical, skills.soft, skills.tools, all education fields, certifications, and projects. In this case, translation IS tailoring — every text field needs a patch.
 
 ## FUNDAMENTAL RULES
 - You CANNOT invent new experiences, degrees, or certifications
