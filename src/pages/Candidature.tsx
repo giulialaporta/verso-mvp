@@ -117,7 +117,7 @@ export default function Candidature() {
   const drafts = useMemo(() => (apps ?? []).filter((a) => a.status.toLowerCase() === "draft"), [apps]);
   const active = useMemo(() => (apps ?? []).filter((a) => a.status.toLowerCase() !== "draft"), [apps]);
 
-  if (apps === undefined) {
+  if (appsLoading) {
     return (
       <div className="mx-auto max-w-xl space-y-4 px-4 sm:px-0">
         <Skeleton className="h-8 w-48" />
