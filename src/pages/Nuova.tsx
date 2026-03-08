@@ -1429,6 +1429,13 @@ export default function Nuova() {
         if (mcv?.parsed_data) setOriginalCv(mcv.parsed_data as Record<string, unknown>);
       }
 
+      // Compute deterministic confidence (single source of truth)
+      const frontendConfidence = computeConfidence(
+        result.original_cv ?? null,
+        reviewedCv,
+        result.diff ?? []
+      );
+
       // Save tailored CV (with reviewed version)
       if (applicationId) {
         const tcPayload = {
@@ -1441,7 +1448,7 @@ export default function Nuova() {
           ats_score: analyzeResult.ats_score,
           ats_checks: analyzeResult.ats_checks as any,
           seniority_match: analyzeResult.seniority_match as any,
-          honest_score: result.honest_score as any,
+          honest_score: { ...((result.honest_score as any) ?? {}), confidence: frontendConfidence.confidence, confidence_details: frontendConfidence } as any,
           diff: result.diff as any,
         };
 
