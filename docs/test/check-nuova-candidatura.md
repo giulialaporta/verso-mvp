@@ -1,6 +1,6 @@
 # Check — Nuova Candidatura: Acceptance Criteria
 
-Checklist per verificare il wizard a 5 step: Job Input, Pre-screening, Tailoring, Score, Export.
+Checklist per verificare il wizard a 6 step: Job Input, Pre-screening, Tailoring, Revisione, Export, Completa.
 
 ---
 
@@ -61,36 +61,46 @@ Checklist per verificare il wizard a 5 step: Job Input, Pre-screening, Tailoring
 - [ ] **D13** — Le skill overriddate vengono escluse da `skills_missing` nel tailoring
 - [ ] **D14** — Click su una skill overriddata la rimuove (torna in "Ti mancano")
 - [ ] **D15** — Hint visibile: "Clicca su una skill per dire che ce l'hai"
+- [ ] **D16** — Dopo il tailoring, il CV viene passato a `cv-review` per revisione qualita'
+- [ ] **D17** — Se `cv-review` fallisce: il CV tailored originale viene usato (nessun blocco)
 
 ---
 
-## E. Step 4 — Analisi e Score
+## E. Step 4 — Revisione
 
-- [ ] **E1** — Match Score (0-100) visibile con barra gradiente animata
-- [ ] **E2** — ATS Score (0-100) visibile
-- [ ] **E3** — I 7 check ATS sono mostrati con stato pass/warning/fail:
-  - [ ] Keywords
-  - [ ] Format
-  - [ ] Dates
-  - [ ] Measurable
-  - [ ] Cliches
-  - [ ] Sections
-  - [ ] Action verbs
-- [ ] **E4** — Honest Score visibile con confidence e contatori
-- [ ] **E5** — Se confidence < 90: vengono segnalate le sezioni da rivedere
+- [ ] **E1** — Match Score (0-100) visibile con barra compatta
+- [ ] **E2** — ATS Score (0-100) visibile con barra compatta
+- [ ] **E3** — Blocco "Cosa abbiamo cambiato" con contatori (bullet riscritti, esperienze riordinate/rimosse, summary riscritto, skill rimosse)
+- [ ] **E4** — Confidence calcolato dal frontend (non dall'AI)
+- [ ] **E5** — Label "Verificato" sempre visibile
+- [ ] **E6** — Diff collassata di default, espandibile con toggle "Mostra modifiche"
+- [ ] **E7** — Ogni diff mostra: originale, suggerito, reason
+- [ ] **E8** — Structural changes (esperienze rimosse) visibili nella diff
 
 ---
 
 ## F. Step 5 — Export PDF
 
-- [ ] **F1** — Due template disponibili: Classico e Minimal
-- [ ] **F2** — L'utente puo' selezionare il template
-- [ ] **F3** — Preview ATS score e Honest Score visibili
-- [ ] **F4** — Click "Scarica PDF": il PDF viene scaricato nel browser
-- [ ] **F5** — Il nome file segue il formato `CV-{Nome}-{Azienda}.pdf`
-- [ ] **F6** — Il PDF viene caricato automaticamente su Supabase Storage
-- [ ] **F7** — Viene creato un record in `applications` con tutti i campi compilati
-- [ ] **F8** — Viene creato un record in `tailored_cvs` con dati, score, pdf_url, template_id
+- [ ] **F1** — Step a pagina intera (non modale)
+- [ ] **F2** — Due template disponibili: Classico e Minimal
+- [ ] **F3** — L'utente puo' selezionare il template (bordo accent sulla card selezionata)
+- [ ] **F4** — Preview PDF live che si aggiorna al cambio template
+- [ ] **F5** — Click "Scarica PDF": il PDF viene scaricato nel browser
+- [ ] **F6** — Il nome file segue il formato `CV-{Nome}-{Azienda}.pdf`
+- [ ] **F7** — Il PDF viene caricato automaticamente su Supabase Storage
+- [ ] **F8** — Badge ATS Score e Confidence visibili in basso
+- [ ] **F9** — Viene creato un record in `applications` con tutti i campi compilati
+- [ ] **F10** — Viene creato un record in `tailored_cvs` con dati, score, pdf_url, template_id
+
+---
+
+## F2. Step 6 — Completa (Prossimi passi)
+
+- [ ] **F2.1** — Step visibile dopo l'export
+- [ ] **F2.2** — Mostra ruolo, azienda, match score
+- [ ] **F2.3** — Card "Ho inviato la candidatura": update status a `inviata`, redirect a `/app/candidature`
+- [ ] **F2.4** — Card "La inviero' dopo": status resta `draft`, redirect a `/app/home`
+- [ ] **F2.5** — Card "Nuova candidatura": redirect a `/app/nuova` (wizard pulito)
 
 ---
 
@@ -122,4 +132,5 @@ Checklist per verificare il wizard a 5 step: Job Input, Pre-screening, Tailoring
 - [ ] **I2** — Annuncio in lingua diversa da italiano/inglese: comportamento gestito
 - [ ] **I3** — La pagina e' responsive (funziona su mobile)
 - [ ] **I4** — Navigazione indietro tra gli step funziona
+- [ ] **I6** — Step indicator mostra 6 step: Annuncio, Analisi, Tailoring, Revisione, Export, Completa
 - [ ] **I5** — Se l'AI fallisce in uno step: errore chiaro + possibilita' di riprovare

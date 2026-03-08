@@ -1,6 +1,6 @@
 # Check — AI Engine: Acceptance Criteria
 
-Checklist per verificare le 4 Edge Functions: parse-cv, scrape-job, ai-prescreen, ai-tailor.
+Checklist per verificare le 5 Edge Functions: parse-cv, scrape-job, ai-prescreen, ai-tailor, cv-review.
 
 ---
 
@@ -68,25 +68,47 @@ Checklist per verificare le 4 Edge Functions: parse-cv, scrape-job, ai-prescreen
 
 ---
 
-## E. Sicurezza e resilienza
+## E. cv-review
 
-- [ ] **E1** — Le API key non sono esposte al client (passano dal gateway)
-- [ ] **E2** — Tutte le chiamate AI passano solo attraverso edge functions (non dal browser diretto)
-- [ ] **E3** — Token JWT scaduto: errore 401 (non errore generico)
-- [ ] **E4** — Input malformato (JSON invalido): errore 400 con messaggio
-- [ ] **E5** — Timeout dell'AI provider: errore gestito con messaggio comprensibile
-- [ ] **E6** — Retry automatico su errori transitori (se implementato)
+- [ ] **E1** — Endpoint `POST /functions/v1/cv-review` risponde correttamente
+- [ ] **E2** — Richiede autenticazione (senza token: errore 401)
+- [ ] **E3** — Output contiene `reviewed_cv` con la stessa struttura JSON del CV input
+- [ ] **E4** — Tutti i campi di testo sono nella lingua target (`detected_language`)
+- [ ] **E5** — I bullet point iniziano con verbi d'azione
+- [ ] **E6** — Nessun artefatto (prefissi, virgolette, markdown) nel testo
+- [ ] **E7** — Skill duplicate rimosse
+- [ ] **E8** — Cliche' generici rimossi (es. "Problem Solving", "Team Working")
+- [ ] **E9** — Max 4-5 bullet per esperienza
+- [ ] **E10** — Formato date uniforme in tutto il CV
+- [ ] **E11** — Dati personali (nome, email, telefono, linkedin) NON modificati
+- [ ] **E12** — Date, nomi aziende, titoli di studio NON modificati
+- [ ] **E13** — Nessuna esperienza inventata o rimossa
+- [ ] **E14** — Se la review fallisce: restituisce il CV originale con `review_failed: true`
+- [ ] **E15** — `photo_base64` preservato dall'originale
 
 ---
 
-## F. Configurazione modelli
+## F. Sicurezza e resilienza
 
-- [ ] **F1** — `parse-cv` usa `google/gemini-2.5-flash`
-- [ ] **F2** — `scrape-job` usa `google/gemini-2.5-flash`
-- [ ] **F3** — `ai-prescreen` usa `google/gemini-2.5-pro`
-- [ ] **F4** — `ai-tailor` usa `google/gemini-2.5-pro`
-- [ ] **F5** — Il fallback model resta `google/gemini-2.0-flash` per tutti
-- [ ] **F6** — Il summary riscritto da ai-tailor e' specifico per il ruolo (non generico)
-- [ ] **F7** — I bullet point contengono verbi d'azione e metriche
-- [ ] **F8** — Il tempo di risposta di ai-tailor resta sotto i 30 secondi
-- [ ] **F9** — Il tempo di risposta di ai-prescreen resta sotto i 20 secondi
+- [ ] **F1** — Le API key non sono esposte al client (passano dal gateway)
+- [ ] **F2** — Tutte le chiamate AI passano solo attraverso edge functions (non dal browser diretto)
+- [ ] **F3** — Token JWT scaduto: errore 401 (non errore generico)
+- [ ] **F4** — Input malformato (JSON invalido): errore 400 con messaggio
+- [ ] **F5** — Timeout dell'AI provider: errore gestito con messaggio comprensibile
+- [ ] **F6** — Retry automatico su errori transitori (se implementato)
+
+---
+
+## G. Configurazione modelli
+
+- [ ] **G1** — `parse-cv` usa `google/gemini-2.5-flash`
+- [ ] **G2** — `scrape-job` usa `google/gemini-2.5-flash`
+- [ ] **G3** — `ai-prescreen` usa `google/gemini-2.5-pro`
+- [ ] **G4** — `ai-tailor` usa `google/gemini-2.5-pro`
+- [ ] **G5** — `cv-review` usa `google/gemini-2.5-flash`
+- [ ] **G6** — Il fallback model resta `google/gemini-2.0-flash` per tutti
+- [ ] **G7** — Il summary riscritto da ai-tailor e' specifico per il ruolo (non generico)
+- [ ] **G8** — I bullet point contengono verbi d'azione e metriche
+- [ ] **G9** — Il tempo di risposta di ai-tailor resta sotto i 30 secondi
+- [ ] **G10** — Il tempo di risposta di ai-prescreen resta sotto i 20 secondi
+- [ ] **G11** — Il tempo di risposta di cv-review resta sotto i 15 secondi

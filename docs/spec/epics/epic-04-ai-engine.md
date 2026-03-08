@@ -1,12 +1,12 @@
-# Epic 04 — AI Engine (4 Edge Functions) (Implementato)
+# Epic 04 — AI Engine (5 Edge Functions) (Implementato)
 
 ---
 
 ## Cosa è stato costruito
 
-Quattro Supabase Edge Functions (Deno) che alimentano Verso. Tutte usano il gateway Lovable API → Google Gemini 2.5 Flash.
+Cinque Supabase Edge Functions (Deno) che alimentano Verso. Tutte usano il gateway Lovable API → Google Gemini 2.5 Flash.
 
-> **Differenza dal piano MVP:** il piano prevedeva 3 funzioni con Claude API. Implementate 4 funzioni (aggiunta `ai-prescreen`) con Lovable Gateway → Gemini.
+> **Differenza dal piano MVP:** il piano prevedeva 3 funzioni con Claude API. Implementate 5 funzioni (aggiunte `ai-prescreen` e `cv-review`) con Lovable Gateway → Gemini.
 
 ---
 
@@ -207,6 +207,54 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 
 ---
 
+## Edge Function 5: `cv-review` (NUOVA — non nel piano MVP)
+
+**Endpoint:** `POST /functions/v1/cv-review`
+
+**Input:**
+```json
+{
+  "cv": { "...CV tailored JSON..." },
+  "detected_language": "it|en",
+  "role_title": "..."
+}
+```
+
+**Processo:**
+Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` e lo perfeziona applicando 10 regole:
+
+1. **Uniformita' lingua** — ogni campo di testo nella lingua target, zero mix
+2. **Bullet = verbo d'azione + risultato** — riscrittura bullet generici
+3. **Capitalizzazione** — prima lettera maiuscola ovunque
+4. **Rimozione artefatti** — prefissi, virgolette, markdown, whitespace
+5. **Testo orfano** — spostamento o rimozione di testo fuori sezione
+6. **Validazione certificazioni** — nome + issuer obbligatori
+7. **Deduplicazione skill** — rimozione duplicati e cliche'
+8. **Max 4-5 bullet per esperienza** — condensazione
+9. **Date uniformi** — formato coerente (Gen 2021 / Jan 2021)
+10. **Qualita' summary** — 2-3 frasi, specifico per il ruolo, no filler
+
+**Protezioni:**
+- Non inventa esperienze, skill o certificazioni
+- Non modifica nomi aziende, date, titoli di studio, voti
+- Non rimuove esperienze (quello e' compito di ai-tailor)
+- Non cambia struttura/ordine delle sezioni
+- Non tocca dati personali ne' foto
+- Preserva dati personali originali come safety net (sovrascrive l'output AI)
+
+**Output:**
+```json
+{
+  "reviewed_cv": { "...CV corretto completo..." }
+}
+```
+
+**Fallback:** se la review fallisce, restituisce il CV originale con `review_failed: true` — non blocca il flusso.
+
+**Integrazione:** chiamata automaticamente in `Nuova.tsx` subito dopo `ai-tailor`. Il risultato viene usato come CV finale per score e export.
+
+---
+
 ## Sicurezza (implementata)
 
 - API key gestita tramite Lovable Gateway (non esposta al client)
@@ -220,7 +268,7 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 | Parametro | Valore |
 |-----------|--------|
 | Provider | Lovable API Gateway → Google Gemini |
-| Modello (parse-cv, scrape-job) | Gemini 2.5 Flash |
+| Modello (parse-cv, scrape-job, cv-review) | Gemini 2.5 Flash |
 | Modello (ai-prescreen, ai-tailor) | Gemini 2.5 Pro |
 | Fallback (tutti) | Gemini 2.0 Flash |
 | Runtime | Deno (Supabase Edge Functions) |
@@ -232,7 +280,7 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 | Area | Piano | Implementato |
 |------|-------|-------------|
 | Provider AI | Claude API (Anthropic) | Lovable Gateway → Google Gemini 2.5 Flash |
-| Numero funzioni | 3 | 4 (+ ai-prescreen) |
+| Numero funzioni | 3 | 5 (+ ai-prescreen, cv-review) |
 | parse-cv | Estrazione testo + prompt Claude | Input multimodale diretto (PDF → Gemini) |
 | ai-tailor | Output = CV completo | Output = patch JSON (solo modifiche) |
 | scrape-job | Senza cache | Con cache SHA-256, 7 giorni |

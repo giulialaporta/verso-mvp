@@ -1,12 +1,12 @@
-# Epic 03 — Wizard Nuova Candidatura (5 Step) (Implementato)
+# Epic 03 — Wizard Nuova Candidatura (6 Step) (Implementato)
 
 ---
 
 ## Cosa è stato costruito
 
-Pagina `/app/nuova` — wizard a 5 step che guida l'utente dall'inserimento dell'annuncio fino all'export del CV adattato.
+Pagina `/app/nuova` — wizard a 6 step che guida l'utente dall'inserimento dell'annuncio fino al completamento della candidatura.
 
-> **Differenza dal piano MVP:** il piano prevedeva 3 step (annuncio → analisi → diff view). Implementati 5 step con pre-screening, patch-based tailoring, e export integrato.
+> **Differenza dal piano MVP:** il piano prevedeva 3 step (annuncio → analisi → diff view). Implementati 6 step con pre-screening, patch-based tailoring, cv-review, export integrato e step "Prossimi passi".
 
 ---
 
@@ -102,46 +102,48 @@ Chiama Edge Function `ai-tailor` con CV master + job posting + analisi pre-scree
 
 **Output:** array di patch + reason per ogni modifica + structural changes + honest_score
 
+**Post-tailoring — CV Review:**
+Dopo l'applicazione delle patch, il CV adattato viene passato automaticamente alla Edge Function `cv-review` per una revisione qualita' HR (uniformita' lingua, bullet con verbi d'azione, deduplicazione skill, formato date, ecc.). Se la review fallisce, il CV originale tailored viene usato senza bloccare il flusso.
+
 ---
 
-## Step 4: Analisi e Score
+## Step 4: Revisione
 
-Presenta i risultati dell'analisi AI:
+Riepilogo di cosa e' cambiato nel CV, con confronto originale vs adattato.
 
-**Match Score (0-100):**
-- Compatibilità complessiva CV-ruolo
-- Visualizzato con barra gradiente animata (Framer Motion)
+**Score compatti (in alto):**
+- Match Score (0-100) — barra compatta
+- ATS Score (0-100) — barra compatta
 
-**ATS Score (0-100) con 7 check:**
-1. Keywords — parole chiave presenti
-2. Format — struttura leggibile
-3. Dates — date coerenti
-4. Measurable — risultati misurabili
-5. Clichés — assenza di cliché
-6. Sections — sezioni standard
-7. Action verbs — verbi d'azione
+**Blocco "Cosa abbiamo cambiato":**
+- Contatori calcolati dal frontend (confronto CV originale vs tailored):
+  - Bullet riscritti (su totale)
+  - Esperienze riordinate
+  - Esperienze rimosse
+  - Summary riscritto
+  - Skill rimosse
+- Confidence calcolato dal frontend (non dall'AI)
+- Label "Verificato" sempre presente
 
-Ogni check: pass (verde) / warning (giallo) / fail (rosso)
-
-**Honest Score:**
-- Confidence (0-100)
-- Contatori: esperienze aggiunte, skill inventate, date modificate, bullet riposizionati, bullet riscritti
-- Se confidence < 90: flag sezioni da rivedere
+**Diff view (collassata di default):**
+- Toggle "Mostra modifiche" espande la lista di diff
+- Ogni diff: testo originale (rosso) → testo suggerito (verde) + reason
+- Structural changes (esperienze rimosse) incluse
 
 ---
 
 ## Step 5: Export PDF
 
-Integrato nel wizard (non drawer separato come nel piano MVP).
+Step a pagina intera del wizard (non drawer separato come nel piano MVP).
 
 **Template disponibili:**
 - **Classico** — header scuro, body bianco, DM Sans
 - **Minimal** — tutto bianco, Inter, massima pulizia
 
 **Azioni:**
-- Selezione template
-- Preview ATS score + 7 check
-- Preview Honest Score
+- Selezione template (card con bordo accent sulla selezionata)
+- Preview PDF live che si aggiorna al cambio template
+- Badge ATS Score e Confidence in basso
 - Download PDF locale
 - Upload automatico su Supabase Storage (`cv-exports/{userId}/{applicationId}/`)
 
@@ -150,6 +152,21 @@ Integrato nel wizard (non drawer separato come nel piano MVP).
 **Al completamento:**
 - Crea record in `applications` (company_name, role_title, job_url, job_description, match_score, ats_score, status='draft')
 - Crea record in `tailored_cvs` (tailored_data, suggestions, skills_match, ats_score, ats_checks, honest_score, pdf_url, template_id)
+
+---
+
+## Step 6: Completa (Prossimi passi)
+
+Step finale che guida l'utente dopo l'export.
+
+**Contenuto:**
+- Titolo "Candidatura pronta!" con icona Target
+- Ruolo + azienda + match score
+
+**3 card azione:**
+- **"Ho inviato la candidatura"** → update status a `inviata`, redirect a `/app/candidature`
+- **"La inviero' dopo"** → status resta `draft`, redirect a `/app/home`
+- **"Nuova candidatura"** → redirect a `/app/nuova` (wizard pulito)
 
 ---
 
@@ -174,7 +191,7 @@ Integrato nel wizard (non drawer separato come nel piano MVP).
 
 | Area | Piano | Implementato |
 |------|-------|-------------|
-| Step totali | 3 | 5 |
+| Step totali | 3 | 6 |
 | Pre-screening | Non previsto | Step dedicato con dealbreaker + follow-up |
 | Tailoring | CV completo sostituito | Patch-based (solo modifiche) |
 | Diff view | 2 colonne originale/adattato | Non implementata come diff visuale |

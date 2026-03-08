@@ -1,4 +1,4 @@
-# P0 — Fix Sicurezza (4 stories)
+# P0 — Fix Sicurezza (3 stories)
 
 > **Priorita':** bloccanti per andare in produzione. Eseguire tutte prima di qualsiasi altra modifica.
 > **Effort totale:** basso. Ogni story e' un prompt autonomo per Lovable.
@@ -13,13 +13,14 @@ Tutte e 4 le Edge Functions hanno `Access-Control-Allow-Origin: *`. Questo perme
 
 ### Cosa fare
 
-In ogni Edge Function (`parse-cv`, `scrape-job`, `ai-prescreen`, `ai-tailor`), sostituire l'header CORS hardcoded con una whitelist dinamica.
+In ogni Edge Function (`parse-cv`, `scrape-job`, `ai-prescreen`, `ai-tailor`, `cv-review`), sostituire l'header CORS hardcoded con una whitelist dinamica.
 
 **File da modificare:**
 - `supabase/functions/parse-cv/index.ts`
 - `supabase/functions/scrape-job/index.ts`
 - `supabase/functions/ai-prescreen/index.ts`
 - `supabase/functions/ai-tailor/index.ts`
+- `supabase/functions/cv-review/index.ts`
 
 **Logica:**
 
@@ -120,70 +121,7 @@ Chiamare `validateUrl(url)` prima di effettuare il fetch. Se la validazione fall
 
 ---
 
-## Story P0.3 — Rendere bucket cv-exports privato
-
-### Problema
-
-Il bucket `cv-exports` e' pubblico. I CV esportati contengono dati personali sensibili (nome, email, telefono, esperienza lavorativa) e sono accessibili a chiunque conosca l'URL.
-
-### Cosa fare
-
-**1. Modificare il bucket da pubblico a privato.**
-
-In Supabase Dashboard > Storage > cv-exports > Settings: disattivare "Public bucket".
-
-Oppure creare una nuova migrazione SQL:
-
-```sql
-UPDATE storage.buckets SET public = false WHERE id = 'cv-exports';
-```
-
-**2. Aggiornare le RLS policies di storage per cv-exports.**
-
-Rimuovere la policy pubblica e creare policies che permettano solo al proprietario di accedere:
-
-```sql
--- Rimuovi la policy pubblica
-DROP POLICY IF EXISTS "CV exports are publicly accessible" ON storage.objects;
-
--- Solo il proprietario puo' leggere i propri export
-CREATE POLICY "Users can read own cv-exports"
-ON storage.objects FOR SELECT
-USING (
-  bucket_id = 'cv-exports'
-  AND (storage.foldername(name))[1] = auth.uid()::text
-);
-
--- Solo il proprietario puo' caricare
-CREATE POLICY "Users can upload own cv-exports"
-ON storage.objects FOR INSERT
-WITH CHECK (
-  bucket_id = 'cv-exports'
-  AND (storage.foldername(name))[1] = auth.uid()::text
-);
-```
-
-**3. Aggiornare il codice che legge il PDF URL.**
-
-Dove il frontend usa `pdf_url` per il download (pagina Candidature, drawer), sostituire l'URL pubblico con una signed URL generata al momento:
-
-```typescript
-const { data } = await supabase.storage
-  .from("cv-exports")
-  .createSignedUrl(filePath, 60 * 5); // 5 minuti
-```
-
-### Criteri di accettazione
-
-- [ ] Il bucket `cv-exports` e' privato
-- [ ] Un utente non autenticato non puo' accedere ai PDF
-- [ ] Un utente autenticato puo' scaricare solo i propri PDF
-- [ ] Il download CV dalla pagina Candidature funziona ancora
-- [ ] Il download CV dallo step Export del wizard funziona ancora
-
----
-
-## Story P0.4 — Validare filePath in parse-cv
+## Story P0.3 — Validare filePath in parse-cv (defense-in-depth)
 
 ### Problema
 

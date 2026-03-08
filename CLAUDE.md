@@ -51,8 +51,7 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/spec/epics/` | 6 epic implementate (F1–F6) |
 | `docs/spec/stories/` | 14 stories implementate |
 | `docs/backlog/` | Cose da costruire (flat, come spec/) |
-| `docs/backlog/stories-p0-sicurezza.md` | P0 — 4 fix sicurezza (bloccanti per produzione) |
-| `docs/backlog/stories-p1-ai-improvements.md` | P1 — stories backend AI + moduli shared |
+| `docs/backlog/stories-p0-sicurezza.md` | P0 — 3 fix sicurezza (bloccanti per produzione) |
 | `docs/backlog/stories-p2-ux.md` | P2 — 7 stories miglioramenti UX |
 | `docs/backlog/stories-p3-pulizia.md` | P3 — 7 stories pulizia tecnica |
 | `docs/backlog/epic-08-settings.md` | F8 — Impostazioni (gratuita, no freemium) |
