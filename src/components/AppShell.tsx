@@ -25,6 +25,7 @@ const navItems = [
 const sidebarItems = [
   ...navItems,
   { title: "Nuova candidatura", url: "/app/nuova", icon: Plus },
+  { title: "Impostazioni", url: "/app/impostazioni", icon: Gear },
   ...(import.meta.env.DEV ? [{ title: "Dev Test", url: "/app/dev-test", icon: Flask }] : []),
 ];
 
