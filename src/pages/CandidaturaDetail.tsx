@@ -28,6 +28,7 @@ import {
   ShieldWarning,
   Eye,
   CaretDown,
+  GraduationCap,
 } from "@phosphor-icons/react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { StatusChip, STATUS_STYLES } from "@/components/StatusChip";
