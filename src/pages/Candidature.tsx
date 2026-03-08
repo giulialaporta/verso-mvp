@@ -105,7 +105,7 @@ export default function Candidature() {
     }
   };
 
-  const handleOpenDetail = (app: AppRow) => {
+  const handleOpenDetail = (app: AppRowWithAts) => {
     setSelectedApp(app);
     setDrawerStatus(app.status.toLowerCase());
     setDrawerNotes(app.notes || "");
