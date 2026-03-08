@@ -76,7 +76,13 @@ export default function Onboarding() {
   const handleUploadAndParse = async () => {
     if (!file || !user) return;
 
-    setStep("parsing");
+    // Check consent first
+    if (!hasConsent) {
+      setShowConsentModal(true);
+      return;
+    }
+
+    doUploadAndParse();
 
     try {
       const path = `${user.id}/${Date.now()}_${file.name}`;
