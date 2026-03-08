@@ -833,6 +833,36 @@ function StepTailoring({
         </motion.div>
       )}
 
+      {/* Language selector */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}>
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <Globe size={18} className="text-info" />
+              <span className="text-sm font-medium">Lingua del CV</span>
+              <span className="font-mono text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                Rilevata: {analyzeResult.detected_language === "en" ? "English" : "Italiano"}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              {[{ code: "it", label: "Italiano" }, { code: "en", label: "English" }].map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => onLanguageChange(lang.code)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-mono font-medium transition-all ${
+                    selectedLanguage === lang.code
+                      ? "bg-primary/20 text-primary border border-primary/40"
+                      : "bg-muted/50 text-muted-foreground border border-border/50 hover:border-primary/30 hover:text-foreground"
+                  }`}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {!isLowScore && (
         <Button onClick={onGenerateCv} className="w-full gap-2">
           <MagicWand size={16} /> Genera il CV adattato
