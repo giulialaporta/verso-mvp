@@ -154,12 +154,13 @@ export default function CandidaturaDetail() {
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="font-display text-2xl font-bold truncate">{app.role_title}</h1>
+          <h1 className="font-display text-2xl font-bold break-words">{app.role_title}</h1>
           <p className="text-muted-foreground">{app.company_name}</p>
           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
             <span className="inline-flex items-center gap-1">
               <CalendarBlank size={12} /> {formatDate(app.created_at)}
             </span>
+            <StatusChip status={status} />
           </div>
         </div>
       </div>
