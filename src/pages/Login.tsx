@@ -55,8 +55,9 @@ export default function Login() {
   }
 
   // Compute whether form is valid for submit
+  const consentsAccepted = acceptedTerms && acceptedPrivacy;
   const isFormValid = isSignUp
-    ? email.trim() !== "" && password.trim() !== "" && fullName.trim() !== ""
+    ? email.trim() !== "" && password.trim() !== "" && fullName.trim() !== "" && consentsAccepted
     : email.trim() !== "" && password.trim() !== "";
 
   const handleSubmit = async (e: React.FormEvent) => {
