@@ -524,7 +524,7 @@ export default function Home() {
   };
 
   const firstName = profileName?.split(" ")[0] || "utente";
-  const isLoading = cv === undefined || apps === undefined;
+  const isLoading = activeCvQuery.isLoading || !apps;
   const hasCV = cv !== null && cv !== undefined;
   const activeApps = useMemo(
     () => (apps ?? []).filter((a) => !["ko", "draft"].includes(a.status.toLowerCase())),
