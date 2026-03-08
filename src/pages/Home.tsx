@@ -234,19 +234,21 @@ function RecentApplications({ apps }: { apps: AppRow[] }) {
         {apps.map((app) => (
           <div
             key={app.id}
-            className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/60 px-3 py-2.5 cursor-pointer hover:border-primary/40 transition-colors"
+            className="rounded-lg border border-border/30 bg-card/60 px-3 py-2.5 cursor-pointer hover:border-primary/40 transition-colors"
             onClick={() => navigate(`/app/candidatura/${app.id}`)}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
-              {app.company_name.charAt(0)}
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
+                {app.company_name.charAt(0)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium truncate">{app.role_title}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {app.company_name}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium truncate">{app.role_title}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {app.company_name}
-              </p>
-            </div>
-            <div className="flex gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 mt-2 ml-11">
               {app.match_score !== null && (
                 <span className="font-mono text-xs font-bold text-primary">
                   {app.match_score}%
@@ -257,8 +259,8 @@ function RecentApplications({ apps }: { apps: AppRow[] }) {
                   ATS {(app as any).ats_score}%
                 </span>
               )}
+              <StatusChip status={app.status} />
             </div>
-            <StatusChip status={app.status} />
           </div>
         ))}
         <Button
