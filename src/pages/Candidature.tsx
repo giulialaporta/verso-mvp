@@ -50,6 +50,7 @@ export default function Candidature() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const prefetch = usePrefetchApplication();
   const { data: apps, isLoading: appsLoading } = useApplications(100);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedApp, setSelectedApp] = useState<AppRowWithAts | null>(null);
