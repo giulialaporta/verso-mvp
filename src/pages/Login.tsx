@@ -77,7 +77,7 @@ export default function Login() {
         if (error) throw error;
         // Save consent records
         if (data.user) {
-          await saveRegistrationConsents(data.user.id);
+          await saveRegistrationConsents(data.user.id, email);
         }
         toast.success("Controlla la tua email per confermare la registrazione!");
       } else {
