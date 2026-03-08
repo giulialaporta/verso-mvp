@@ -74,7 +74,7 @@ export default function CVEdit() {
     <div className="mx-auto max-w-2xl space-y-6 px-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/app/home")} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => navigate("/app/home")} className="min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors" aria-label="Torna alla dashboard">
             <ArrowLeft size={20} />
           </button>
           <h1 className="font-display text-2xl font-bold tracking-tight">Modifica CV</h1>

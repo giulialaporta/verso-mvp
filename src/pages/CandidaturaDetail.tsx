@@ -121,9 +121,22 @@ export default function CandidaturaDetail() {
   if (loading) {
     return (
       <div className="mx-auto max-w-2xl space-y-4 px-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-48 w-full" />
+        {/* Header skeleton */}
+        <div className="flex items-start gap-3">
+          <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-7 w-3/4" />
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-3 w-1/4" />
+          </div>
+        </div>
+        {/* Score cards skeleton */}
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+        </div>
+        {/* ATS section skeleton */}
+        <Skeleton className="h-48 rounded-xl" />
       </div>
     );
   }
@@ -147,19 +160,20 @@ export default function CandidaturaDetail() {
   const seniorityMatch = tailored?.seniority_match as any;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4">
+    <div className="mx-auto max-w-3xl space-y-6 px-4">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <button onClick={() => navigate("/app/candidature")} className="text-muted-foreground hover:text-foreground transition-colors mt-1">
+        <button onClick={() => navigate("/app/candidature")} className="min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors" aria-label="Torna alle candidature">
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="font-display text-2xl font-bold truncate">{app.role_title}</h1>
+          <h1 className="font-display text-2xl font-bold break-words">{app.role_title}</h1>
           <p className="text-muted-foreground">{app.company_name}</p>
           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
             <span className="inline-flex items-center gap-1">
               <CalendarBlank size={12} /> {formatDate(app.created_at)}
             </span>
+            <StatusChip status={status} />
           </div>
         </div>
       </div>
@@ -172,7 +186,7 @@ export default function CandidaturaDetail() {
               <CardContent className="py-4 text-center space-y-1">
                 <p className="text-[10px] font-mono text-muted-foreground uppercase">Match</p>
                 <p className="font-mono text-2xl font-bold text-primary">{matchScore}%</p>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div className="h-2 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={matchScore} aria-valuemin={0} aria-valuemax={100} aria-label={`Match score ${matchScore}%`}>
                   <div className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary" style={{ width: `${matchScore}%` }} />
                 </div>
               </CardContent>
@@ -183,7 +197,7 @@ export default function CandidaturaDetail() {
               <CardContent className="py-4 text-center space-y-1">
                 <p className="text-[10px] font-mono text-muted-foreground uppercase">ATS</p>
                 <p className="font-mono text-2xl font-bold text-info">{atsScore}%</p>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div className="h-2 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={atsScore} aria-valuemin={0} aria-valuemax={100} aria-label={`ATS score ${atsScore}%`}>
                   <div className="h-full rounded-full bg-info" style={{ width: `${atsScore}%` }} />
                 </div>
               </CardContent>
@@ -202,12 +216,14 @@ export default function CandidaturaDetail() {
             </div>
             <div className="grid grid-cols-1 gap-2">
               {atsChecks.map((check: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 text-xs">
-                  <span className={`h-2 w-2 rounded-full shrink-0 ${
+                <div key={i} className="flex items-start gap-2 text-xs">
+                  <span className={`h-2 w-2 rounded-full shrink-0 mt-1.5 ${
                     check.status === "pass" ? "bg-primary" : check.status === "warning" ? "bg-warning" : "bg-destructive"
                   }`} />
-                  <span className="text-muted-foreground flex-1">{check.label || check.check}</span>
-                  {check.detail && <span className="text-muted-foreground/60 text-right truncate max-w-[50%]">{check.detail}</span>}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-muted-foreground">{check.label || check.check}</span>
+                    {check.detail && <p className="text-muted-foreground/60 whitespace-normal break-words mt-0.5">{check.detail}</p>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -280,7 +296,7 @@ export default function CandidaturaDetail() {
       <Card className="border-border/50 bg-card/80">
         <CardContent className="py-4 space-y-3">
           <label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Stato</label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
             {STATUSES.map((s) => {
               const style = STATUS_STYLES[s] ?? STATUS_STYLES.draft;
               const isActive = status === s;
@@ -288,7 +304,7 @@ export default function CandidaturaDetail() {
                 <button
                   key={s}
                   onClick={() => setStatus(s)}
-                  className={`rounded-full px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-all ${
+                  className={`rounded-full px-4 py-2.5 font-mono text-[11px] uppercase tracking-wider transition-all min-h-[44px] ${
                     isActive
                       ? `${style.bg} ${style.text} ring-2 ring-current`
                       : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
@@ -333,8 +349,8 @@ export default function CandidaturaDetail() {
         </Collapsible>
       )}
 
-      {/* Actions */}
-      <div className="space-y-2 pb-6">
+      {/* Actions — sticky on mobile */}
+      <div className="space-y-2 pb-6 md:pb-6 sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] md:static bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none pt-3 -mx-4 px-4 border-t border-border/30 md:border-0 md:mx-0 z-10">
         <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
           <FloppyDisk size={16} /> {saving ? "Salvataggio..." : "Salva modifiche"}
         </Button>

@@ -165,19 +165,21 @@ export default function Candidature() {
 
   const AppCard = ({ app }: { app: AppRow }) => (
     <div
-      className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-colors"
+      className="rounded-lg border border-border/30 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-colors"
       onClick={() => navigate(`/app/candidatura/${app.id}`)}
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
-        {app.company_name.charAt(0)}
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
+          {app.company_name.charAt(0)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium truncate">{app.role_title}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {app.company_name} · {formatDate(app.created_at)}
+          </p>
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium truncate">{app.role_title}</p>
-        <p className="text-xs text-muted-foreground truncate">
-          {app.company_name} · {formatDate(app.created_at)}
-        </p>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-2 mt-2 ml-12">
         {app.match_score !== null && (
           <span className="font-mono text-sm font-bold text-primary">
             {app.match_score}%
@@ -188,8 +190,8 @@ export default function Candidature() {
             ATS {app.ats_score}%
           </span>
         )}
+        <StatusChip status={app.status} />
       </div>
-      <StatusChip status={app.status} />
     </div>
   );
 
@@ -242,6 +244,7 @@ export default function Candidature() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        aria-label={`Elimina bozza ${draft.role_title}`}
                       >
                         <Trash size={14} />
                       </Button>
@@ -274,7 +277,7 @@ export default function Candidature() {
 
       {/* Active applications */}
       {active.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {active.map((app, i) => (
             <motion.div
               key={app.id}

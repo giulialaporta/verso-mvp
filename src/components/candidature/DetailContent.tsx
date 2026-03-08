@@ -91,7 +91,7 @@ export function DetailContent({
             <label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
               Stato
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
               {STATUSES.map((s) => {
                 const style = STATUS_STYLES[s] ?? STATUS_STYLES.draft;
                 const isActive = drawerStatus === s;
@@ -99,7 +99,7 @@ export function DetailContent({
                   <button
                     key={s}
                     onClick={() => setDrawerStatus(s)}
-                    className={`rounded-full px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-all ${
+                    className={`rounded-full px-4 py-2.5 font-mono text-[11px] uppercase tracking-wider transition-all min-h-[44px] ${
                       isActive
                         ? `${style.bg} ${style.text} ring-2 ring-current`
                         : "bg-muted/30 text-muted-foreground hover:bg-muted/50"

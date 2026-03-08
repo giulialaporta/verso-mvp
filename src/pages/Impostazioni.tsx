@@ -16,7 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Trash, User, Warning } from "@phosphor-icons/react";
+import { Trash, User, Warning, Lock, SignOut } from "@phosphor-icons/react";
 
 export default function Impostazioni() {
   const { user, signOut } = useAuth();
@@ -50,6 +50,11 @@ export default function Impostazioni() {
     }
   };
 
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4">
       <h1 className="font-display text-2xl font-bold tracking-tight">Impostazioni</h1>
@@ -73,6 +78,32 @@ export default function Impostazioni() {
               {user?.user_metadata?.full_name || user?.user_metadata?.name || "—"}
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Sicurezza */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Lock size={20} weight="bold" />
+            Sicurezza
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/reset-password")}
+            className="w-full justify-start gap-2"
+          >
+            <Lock size={16} /> Cambia password
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="w-full justify-start gap-2 text-muted-foreground"
+          >
+            <SignOut size={16} /> Esci dall'account
+          </Button>
         </CardContent>
       </Card>
 
@@ -128,6 +159,9 @@ export default function Impostazioni() {
           </AlertDialog>
         </CardContent>
       </Card>
+
+      {/* Version */}
+      <p className="text-center text-[11px] font-mono text-muted-foreground pb-4">Verso v1.0</p>
     </div>
   );
 }

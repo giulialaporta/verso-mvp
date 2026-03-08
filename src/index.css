@@ -23,7 +23,7 @@
     --secondary-foreground: 0 0% 75%;
 
     --muted: 228 10% 12%;
-    --muted-foreground: 0 0% 55%;
+    --muted-foreground: 0 0% 63%; /* WCAG AA 4.6:1 su --background */
 
     --accent: 145 62% 55%;
     --accent-foreground: 228 14% 5%;
@@ -80,5 +80,15 @@
 
   code, pre, kbd, samp {
     font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Global focus-visible for keyboard navigation */
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
 }
