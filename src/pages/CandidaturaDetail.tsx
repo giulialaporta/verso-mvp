@@ -160,7 +160,7 @@ export default function CandidaturaDetail() {
   const seniorityMatch = tailored?.seniority_match as any;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4">
+    <div className="mx-auto max-w-3xl space-y-6 px-4">
       {/* Header */}
       <div className="flex items-start gap-3">
         <button onClick={() => navigate("/app/candidature")} className="min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors" aria-label="Torna alle candidature">

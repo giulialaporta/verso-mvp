@@ -230,7 +230,7 @@ function RecentApplications({ apps }: { apps: AppRow[] }) {
           Ultime candidature
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-3">
         {apps.map((app) => (
           <div
             key={app.id}

@@ -277,7 +277,7 @@ export default function Candidature() {
 
       {/* Active applications */}
       {active.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {active.map((app, i) => (
             <motion.div
               key={app.id}
