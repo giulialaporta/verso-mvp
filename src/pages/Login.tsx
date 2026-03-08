@@ -244,6 +244,15 @@ export default function Login() {
                 />
               </div>
 
+              {isSignUp && (
+                <ConsentCheckboxes
+                  acceptedTerms={acceptedTerms}
+                  acceptedPrivacy={acceptedPrivacy}
+                  onTermsChange={setAcceptedTerms}
+                  onPrivacyChange={setAcceptedPrivacy}
+                />
+              )}
+
               <Button type="submit" className="w-full" disabled={submitting || !isFormValid}>
                 {submitting
                   ? "Caricamento..."
