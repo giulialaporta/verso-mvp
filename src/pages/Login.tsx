@@ -303,7 +303,12 @@ export default function Login() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Legal footer */}
+        <div className="flex justify-center gap-4 mt-4">
+          <Link to="/termini" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground underline-offset-4 hover:underline">Termini</Link>
+          <Link to="/privacy" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground underline-offset-4 hover:underline">Privacy</Link>
+          <Link to="/cookie-policy" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground underline-offset-4 hover:underline">Cookie</Link>
+        </div>
       </div>
     </div>
-  );
-}
