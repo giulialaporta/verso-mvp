@@ -16,7 +16,6 @@ import {
   Warning,
   XCircle,
   X,
-  Lock,
   DownloadSimple,
   SpinnerGap,
   CaretDown,
@@ -254,30 +253,17 @@ export function ExportDrawer({
               <div className="grid grid-cols-2 gap-2">
                 {TEMPLATES.map((t) => {
                   const isSelected = selectedTemplate === t.id;
-                  const isLocked = !t.free;
                   return (
                     <button
                       key={t.id}
-                      disabled={isLocked}
                       onClick={() => setSelectedTemplate(t.id)}
                       className={`relative rounded-xl border-2 p-4 text-center transition-all ${
                         isSelected
                           ? "border-primary bg-primary/5"
-                          : isLocked
-                            ? "border-border/30 bg-muted/20 opacity-50 cursor-not-allowed"
-                            : "border-border/50 hover:border-primary/40"
+                          : "border-border/50 hover:border-primary/40"
                       }`}
                     >
-                      {isLocked && (
-                        <Lock
-                          size={14}
-                          className="absolute top-2 right-2 text-muted-foreground"
-                        />
-                      )}
                       <p className="text-sm font-medium">{t.name}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {isLocked ? "Pro" : "Free"}
-                      </p>
                     </button>
                   );
                 })}
