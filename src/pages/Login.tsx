@@ -66,7 +66,7 @@ export default function Login() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -75,6 +75,10 @@ export default function Login() {
           },
         });
         if (error) throw error;
+        // Save consent records
+        if (data.user) {
+          await saveRegistrationConsents(data.user.id);
+        }
         toast.success("Controlla la tua email per confermare la registrazione!");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
