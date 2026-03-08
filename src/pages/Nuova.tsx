@@ -1391,7 +1391,7 @@ export default function Nuova() {
           job_data: jobData,
           user_answers: userAnswers.length > 0 ? userAnswers : undefined,
           mode: "tailor",
-          analyze_context: { match_score: analyzeResult.match_score, skills_missing: analyzeResult.skills_missing, detected_language: analyzeResult.detected_language },
+          analyze_context: { match_score: analyzeResult.match_score, skills_missing: analyzeResult.skills_missing.filter(s => !overriddenSkills.has(s.label)), detected_language: languageOverride || analyzeResult.detected_language, skills_overridden: Array.from(overriddenSkills) },
         },
       });
       if (error) throw error;
