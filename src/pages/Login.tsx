@@ -35,8 +35,9 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
 
-  // Deep link: redirect to where user was trying to go
-  const fromPath = (location.state as any)?.from?.pathname || "/app/home";
+  // US-S10: Sanitize redirect — only allow internal /app/ paths
+  const rawPath = (location.state as any)?.from?.pathname;
+  const fromPath = rawPath && typeof rawPath === "string" && rawPath.startsWith("/app/") ? rawPath : "/app/home";
 
   if (loading) {
     return (
