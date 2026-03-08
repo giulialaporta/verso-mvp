@@ -158,7 +158,7 @@ export function ExportDrawer({
                   <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
                     Punteggio ATS
                   </span>
-                  <span className="font-mono text-lg font-bold text-secondary">{atsScore}%</span>
+                  <span className="font-mono text-lg font-bold text-info">{atsScore}%</span>
                 </div>
                 {/* ATS Explanation */}
                 <div className="flex items-start gap-2 p-2 rounded-lg bg-secondary/5 border border-secondary/10">
