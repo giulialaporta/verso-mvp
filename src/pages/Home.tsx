@@ -234,7 +234,8 @@ function RecentApplications({ apps }: { apps: AppRow[] }) {
         {apps.map((app) => (
           <div
             key={app.id}
-            className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/60 px-3 py-2.5"
+            className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/60 px-3 py-2.5 cursor-pointer hover:border-primary/40 transition-colors"
+            onClick={() => navigate(`/app/candidatura/${app.id}`)}
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
               {app.company_name.charAt(0)}
