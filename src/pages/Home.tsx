@@ -515,7 +515,7 @@ export default function Home() {
       }
       const { error } = await supabase.from("master_cvs").delete().eq("id", oldCv.id);
       if (error) throw error;
-      setInactiveCvs((prev) => prev.filter((c) => c.id !== oldCv.id));
+      invalidateCVs();
       toast.success("CV eliminato definitivamente.");
     } catch (e: any) {
       toast.error(e.message || "Errore durante l'eliminazione.");
