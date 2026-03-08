@@ -208,7 +208,15 @@ export default function CandidaturaDetail() {
         </div>
       )}
 
-      {/* ATS Checks */}
+      {/* Score Note */}
+      {scoreNote && (
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">{scoreNote}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {atsChecks && atsChecks.length > 0 && (
         <Card className="border-border/50 bg-card/80">
           <CardContent className="py-4 space-y-3">
