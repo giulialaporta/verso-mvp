@@ -151,7 +151,7 @@ export default function CandidaturaDetail() {
   }
 
   const matchScore = app.match_score;
-  const atsScore = tailored?.ats_score ?? app.ats_score;
+  const atsScore = tailored?.ats_score ?? null;
   const diff = tailored?.diff as any[] | null;
   const tailoredData = tailored?.tailored_data as ParsedCV | null;
   const atsChecks = tailored?.ats_checks as any[] | null;

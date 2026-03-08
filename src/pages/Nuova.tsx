@@ -1369,7 +1369,7 @@ export default function Nuova() {
       if (result?.error) throw new Error(result.error);
 
       if (applicationId) {
-        await supabase.from("applications").update({ match_score: result.match_score, ats_score: result.ats_score } as any).eq("id", applicationId);
+        await supabase.from("applications").update({ match_score: result.match_score } as any).eq("id", applicationId);
       }
 
       setAnalyzeResult(result);
