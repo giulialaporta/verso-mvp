@@ -433,5 +433,6 @@ export default function Onboarding() {
         </AnimatePresence>
       </div>
     </div>
+    </>
   );
 }
