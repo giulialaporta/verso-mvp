@@ -16,7 +16,6 @@ import {
   Warning,
   XCircle,
   X,
-  Lock,
   DownloadSimple,
   SpinnerGap,
   CaretDown,
