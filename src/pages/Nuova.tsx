@@ -393,7 +393,7 @@ function StepAnnuncio({
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <Globe size={16} className="text-secondary shrink-0 mt-0.5" />
+                        <Globe size={16} className="text-info shrink-0 mt-0.5" />
                         <div>
                           <p className="text-foreground font-medium mb-1">Indeed, InfoJobs, Monster, Glassdoor</p>
                           <p>Stesso metodo. Apri l'annuncio, seleziona il testo e incollalo qui.</p>
