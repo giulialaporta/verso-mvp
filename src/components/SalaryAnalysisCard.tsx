@@ -36,7 +36,7 @@ function SourceBadge({ source }: { source: string }) {
   const isEstimated = source === "estimated";
   return (
     <span className={`font-mono text-[10px] uppercase px-1.5 py-0.5 rounded-full ${
-      isEstimated ? "bg-warning/15 text-warning" : "bg-secondary/15 text-secondary"
+      isEstimated ? "bg-warning/15 text-warning" : "bg-info/15 text-info"
     }`}>
       {label}
     </span>
