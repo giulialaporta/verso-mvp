@@ -1,51 +1,70 @@
 
 
-# Story 17 — Analisi Retributiva nello Step 2
+# Problema: tracciabilità dei consensi in caso di ispezione
 
-## Acceptance Criteria
+## La lacuna
 
-1. **AC-1**: Se `salary_expectations` è presente nel profilo utente, viene inviato nel body della request a `ai-prescreen`
-2. **AC-2**: Il prompt di `ai-prescreen` include istruzioni per generare `salary_analysis` quando riceve `salary_expectations`
-3. **AC-3**: Il tool schema di `ai-prescreen` include la struttura `salary_analysis` come campo opzionale
-4. **AC-4**: Nello Step 1 (Verifica), se `salary_analysis` è presente nel response, appare la card "Analisi Retributiva" con:
-   - Due barre orizzontali proporzionali (candidato vs posizione)
-   - Range RAL formattati (es. "€35-42K")
-   - Badge fonte per ogni barra (Da te / Dall'annuncio / Stimata)
-   - Delta percentuale colorato (verde ↑ / giallo → / rosso ↓)
-   - Nota esplicativa dall'AI
-   - Disclaimer in testo muted
-5. **AC-5**: Se `salary_analysis` è assente nel response → nessuna sezione, nessun errore
-6. **AC-6**: Se l'utente non ha `salary_expectations` nel profilo → `salary_expectations` non viene inviato, e l'AI può comunque stimare dalla posizione se il range è esplicito nell'annuncio
+Oggi la `delete-account` edge function **anonimizza** tutti i `consent_logs` impostando `user_id = 00000000-0000-0000-0000-000000000000`. Dopo la cancellazione, **tutti** i record anonimizzati sono indistinguibili tra loro. Se arriva il Garante e chiede "l'utente X ha dato consenso Y?", non c'è modo di ricostruirlo.
 
-## Piano di implementazione
+Inoltre, dalla network emerge che l'utente corrente (registrato via Apple OAuth prima del sistema consensi) **non ha nessun record in `consent_logs`** — array vuoto. Questo è un altro buco: utenti pre-esistenti senza consenso registrato.
 
-### 1. Edge Function `ai-prescreen` (2 modifiche)
+## Soluzione: pseudonimizzazione con hash + email nei metadata
 
-**Prompt**: Aggiungere sezione che istruisce l'AI a produrre `salary_analysis` quando riceve `salary_expectations` o quando l'annuncio contiene un range esplicito.
+### 1. Aggiungere colonna `user_hash` alla tabella `consent_logs`
 
-**Tool schema**: Aggiungere `salary_analysis` come proprietà opzionale con struttura:
-```
-salary_analysis: {
-  candidate_estimate: { min, max, source, basis }
-  position_estimate: { min, max, source, basis }
-  delta: "positive" | "neutral" | "negative"
-  delta_percentage: string
-  note: string
-}
+Un hash SHA-256 dell'email dell'utente (one-way, non reversibile direttamente, ma ricostruibile se conosci l'email oggetto di ispezione).
+
+```sql
+ALTER TABLE public.consent_logs ADD COLUMN user_hash text;
+CREATE INDEX idx_consent_logs_user_hash ON public.consent_logs(user_hash);
 ```
 
-**Request body**: Leggere `salary_expectations` dal body della request e includerlo nel messaggio user all'AI.
+### 2. Modificare `delete-account` edge function
 
-### 2. Frontend `Nuova.tsx` (2 modifiche)
+Prima di anonimizzare:
+- Calcolare `SHA256(user.email)` 
+- Salvare lo hash in tutti i record dell'utente
+- Salvare email hashata anche nel record `account_deletion`
+- **Poi** anonimizzare `user_id` a UUID zero
 
-**Chiamata**: Fetch `salary_expectations` dal profilo utente e passarlo nel body di `ai-prescreen`.
+Così in caso di ispezione: il Garante fornisce l'email → si calcola SHA256 → si cercano i record corrispondenti.
 
-**Componente `SalaryAnalysisCard`**: Nuova sezione dentro `StepVerifica`, renderizzata condizionalmente. Implementa barre proporzionali, badge fonte, delta colorato, disclaimer.
+### 3. Popolare `user_hash` anche nei nuovi consensi
 
-### File coinvolti
+Modificare i punti dove si inseriscono consent_logs (Login.tsx, SensitiveDataConsent.tsx, CookieBanner.tsx, Impostazioni.tsx) per includere `user_hash` calcolato lato client con `crypto.subtle.digest`.
 
-| File | Modifiche |
-|------|-----------|
-| `supabase/functions/ai-prescreen/index.ts` | Prompt + schema + body handling |
-| `src/pages/Nuova.tsx` | Fetch salary, pass to API, render card |
+Oppure, più pulito: **trigger database** che calcola automaticamente lo hash. Ma non abbiamo accesso all'email nella tabella consent_logs. Quindi meglio farlo lato applicazione.
+
+### 4. Salvare l'email nel campo `metadata` del record `account_deletion`
+
+Per ricostruzione diretta in caso di ispezione, nel record `account_deletion` inserire anche l'email in chiaro nei metadata (solo quel record, conservato per obbligo legale). Questo è legittimo: base giuridica = obbligo legale (art. 6.1.c GDPR) e legittimo interesse per difesa giuridica (art. 6.1.f).
+
+## Piano implementativo — 3 modifiche
+
+### Modifica 1: Migrazione DB
+- Aggiungere colonna `user_hash TEXT` a `consent_logs`
+- Indice su `user_hash`
+
+### Modifica 2: Edge function `delete-account`
+- Prima di anonimizzare: calcolare `SHA256(user.email)` con Web Crypto API
+- Aggiornare tutti i consent_logs dell'utente con `user_hash`
+- Nel record `account_deletion`: aggiungere `metadata.email_hash` e `metadata.email` (per ricostruzione diretta)
+- Poi procedere con anonimizzazione `user_id`
+
+### Modifica 3: Utility lato client per `user_hash`
+- Creare una funzione `hashEmail(email)` riutilizzabile
+- Passare `user_hash` in tutti gli insert di `consent_logs` (ConsentCheckboxes, SensitiveDataConsent, CookieBanner, Impostazioni)
+- In questo modo **ogni** record è tracciabile anche senza `user_id`
+
+### Risultato per l'ispezione
+
+```text
+Ispettore: "L'utente mario.rossi@email.com ha dato consenso?"
+
+1. Calcoli SHA256("mario.rossi@email.com") → "a1b2c3..."
+2. SELECT * FROM consent_logs WHERE user_hash = 'a1b2c3...'
+3. Trovi tutti i consensi: T&C ✓, Privacy ✓, Dati sensibili ✓, 
+   Revoca dati sensibili, Account deletion
+4. Timeline completa ricostruita.
+```
 
