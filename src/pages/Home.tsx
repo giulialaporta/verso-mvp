@@ -217,6 +217,7 @@ function VirginState() {
 // ─── Recent Applications ─────────────────────────────────────
 function RecentApplications({ apps }: { apps: AppRowWithAts[] }) {
   const navigate = useNavigate();
+  const prefetch = usePrefetchApplication();
 
   if (apps.length === 0) return null;
 
