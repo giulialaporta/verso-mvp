@@ -121,6 +121,7 @@ function MobileTabBar() {
           <button
             onClick={() => navigate("/app/nuova")}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-105 active:scale-95"
+            aria-label="Nuova candidatura"
           >
             <Plus size={22} weight="bold" />
           </button>
