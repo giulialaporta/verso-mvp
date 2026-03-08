@@ -65,7 +65,7 @@ function SalaryBar({
       </div>
       <div className="h-2.5 rounded-full bg-muted overflow-hidden relative">
         <motion.div
-          className="absolute h-full rounded-full bg-gradient-to-r from-secondary/60 to-secondary"
+          className="absolute h-full rounded-full bg-gradient-to-r from-info/60 to-info"
           initial={{ left: "0%", width: "0%" }}
           animate={{ left: `${startPercent}%`, width: `${widthPercent - startPercent}%` }}
           transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
