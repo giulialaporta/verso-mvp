@@ -62,6 +62,7 @@ export default function Impostazioni() {
   const [consents, setConsents] = useState<ConsentRecord[]>([]);
   const [loadingConsents, setLoadingConsents] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // Load user consents
   useEffect(() => {
