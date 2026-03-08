@@ -86,6 +86,7 @@ export function ExportDrawer({
   companyName,
   applicationId,
   userId,
+  lang,
 }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("classico");
   const [downloading, setDownloading] = useState(false);
