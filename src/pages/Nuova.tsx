@@ -1463,6 +1463,8 @@ export default function Nuova() {
           seniority_match: analyzeResult.seniority_match as any,
           honest_score: { ...((result.honest_score as any) ?? {}), confidence: frontendConfidence.confidence, confidence_details: frontendConfidence } as any,
           diff: result.diff as any,
+          score_note: analyzeResult.score_note || null,
+          learning_suggestions: analyzeResult.learning_suggestions as any || null,
         };
 
         const { data: existingTc } = await supabase.from("tailored_cvs").select("id").eq("application_id", applicationId).maybeSingle();
