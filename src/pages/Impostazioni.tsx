@@ -320,7 +320,35 @@ export default function Impostazioni() {
         </CardContent>
       </Card>
 
-      {/* Sicurezza */}
+      {/* Assistenza */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Headset size={20} weight="bold" />
+            Assistenza
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Hai bisogno di aiuto o vuoi esercitare i tuoi diritti privacy? Contattaci via email. Rispondiamo entro 48 ore lavorative.
+          </p>
+          <div className="flex flex-col gap-2">
+            <a
+              href="mailto:supporto@verso-cv.app"
+              className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 underline underline-offset-4"
+            >
+              <EnvelopeSimple size={16} /> supporto@verso-cv.app
+            </a>
+            <a
+              href="mailto:privacy@verso-cv.app"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground underline underline-offset-4"
+            >
+              <ShieldCheck size={16} /> privacy@verso-cv.app <span className="text-[11px] no-underline">(richieste GDPR)</span>
+            </a>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-border bg-card">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
