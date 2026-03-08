@@ -83,6 +83,7 @@ export type Database = {
           method: string | null
           revoked_at: string | null
           user_agent: string | null
+          user_hash: string | null
           user_id: string
         }
         Insert: {
@@ -96,6 +97,7 @@ export type Database = {
           method?: string | null
           revoked_at?: string | null
           user_agent?: string | null
+          user_hash?: string | null
           user_id: string
         }
         Update: {
@@ -109,6 +111,7 @@ export type Database = {
           method?: string | null
           revoked_at?: string | null
           user_agent?: string | null
+          user_hash?: string | null
           user_id?: string
         }
         Relationships: []

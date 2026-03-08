@@ -4,6 +4,7 @@ import { X } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { hashEmail } from "@/lib/hash-email";
 
 const STORAGE_KEY = "verso_cookie_consent";
 
@@ -42,8 +43,10 @@ export function CookieBanner() {
 
     // If authenticated, also log to consent_logs
     if (user) {
+      const userHash = user.email ? await hashEmail(user.email) : undefined;
       await supabase.from("consent_logs" as any).insert({
         user_id: user.id,
+        user_hash: userHash,
         consent_type: "analytics_cookies",
         consent_version: "1.0",
         granted: analytics,

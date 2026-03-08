@@ -21,6 +21,7 @@ import {
   Cookie, ArrowSquareOut, CheckCircle, XCircle, DownloadSimple, Headset, EnvelopeSimple,
 } from "@phosphor-icons/react";
 import { resetCookieConsent, getCookieConsent } from "@/components/CookieBanner";
+import { hashEmail } from "@/lib/hash-email";
 
 interface ConsentRecord {
   id: string;
@@ -89,15 +90,17 @@ export default function Impostazioni() {
     if (!user) return;
     setRevoking("sensitive_data");
     try {
+      const userHash = user.email ? await hashEmail(user.email) : undefined;
       await supabase.from("consent_logs").insert({
         user_id: user.id,
+        user_hash: userHash,
         consent_type: "sensitive_data",
         consent_version: "1.0",
         granted: false,
         user_agent: navigator.userAgent,
         method: "settings_revoke",
         metadata: { screen: "impostazioni" },
-      });
+      } as any);
       // Refresh consents
       const { data } = await supabase
         .from("consent_logs")
@@ -113,20 +116,22 @@ export default function Impostazioni() {
     }
   };
 
-  const handleResetCookies = () => {
+  const handleResetCookies = async () => {
     resetCookieConsent();
     toast({ title: "Preferenze cookie ripristinate", description: "Il banner cookie riapparirà alla prossima visita." });
     // Also log revocation
     if (user) {
+      const userHash = user.email ? await hashEmail(user.email) : undefined;
       supabase.from("consent_logs").insert({
         user_id: user.id,
+        user_hash: userHash,
         consent_type: "analytics_cookies",
         consent_version: "1.0",
         granted: false,
         user_agent: navigator.userAgent,
         method: "settings_reset",
         metadata: { screen: "impostazioni" },
-      });
+      } as any);
     }
   };
 
