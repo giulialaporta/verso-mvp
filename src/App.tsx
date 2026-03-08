@@ -52,6 +52,7 @@ const App = () => (
                 <Route path="home" element={<Home />} />
                 <Route path="nuova" element={<Nuova />} />
                 <Route path="candidature" element={<Candidature />} />
+                <Route path="impostazioni" element={<Impostazioni />} />
                 {import.meta.env.DEV && (
                   <Route path="dev-test" element={<Suspense fallback={null}><DevTest /></Suspense>} />
                 )}

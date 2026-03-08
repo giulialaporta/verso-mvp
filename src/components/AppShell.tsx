@@ -143,6 +143,24 @@ function MobileTabBar() {
             <span className="absolute bottom-[calc(env(safe-area-inset-bottom)+2px)] h-1 w-1 rounded-full bg-primary" />
           )}
         </button>
+
+        {/* Impostazioni tab */}
+        <button
+          onClick={() => navigate("/app/impostazioni")}
+          className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2"
+        >
+          <Gear
+            size={22}
+            weight={isActive("/app/impostazioni") ? "fill" : "regular"}
+            className={isActive("/app/impostazioni") ? "text-primary" : "text-muted-foreground"}
+          />
+          <span className={`text-[10px] font-medium ${isActive("/app/impostazioni") ? "text-primary" : "text-muted-foreground"}`}>
+            Impostazioni
+          </span>
+          {isActive("/app/impostazioni") && (
+            <span className="absolute bottom-[calc(env(safe-area-inset-bottom)+2px)] h-1 w-1 rounded-full bg-primary" />
+          )}
+        </button>
       </div>
     </nav>
   );
