@@ -5,7 +5,8 @@
 
 const ALLOWED_ORIGINS = [
   "https://verso-cv.lovable.app",       // produzione (published)
-  "https://id-preview--79973808-7997-4009-a8ef-6fba6ac3604e.lovable.app", // preview
+  "https://id-preview--79973808-7997-4009-a8ef-6fba6ac3604e.lovable.app", // preview legacy
+  "https://79973808-7997-4009-a8ef-6fba6ac3604e.lovableproject.com",      // preview attuale
   "http://localhost:5173",               // sviluppo locale
   "http://localhost:8080",               // sviluppo locale alternativo
 ];
