@@ -81,4 +81,14 @@
   code, pre, kbd, samp {
     font-family: 'JetBrains Mono', monospace;
   }
+
+  /* Global focus-visible for keyboard navigation */
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
 }
