@@ -18,6 +18,7 @@ import {
   ArrowRight,
   ArrowLeft,
   CurrencyEur,
+  Robot,
 } from "@phosphor-icons/react";
 import { CVSections } from "@/components/CVSections";
 import { CVSuggestions } from "@/components/CVSuggestions";
@@ -214,7 +215,18 @@ export default function Onboarding() {
                     <p className="mt-1 text-sm text-muted-foreground">
                       Carica un PDF e Verso estrarrà le informazioni.
                     </p>
-                  </div>
+                   </div>
+
+                   {/* AI Transparency Banner */}
+                   <div className="flex gap-3 rounded-lg border-l-[3px] border-primary bg-surface p-3">
+                     <Robot size={18} weight="duotone" className="text-primary shrink-0 mt-0.5" />
+                     <div className="text-[13px] text-muted-foreground leading-relaxed">
+                       <span className="font-medium text-foreground">Verso usa l'intelligenza artificiale</span>
+                       <br />
+                       L'AI analizza il tuo CV partendo da quello che hai scritto — non inventa nulla.
+                       Ogni documento generato viene mostrato a te prima di poterlo scaricare: sei sempre tu a decidere cosa usare.
+                     </div>
+                   </div>
 
                   <div
                     onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}

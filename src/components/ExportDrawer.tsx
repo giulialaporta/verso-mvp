@@ -25,6 +25,7 @@ import {
 import { ClassicoTemplate, MinimalTemplate, TEMPLATES } from "@/components/cv-templates";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AiLabel } from "@/components/AiLabel";
 
 // --- Italian fallback labels for ATS checks ---
 const ATS_LABELS_IT: Record<string, string> = {
@@ -286,6 +287,10 @@ export function ExportDrawer({
         </ScrollArea>
 
         <DrawerFooter>
+          <p className="text-[11px] text-muted-foreground/70 text-center mb-2">
+            Scaricando questo documento confermi di averlo revisionato e di assumerne la responsabilità.
+          </p>
+          <AiLabel text="Documento generato con AI — l'utente è responsabile della revisione" className="justify-center mb-2" />
           <Button onClick={handleDownload} disabled={downloading} className="w-full gap-2">
             {downloading ? (
               <>

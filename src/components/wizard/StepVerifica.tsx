@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AiLabel } from "@/components/AiLabel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,6 +65,7 @@ export function StepVerifica({
           <p className="text-muted-foreground mt-1">Analisi onesta dei requisiti prima di procedere.</p>
         </div>
       </div>
+      <AiLabel text="Analisi generata con AI — verifica i risultati" />
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         <Card className="border-border/50 bg-card/80">
