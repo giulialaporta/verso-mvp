@@ -18,6 +18,7 @@ import {
   ArrowRight,
   ArrowLeft,
   CurrencyEur,
+  Robot,
 } from "@phosphor-icons/react";
 import { CVSections } from "@/components/CVSections";
 import { CVSuggestions } from "@/components/CVSuggestions";
