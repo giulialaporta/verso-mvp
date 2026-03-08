@@ -111,7 +111,10 @@ export default function Login() {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     if (oauthLoading) return;
-    setOauthLoading(true);
+    if (isSignUp && !consentsAccepted) {
+      toast.error("Accetta i Termini e l'Informativa Privacy per continuare");
+      return;
+    }
     try {
       const { error } = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
