@@ -474,14 +474,14 @@ export default function Home() {
             .single(),
           supabase
             .from("master_cvs")
-            .select("*")
+            .select("id, parsed_data, file_name, file_url, created_at, is_active, photo_url")
             .eq("user_id", user.id)
             .eq("is_active", true)
             .order("created_at", { ascending: false })
             .limit(1),
           supabase
             .from("master_cvs")
-            .select("*")
+            .select("id, file_name, file_url, created_at, is_active")
             .eq("user_id", user.id)
             .eq("is_active", false)
             .order("created_at", { ascending: false }),
@@ -490,7 +490,7 @@ export default function Home() {
             .select("id, company_name, role_title, match_score, status, created_at, tailored_cvs(ats_score)")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
-            .limit(20),
+            .limit(3),
         ]);
 
       setProfileName(profile?.full_name || "");
