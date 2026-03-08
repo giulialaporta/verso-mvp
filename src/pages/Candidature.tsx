@@ -66,6 +66,7 @@ export default function Candidature() {
       .select("id, company_name, role_title, match_score, status, created_at, notes, tailored_cvs(ats_score)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
+      .limit(100)
       .then(({ data }) => {
         const rows = (data ?? []).map((d: any) => ({
           ...d,
