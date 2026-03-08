@@ -54,6 +54,9 @@ type MasterCV = {
 };
 
 import type { AppRowWithAts } from "@/types/application";
+import { useProfile } from "@/hooks/useProfile";
+import { useApplications } from "@/hooks/useApplications";
+import { useMasterCV } from "@/hooks/useMasterCV";
 
 import { StatusChip } from "@/components/StatusChip";
 
