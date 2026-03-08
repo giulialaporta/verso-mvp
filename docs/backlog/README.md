@@ -1,26 +1,27 @@
 # Backlog — Indice
 
-Cose da costruire, organizzate per priorita' ed epic.
+Cose da costruire, organizzate per priorita'.
+Naming coerente con `docs/spec/`: epic = `epic-XX-nome.md`, stories = `stories-pX-nome.md`.
 
 ---
 
-## Priorita'
+## Stories per priorita'
 
-| Cartella | Priorita' | Descrizione | Contenuto |
-|----------|-----------|-------------|-----------|
-| `p0-sicurezza/` | **P0 — Bloccante** | 4 fix sicurezza per produzione | stories.md |
-| `p1-ai-improvements/` | **P1 — Alta** | Stories backend AI + moduli shared | stories.md |
-| `p2-ux/` | **P2 — Media** | 7 miglioramenti UX | stories.md |
-| `p3-pulizia/` | **P3 — Bassa** | 7 stories pulizia tecnica | stories.md |
+| File | Priorita' | Descrizione |
+|------|-----------|-------------|
+| `stories-p0-sicurezza.md` | **P0 — Bloccante** | 4 fix sicurezza per produzione |
+| `stories-p1-ai-improvements.md` | **P1 — Alta** | 10 stories backend AI + moduli shared |
+| `stories-p2-ux.md` | **P2 — Media** | 7 miglioramenti UX |
+| `stories-p3-pulizia.md` | **P3 — Bassa** | 7 stories pulizia tecnica |
 
 ## Epic future
 
-| Cartella | Epic | Descrizione | Contenuto |
-|----------|------|-------------|-----------|
-| `f8-settings/` | F8 | Impostazioni (gratuita, no freemium) | epic.md |
-| `f9-legal-privacy/` | F9 | Legal, Privacy, Trasparenza AI, GDPR | epic.md |
+| File | Epic | Descrizione |
+|------|------|-------------|
+| `epic-08-settings.md` | F8 | Impostazioni (gratuita, no freemium) |
+| `epic-09-legal-privacy.md` | F9 | Legal, Privacy, Trasparenza AI, GDPR (10 stories) |
 
-## Template
+## Utility
 
 | File | Descrizione |
 |------|-------------|
