@@ -106,9 +106,7 @@ export default function Candidature() {
         .update({ status: drawerStatus, notes: drawerNotes || null } as any)
         .eq("id", selectedApp.id);
       if (error) throw error;
-      setApps((prev) =>
-        prev?.map((a) => (a.id === selectedApp.id ? { ...a, status: drawerStatus, notes: drawerNotes || null } : a))
-      );
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
       toast.success("Stato aggiornato.");
       setSelectedApp(null);
     } catch (e: any) {
