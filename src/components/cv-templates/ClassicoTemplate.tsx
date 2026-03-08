@@ -1,4 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
+import { clean, ensureArray, MAX_SIDEBAR_SKILLS, h } from "./template-utils";
 
 Font.register({
   family: "DM Sans",
@@ -8,20 +9,6 @@ Font.register({
     { src: "https://cdn.jsdelivr.net/fontsource/fonts/dm-sans@latest/latin-700-normal.ttf", fontWeight: 700 },
   ],
 });
-
-const NONE_VALUES = ["None", "none", "null", "N/A", "n/a", "undefined", "N/D", "n/d"];
-const clean = (val: unknown): string | null => {
-  if (typeof val !== "string") return null;
-  const trimmed = val.trim();
-  if (!trimmed || NONE_VALUES.includes(trimmed)) return null;
-  return trimmed;
-};
-
-const ensureArray = (val: unknown): string[] => {
-  if (Array.isArray(val)) return val.map(v => clean(String(v))).filter(Boolean) as string[];
-  if (typeof val === "string") return val.split(",").map(s => s.trim()).filter(s => s && !NONE_VALUES.includes(s));
-  return [];
-};
 
 const SIDEBAR_BG = "#141518";
 const SIDEBAR_TEXT = "#F2F3F7";
@@ -35,7 +22,6 @@ const s = StyleSheet.create({
   page: { fontFamily: "DM Sans", fontSize: 10, flexDirection: "row" },
   sidebar: { width: "30%", backgroundColor: SIDEBAR_BG, paddingHorizontal: 16, paddingVertical: 24, color: SIDEBAR_TEXT },
   main: { width: "70%", paddingHorizontal: 28, paddingVertical: 24, paddingBottom: 60, color: BODY_TEXT },
-  // Sidebar
   photo: { width: 72, height: 72, borderRadius: 36, marginBottom: 12, alignSelf: "center" },
   sidebarName: { fontSize: 14, fontWeight: 700, marginBottom: 8, textAlign: "center" },
   contactItem: { fontSize: 8, color: SIDEBAR_MUTED, marginBottom: 3, lineHeight: 1.4 },
@@ -45,7 +31,6 @@ const s = StyleSheet.create({
   langItem: { fontSize: 8, color: SIDEBAR_TEXT, marginBottom: 2 },
   certName: { fontSize: 8, color: SIDEBAR_TEXT, fontWeight: 500 },
   certMeta: { fontSize: 7, color: SIDEBAR_MUTED, marginBottom: 4 },
-  // Main
   mainName: { fontSize: 20, fontWeight: 700, marginBottom: 2 },
   mainSubtitle: { fontSize: 9, color: BODY_MUTED, marginBottom: 14 },
   sectionTitle: { fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, color: BODY_TEXT, borderBottomWidth: 0.5, borderBottomColor: SECTION_BORDER, paddingBottom: 3, marginBottom: 8, marginTop: 14 },
@@ -61,10 +46,9 @@ const s = StyleSheet.create({
   projName: { fontSize: 10, fontWeight: 500 },
   projDesc: { fontSize: 9.5, lineHeight: 1.5, marginTop: 1 },
   projLink: { fontSize: 9, color: SIDEBAR_ACCENT, marginTop: 1 },
-  extraBlock: { marginBottom: 6 },
 });
 
-export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
+export function ClassicoTemplate({ cv, lang }: { cv: Record<string, any>; lang?: string }) {
   const personal = cv.personal || {};
   const summary = clean(cv.summary);
   const experience = cv.experience || [];
@@ -77,40 +61,36 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
 
   const contactParts = [clean(personal.email), clean(personal.phone), clean(personal.location)].filter(Boolean) as string[];
 
-  const allSkills = skills
+  const allSkills = (skills
     ? Array.isArray(skills)
       ? skills.filter((sk: string) => clean(sk))
       : [...ensureArray(skills.technical), ...ensureArray(skills.soft), ...ensureArray(skills.tools)]
-    : [];
+    : []).slice(0, MAX_SIDEBAR_SKILLS);
 
   const languages = skills?.languages && Array.isArray(skills.languages) ? skills.languages : [];
 
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        {/* ===== SIDEBAR (30%) ===== */}
         <View style={s.sidebar}>
           {photoUrl && <Image src={photoUrl} style={s.photo} />}
           <Text style={s.sidebarName}>{clean(personal.name) || "Nome Cognome"}</Text>
 
-          {/* Contacts */}
-          <Text style={s.sidebarSection}>Contatti</Text>
+          <Text style={s.sidebarSection}>{h("contacts", lang)}</Text>
           {contactParts.map((c, i) => <Text key={i} style={s.contactItem}>{c}</Text>)}
           {clean(personal.linkedin) && <Text style={s.contactLink}>{personal.linkedin}</Text>}
           {clean(personal.website) && <Text style={s.contactLink}>{personal.website}</Text>}
 
-          {/* Skills */}
           {allSkills.length > 0 && (
             <>
-              <Text style={s.sidebarSection}>Competenze</Text>
+              <Text style={s.sidebarSection}>{h("skills", lang)}</Text>
               {allSkills.map((sk: string, i: number) => <Text key={i} style={s.skillChip}>• {sk}</Text>)}
             </>
           )}
 
-          {/* Languages */}
           {languages.length > 0 && (
             <>
-              <Text style={s.sidebarSection}>Lingue</Text>
+              <Text style={s.sidebarSection}>{h("languages", lang)}</Text>
               {languages.map((l: any, i: number) => (
                 <Text key={i} style={s.langItem}>
                   {l.language}{clean(l.level) ? ` — ${l.level}` : ""}
@@ -119,10 +99,9 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
             </>
           )}
 
-          {/* Certifications */}
           {certifications.length > 0 && (
             <>
-              <Text style={s.sidebarSection}>Certificazioni</Text>
+              <Text style={s.sidebarSection}>{h("certifications", lang)}</Text>
               {certifications.map((cert: any, i: number) => (
                 <View key={i}>
                   <Text style={s.certName}>{cert.name}{clean(cert.issuer) ? ` — ${cert.issuer}` : ""}</Text>
@@ -133,25 +112,22 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
           )}
         </View>
 
-        {/* ===== MAIN (70%) ===== */}
         <View style={s.main}>
           <Text style={s.mainName}>{clean(personal.name) || "Nome Cognome"}</Text>
           {contactParts.length > 0 && <Text style={s.mainSubtitle}>{contactParts.join(" | ")}</Text>}
 
-          {/* Summary */}
           {summary && (
             <>
-              <Text style={s.sectionTitle}>Profilo</Text>
+              <Text style={s.sectionTitle}>{h("profile", lang)}</Text>
               <Text style={s.summary}>{summary}</Text>
             </>
           )}
 
-          {/* Experience */}
           {experience.length > 0 && (
             <>
-              <Text style={s.sectionTitle}>Esperienza</Text>
+              <Text style={s.sectionTitle}>{h("experience", lang)}</Text>
               {experience.map((exp: any, i: number) => (
-                <View key={i} style={s.expBlock}>
+                <View key={i} style={s.expBlock} wrap={false}>
                   <Text style={s.expRole}>
                     {clean(exp.role) || clean(exp.title)} — {exp.company}
                   </Text>
@@ -170,10 +146,9 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
             </>
           )}
 
-          {/* Education */}
           {education.length > 0 && (
             <>
-              <Text style={s.sectionTitle}>Formazione</Text>
+              <Text style={s.sectionTitle}>{h("education", lang)}</Text>
               {education.map((ed: any, i: number) => (
                 <View key={i} style={s.eduBlock}>
                   <Text style={s.eduTitle}>
@@ -189,10 +164,9 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
             </>
           )}
 
-          {/* Projects */}
           {projects.length > 0 && (
             <>
-              <Text style={s.sectionTitle}>Progetti</Text>
+              <Text style={s.sectionTitle}>{h("projects", lang)}</Text>
               {projects.map((proj: any, i: number) => (
                 <View key={i} style={s.projBlock}>
                   <Text style={s.projName}>{proj.name}</Text>
@@ -203,7 +177,6 @@ export function ClassicoTemplate({ cv }: { cv: Record<string, any> }) {
             </>
           )}
 
-          {/* Extra Sections */}
           {extraSections.map((sec: any, i: number) => (
             <View key={i}>
               <Text style={s.sectionTitle}>{sec.title}</Text>
