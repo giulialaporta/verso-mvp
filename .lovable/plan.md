@@ -1,51 +1,30 @@
 
 
-# Story 17 — Analisi Retributiva nello Step 2
+# Piano: Sbloccare tutti i template e rimuovere logica Pro/Free
 
-## Acceptance Criteria
+## Analisi
 
-1. **AC-1**: Se `salary_expectations` è presente nel profilo utente, viene inviato nel body della request a `ai-prescreen`
-2. **AC-2**: Il prompt di `ai-prescreen` include istruzioni per generare `salary_analysis` quando riceve `salary_expectations`
-3. **AC-3**: Il tool schema di `ai-prescreen` include la struttura `salary_analysis` come campo opzionale
-4. **AC-4**: Nello Step 1 (Verifica), se `salary_analysis` è presente nel response, appare la card "Analisi Retributiva" con:
-   - Due barre orizzontali proporzionali (candidato vs posizione)
-   - Range RAL formattati (es. "€35-42K")
-   - Badge fonte per ogni barra (Da te / Dall'annuncio / Stimata)
-   - Delta percentuale colorato (verde ↑ / giallo → / rosso ↓)
-   - Nota esplicativa dall'AI
-   - Disclaimer in testo muted
-5. **AC-5**: Se `salary_analysis` è assente nel response → nessuna sezione, nessun errore
-6. **AC-6**: Se l'utente non ha `salary_expectations` nel profilo → `salary_expectations` non viene inviato, e l'AI può comunque stimare dalla posizione se il range è esplicito nell'annuncio
+L'unico punto di gating e' nella definizione dei template in `src/components/cv-templates/index.ts`:
 
-## Piano di implementazione
-
-### 1. Edge Function `ai-prescreen` (2 modifiche)
-
-**Prompt**: Aggiungere sezione che istruisce l'AI a produrre `salary_analysis` quando riceve `salary_expectations` o quando l'annuncio contiene un range esplicito.
-
-**Tool schema**: Aggiungere `salary_analysis` come proprietà opzionale con struttura:
 ```
-salary_analysis: {
-  candidate_estimate: { min, max, source, basis }
-  position_estimate: { min, max, source, basis }
-  delta: "positive" | "neutral" | "negative"
-  delta_percentage: string
-  note: string
-}
+{ id: "executive", name: "Executive", free: false },
+{ id: "moderno", name: "Moderno", free: false },
 ```
 
-**Request body**: Leggere `salary_expectations` dal body della request e includerlo nel messaggio user all'AI.
+I componenti `StepExport.tsx` e `ExportDrawer.tsx` usano `!t.free` per:
+- Disabilitare il click (`disabled={isLocked}`)
+- Mostrare icona lucchetto
+- Mostrare label "Pro" vs "Free"
 
-### 2. Frontend `Nuova.tsx` (2 modifiche)
+**Non ci sono altre logiche bloccate per profilo/piano** nell'app. Nessun paywall, nessun check su ruoli utente, nessun limite di utilizzo.
 
-**Chiamata**: Fetch `salary_expectations` dal profilo utente e passarlo nel body di `ai-prescreen`.
+## Modifiche
 
-**Componente `SalaryAnalysisCard`**: Nuova sezione dentro `StepVerifica`, renderizzata condizionalmente. Implementa barre proporzionali, badge fonte, delta colorato, disclaimer.
+### 1. `src/components/cv-templates/index.ts`
+Impostare `free: true` per tutti e 4 i template.
 
-### File coinvolti
+### 2. `src/components/wizard/StepExport.tsx` e `src/components/ExportDrawer.tsx`
+Rimuovere la label "Free"/"Pro" sotto il nome del template (non serve piu' distinguere). Rimuovere l'import di `Lock`.
 
-| File | Modifiche |
-|------|-----------|
-| `supabase/functions/ai-prescreen/index.ts` | Prompt + schema + body handling |
-| `src/pages/Nuova.tsx` | Fetch salary, pass to API, render card |
+> Nota: Executive e Moderno non hanno ancora un componente React (`ExecutiveTemplate`, `ModernoTemplate`), quindi saranno selezionabili ma il download usera' il fallback `ClassicoTemplate`. Se vuoi posso creare i template mancanti come story successiva.
 
