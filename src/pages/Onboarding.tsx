@@ -279,13 +279,19 @@ export default function Onboarding() {
             >
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                 <CardContent className="pt-5 pb-5 px-3 sm:pt-6 sm:px-6 space-y-4 sm:space-y-6">
-                  <div className="text-center">
+                   <div className="text-center">
                     <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-primary/15">
                       <Check size={20} className="text-primary" weight="bold" />
                     </div>
                     <h2 className="font-display text-lg sm:text-xl font-bold">CV analizzato</h2>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                      Tocca qualsiasi campo per modificarlo. Usa ✏️ per editare e ✕ per rimuovere.
+                      Abbiamo trovato{" "}
+                      {parsedData.experience?.length ?? 0} esperienze,{" "}
+                      {[...(parsedData.skills?.technical ?? []), ...(parsedData.skills?.soft ?? []), ...(parsedData.skills?.tools ?? [])].length} competenze
+                      {parsedData.certifications?.length ? `, ${parsedData.certifications.length} certificazioni` : ""}.
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Controlla che i dati siano corretti. Puoi modificare qualsiasi campo toccandolo.
                     </p>
                   </div>
 
