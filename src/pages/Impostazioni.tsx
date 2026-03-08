@@ -130,7 +130,44 @@ export default function Impostazioni() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleExportData = async () => {
+    if (!user) return;
+    setExporting(true);
+    try {
+      const [profileRes, cvsRes, appsRes, tailoredRes, consentsRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", user.id),
+        supabase.from("master_cvs").select("*").eq("user_id", user.id),
+        supabase.from("applications").select("*").eq("user_id", user.id),
+        supabase.from("tailored_cvs").select("*").eq("user_id", user.id),
+        supabase.from("consent_logs").select("*").eq("user_id", user.id),
+      ]);
+
+      const exportData = {
+        exported_at: new Date().toISOString(),
+        user_email: user.email,
+        profile: profileRes.data ?? [],
+        master_cvs: cvsRes.data ?? [],
+        applications: appsRes.data ?? [],
+        tailored_cvs: tailoredRes.data ?? [],
+        consent_logs: consentsRes.data ?? [],
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `verso-dati-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Dati esportati", description: "Il file JSON è stato scaricato." });
+    } catch {
+      toast({ title: "Errore", description: "Non è stato possibile esportare i dati.", variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
     if (confirmText !== "ELIMINA") return;
     setDeleting(true);
     try {
