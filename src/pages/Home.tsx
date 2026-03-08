@@ -58,6 +58,7 @@ import type { AppRowWithAts } from "@/types/application";
 import { useProfile } from "@/hooks/useProfile";
 import { useApplications } from "@/hooks/useApplications";
 import { useMasterCV } from "@/hooks/useMasterCV";
+import { usePrefetchApplication } from "@/hooks/usePrefetchApplication";
 
 import { StatusChip } from "@/components/StatusChip";
 
