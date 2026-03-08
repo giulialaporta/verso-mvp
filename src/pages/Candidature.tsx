@@ -72,11 +72,15 @@ export default function Candidature() {
     if (!user) return;
     supabase
       .from("applications")
-      .select("id, company_name, role_title, match_score, ats_score, status, created_at, notes")
+      .select("id, company_name, role_title, match_score, status, created_at, notes, tailored_cvs(ats_score)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
-        setApps((data as unknown as AppRow[]) ?? []);
+        const rows = (data ?? []).map((d: any) => ({
+          ...d,
+          ats_score: d.tailored_cvs?.[0]?.ats_score ?? null,
+        }));
+        setApps(rows as AppRow[]);
       });
   }, [user]);
 

@@ -1261,6 +1261,7 @@ export default function Nuova() {
       });
       if (app.job_url) setJobUrl(app.job_url);
       if ((app as any).user_answers) setUserAnswers((app as any).user_answers);
+      if ((app as any).skills_overridden) setOverriddenSkills(new Set((app as any).skills_overridden));
 
       const { data: tc } = await supabase.from("tailored_cvs").select("*").eq("application_id", draftId).maybeSingle();
 
@@ -1288,18 +1289,27 @@ export default function Nuova() {
         const urlStep = parseInt(searchParams.get("step") || "3", 10);
         updateStep(urlStep >= 3 ? urlStep : 3);
       } else if (app.job_description) {
-        updateStep(1);
-        setPrescreening(true);
-        // Fetch salary for draft resumption too
-        const { data: draftProfile } = await supabase.from("profiles").select("salary_expectations").eq("user_id", user.id).single();
-        const draftBody: Record<string, unknown> = { job_data: { company_name: app.company_name, role_title: app.role_title, description: app.job_description, location: "", key_requirements: [], required_skills: [] } };
-        if (draftProfile?.salary_expectations) draftBody.salary_expectations = draftProfile.salary_expectations;
-        supabase.functions.invoke("ai-prescreen", {
-          body: draftBody,
-        }).then(({ data: result, error }) => {
-          if (error || result?.error) { toast.error("Errore durante il pre-screening"); updateStep(0); }
-          else setPrescreenResult(result);
-        }).finally(() => setPrescreening(false));
+        // Check for cached prescreen data first
+        if ((app as any).prescreen_data) {
+          setPrescreenResult((app as any).prescreen_data);
+          updateStep(1);
+        } else {
+          updateStep(1);
+          setPrescreening(true);
+          const { data: draftProfile } = await supabase.from("profiles").select("salary_expectations").eq("user_id", user.id).single();
+          const draftBody: Record<string, unknown> = { job_data: { company_name: app.company_name, role_title: app.role_title, description: app.job_description, location: "", key_requirements: [], required_skills: [] } };
+          if (draftProfile?.salary_expectations) draftBody.salary_expectations = draftProfile.salary_expectations;
+          supabase.functions.invoke("ai-prescreen", {
+            body: draftBody,
+          }).then(({ data: result, error }) => {
+            if (error || result?.error) { toast.error("Errore durante il pre-screening"); updateStep(0); }
+            else {
+              setPrescreenResult(result);
+              // Cache for next time
+              supabase.from("applications").update({ prescreen_data: result } as any).eq("id", applicationId).then(() => {});
+            }
+          }).finally(() => setPrescreening(false));
+        }
       }
     })();
   }, [searchParams, user, updateStep]);
@@ -1341,6 +1351,10 @@ export default function Nuova() {
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
       setPrescreenResult(result);
+      // Persist prescreen data to avoid redundant AI calls on draft resume
+      if (applicationId) {
+        supabase.from("applications").update({ prescreen_data: result } as any).eq("id", applicationId).then(() => {});
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Errore durante il pre-screening");
       updateStep(0);
@@ -1369,7 +1383,7 @@ export default function Nuova() {
       if (result?.error) throw new Error(result.error);
 
       if (applicationId) {
-        await supabase.from("applications").update({ match_score: result.match_score, ats_score: result.ats_score } as any).eq("id", applicationId);
+        await supabase.from("applications").update({ match_score: result.match_score } as any).eq("id", applicationId);
       }
 
       setAnalyzeResult(result);
@@ -1429,6 +1443,13 @@ export default function Nuova() {
         if (mcv?.parsed_data) setOriginalCv(mcv.parsed_data as Record<string, unknown>);
       }
 
+      // Compute deterministic confidence (single source of truth)
+      const frontendConfidence = computeConfidence(
+        result.original_cv ?? null,
+        reviewedCv,
+        result.diff ?? []
+      );
+
       // Save tailored CV (with reviewed version)
       if (applicationId) {
         const tcPayload = {
@@ -1441,8 +1462,11 @@ export default function Nuova() {
           ats_score: analyzeResult.ats_score,
           ats_checks: analyzeResult.ats_checks as any,
           seniority_match: analyzeResult.seniority_match as any,
-          honest_score: result.honest_score as any,
+          honest_score: { ...((result.honest_score as any) ?? {}), confidence: frontendConfidence.confidence, confidence_details: frontendConfidence } as any,
           diff: result.diff as any,
+          score_note: analyzeResult.score_note || null,
+          learning_suggestions: analyzeResult.learning_suggestions as any || null,
+          structural_changes: result.structural_changes as any || null,
         };
 
         const { data: existingTc } = await supabase.from("tailored_cvs").select("id").eq("application_id", applicationId).maybeSingle();
@@ -1450,6 +1474,11 @@ export default function Nuova() {
           await supabase.from("tailored_cvs").update(tcPayload as any).eq("id", existingTc.id);
         } else {
           await supabase.from("tailored_cvs").insert([tcPayload as any]);
+        }
+
+        // Persist overridden skills
+        if (overriddenSkills.size > 0) {
+          await supabase.from("applications").update({ skills_overridden: Array.from(overriddenSkills) } as any).eq("id", applicationId);
         }
       }
 

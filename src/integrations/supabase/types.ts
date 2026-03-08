@@ -24,7 +24,9 @@ export type Database = {
           job_url: string | null
           match_score: number | null
           notes: string | null
+          prescreen_data: Json | null
           role_title: string
+          skills_overridden: Json | null
           status: string
           template_id: string | null
           updated_at: string
@@ -40,7 +42,9 @@ export type Database = {
           job_url?: string | null
           match_score?: number | null
           notes?: string | null
+          prescreen_data?: Json | null
           role_title: string
+          skills_overridden?: Json | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -56,7 +60,9 @@ export type Database = {
           job_url?: string | null
           match_score?: number | null
           notes?: string | null
+          prescreen_data?: Json | null
           role_title?: string
+          skills_overridden?: Json | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -167,10 +173,13 @@ export type Database = {
           diff: Json | null
           honest_score: Json | null
           id: string
+          learning_suggestions: Json | null
           master_cv_id: string
           pdf_url: string | null
+          score_note: string | null
           seniority_match: Json | null
           skills_match: Json | null
+          structural_changes: Json | null
           suggestions: Json | null
           tailored_data: Json | null
           template_id: string | null
@@ -184,10 +193,13 @@ export type Database = {
           diff?: Json | null
           honest_score?: Json | null
           id?: string
+          learning_suggestions?: Json | null
           master_cv_id: string
           pdf_url?: string | null
+          score_note?: string | null
           seniority_match?: Json | null
           skills_match?: Json | null
+          structural_changes?: Json | null
           suggestions?: Json | null
           tailored_data?: Json | null
           template_id?: string | null
@@ -201,10 +213,13 @@ export type Database = {
           diff?: Json | null
           honest_score?: Json | null
           id?: string
+          learning_suggestions?: Json | null
           master_cv_id?: string
           pdf_url?: string | null
+          score_note?: string | null
           seniority_match?: Json | null
           skills_match?: Json | null
+          structural_changes?: Json | null
           suggestions?: Json | null
           tailored_data?: Json | null
           template_id?: string | null

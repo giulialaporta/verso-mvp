@@ -28,6 +28,7 @@ import {
   ShieldWarning,
   Eye,
   CaretDown,
+  GraduationCap,
 } from "@phosphor-icons/react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { StatusChip, STATUS_STYLES } from "@/components/StatusChip";
@@ -151,13 +152,15 @@ export default function CandidaturaDetail() {
   }
 
   const matchScore = app.match_score;
-  const atsScore = tailored?.ats_score ?? app.ats_score;
+  const atsScore = tailored?.ats_score ?? null;
   const diff = tailored?.diff as any[] | null;
   const tailoredData = tailored?.tailored_data as ParsedCV | null;
   const atsChecks = tailored?.ats_checks as any[] | null;
   const honestScore = tailored?.honest_score as any;
   const skillsMatch = tailored?.skills_match as any;
   const seniorityMatch = tailored?.seniority_match as any;
+  const scoreNote = (tailored as any)?.score_note as string | null;
+  const learningSuggestions = (tailored as any)?.learning_suggestions as any[] | null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4">
@@ -206,7 +209,15 @@ export default function CandidaturaDetail() {
         </div>
       )}
 
-      {/* ATS Checks */}
+      {/* Score Note */}
+      {scoreNote && (
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">{scoreNote}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {atsChecks && atsChecks.length > 0 && (
         <Card className="border-border/50 bg-card/80">
           <CardContent className="py-4 space-y-3">
@@ -252,7 +263,29 @@ export default function CandidaturaDetail() {
         </Card>
       )}
 
-      {/* Diff */}
+      {/* Learning Suggestions */}
+      {learningSuggestions && learningSuggestions.length > 0 && (
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <GraduationCap size={16} className="text-primary" />
+              <span className="text-sm font-medium">Risorse consigliate</span>
+            </div>
+            <div className="space-y-2">
+              {learningSuggestions.map((s: any, i: number) => (
+                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors group">
+                  <span className="font-mono text-[10px] uppercase text-muted-foreground bg-muted px-2 py-0.5 rounded">{s.type}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm group-hover:text-primary transition-colors truncate">{s.resource_name}</p>
+                    <p className="text-xs text-muted-foreground">{s.skill}{s.duration ? ` · ${s.duration}` : ""}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {diff && diff.length > 0 && (
         <Collapsible open={diffOpen} onOpenChange={setDiffOpen}>
           <Card className="border-border/50 bg-card/80">

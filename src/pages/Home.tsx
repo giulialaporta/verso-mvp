@@ -495,7 +495,7 @@ export default function Home() {
             .order("created_at", { ascending: false }),
           supabase
             .from("applications")
-            .select("id, company_name, role_title, match_score, ats_score, status, created_at")
+            .select("id, company_name, role_title, match_score, status, created_at, tailored_cvs(ats_score)")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
             .limit(20),
@@ -505,7 +505,11 @@ export default function Home() {
       setSalaryExpectations((profile as any)?.salary_expectations || null);
       setCv(activeCvs && activeCvs.length > 0 ? (activeCvs[0] as unknown as MasterCV) : null);
       setInactiveCvs((oldCvs as unknown as MasterCV[]) ?? []);
-      setApps((appRows as unknown as AppRow[]) ?? []);
+      const mappedApps = (appRows ?? []).map((d: any) => ({
+        ...d,
+        ats_score: d.tailored_cvs?.[0]?.ats_score ?? null,
+      }));
+      setApps(mappedApps as AppRow[]);
     };
 
     fetchData();
