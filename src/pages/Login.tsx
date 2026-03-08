@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Navigate, useLocation } from "react-router-dom";
+import { useNavigate, Navigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { AppleLogo } from "@phosphor-icons/react";
