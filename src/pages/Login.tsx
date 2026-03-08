@@ -42,14 +42,6 @@ export default function Login() {
   const rawPath = (location.state as any)?.from?.pathname;
   const fromPath = rawPath && typeof rawPath === "string" && rawPath.startsWith("/app/") ? rawPath : "/app/home";
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-
   // Save pending OAuth consents when user lands back after OAuth signup
   useEffect(() => {
     if (!user) return;
@@ -58,6 +50,14 @@ export default function Login() {
     localStorage.removeItem("verso_pending_oauth_consents");
     saveRegistrationConsents(user.id, user.email ?? "").catch(() => {});
   }, [user]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   if (user) {
     return <Navigate to={fromPath} replace />;
