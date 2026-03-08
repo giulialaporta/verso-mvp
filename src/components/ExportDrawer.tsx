@@ -287,6 +287,10 @@ export function ExportDrawer({
         </ScrollArea>
 
         <DrawerFooter>
+          <p className="text-[11px] text-muted-foreground/70 text-center mb-2">
+            Scaricando questo documento confermi di averlo revisionato e di assumerne la responsabilità.
+          </p>
+          <AiLabel text="Documento generato con AI — l'utente è responsabile della revisione" className="justify-center mb-2" />
           <Button onClick={handleDownload} disabled={downloading} className="w-full gap-2">
             {downloading ? (
               <>

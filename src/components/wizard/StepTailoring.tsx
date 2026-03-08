@@ -82,6 +82,7 @@ export function StepTailoring({
         <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft size={20} /></button>
         <div><h2 className="font-display text-2xl font-bold">Risultato analisi</h2><p className="text-muted-foreground mt-1">Ecco come il tuo CV si allinea con l'offerta.</p></div>
       </div>
+      <AiLabel text="CV adattato con AI — rivedi prima di scaricare" />
 
       {/* Score Meter */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>

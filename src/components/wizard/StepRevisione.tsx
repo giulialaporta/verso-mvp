@@ -42,6 +42,7 @@ export function StepRevisione({
           <p className="text-muted-foreground mt-1">Riepilogo delle modifiche effettuate dal tailoring.</p>
         </div>
       </div>
+      <AiLabel text="Punteggi calcolati con AI — valore indicativo" />
 
       {/* Compact scores */}
       <div className="grid grid-cols-3 gap-3">
