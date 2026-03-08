@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Navigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -41,6 +41,15 @@ export default function Login() {
   // US-S10: Sanitize redirect — only allow internal /app/ paths
   const rawPath = (location.state as any)?.from?.pathname;
   const fromPath = rawPath && typeof rawPath === "string" && rawPath.startsWith("/app/") ? rawPath : "/app/home";
+
+  // Save pending OAuth consents when user lands back after OAuth signup
+  useEffect(() => {
+    if (!user) return;
+    const pending = localStorage.getItem("verso_pending_oauth_consents");
+    if (!pending) return;
+    localStorage.removeItem("verso_pending_oauth_consents");
+    saveRegistrationConsents(user.id, user.email ?? "").catch(() => {});
+  }, [user]);
 
   if (loading) {
     return (
@@ -116,11 +125,19 @@ export default function Login() {
       return;
     }
     try {
+      // Save pending consent flag before redirect so we can persist after OAuth return
+      if (isSignUp) {
+        localStorage.setItem("verso_pending_oauth_consents", "true");
+      }
       const { error } = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
       });
-      if (error) toast.error(mapAuthError((error as any).message || ""));
+      if (error) {
+        localStorage.removeItem("verso_pending_oauth_consents");
+        toast.error(mapAuthError((error as any).message || ""));
+      }
     } catch {
+      localStorage.removeItem("verso_pending_oauth_consents");
       toast.error("Errore durante l'autenticazione. Riprova.");
     } finally {
       setOauthLoading(false);
