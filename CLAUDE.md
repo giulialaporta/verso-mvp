@@ -14,9 +14,9 @@ Utilizzo **Claude Code** per scrivere e mantenere tutte le specifiche aggiornate
 |---------|-------|-----------|
 | **PRD** | Il piano del prodotto: cosa costruire, per chi, e perché. | Snello. Per ogni feature: nome, breve descrizione (1-2 righe), link all'epic. Niente specifiche dettagliate. |
 | **Epic** | Una feature o un blocco di lavoro. | Specifica completa: behavior, flussi, stati, edge case, criteri di accettazione. |
-| **Story** | Un singolo task eseguibile. | Un'azione atomica che Lovable può implementare in un prompt. |
+| **Story** | Un singolo task eseguibile per Lovable. | Vive solo nel **backlog**. Non nelle spec. |
 
-> **Principio chiave:** Il PRD resta leggero — è una mappa, non un manuale. Tutta la specificazione di dettaglio vive negli epic e nelle stories.
+> **Principio chiave:** Il PRD resta leggero — e' una mappa. Le epic sono la fonte di verita' completa. Le stories esistono solo nel backlog come prompt per Lovable.
 
 ---
 
@@ -49,7 +49,6 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/spec/verso-prd.md` | PRD principale (v1.1) — visione di prodotto |
 | `docs/spec/verso-prd-app.md` | PRD dell'app sviluppata |
 | `docs/spec/epics/` | 8 epic implementate (F1–F6, F8–F9) |
-| `docs/spec/stories/` | 14 stories implementate |
 | `docs/backlog/` | Cose da costruire (flat, come spec/) |
 | `docs/backlog/stories-p3-pulizia.md` | P3 — 4 stories pulizia tecnica |
 | `docs/backlog/CLAUDE_epic-template.md` | Template per scrivere nuovi epic |

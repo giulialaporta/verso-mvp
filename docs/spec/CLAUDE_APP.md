@@ -11,8 +11,7 @@ Questa cartella e' la **fonte di verita' dell'app Verso**: documenta cio' che e'
 | Livello | Cos'e' | Contenuto |
 |---------|--------|-----------|
 | **PRD** | Cosa e' stato costruito, per chi, e come funziona. | Overview reale delle feature implementate. |
-| **Epic** | Un blocco funzionale dell'app. | Specifica di cio' che e' stato effettivamente sviluppato: behavior, flussi, stati, edge case. |
-| **Story** | Un singolo pezzo di lavoro completato. | Descrizione atomica di cio' che e' stato implementato. |
+| **Epic** | Un blocco funzionale dell'app. | Specifica completa: behavior, flussi, stati, edge case. Fonte di verita'. |
 
 ---
 
@@ -47,7 +46,6 @@ Questa cartella e' la **fonte di verita' dell'app Verso**: documenta cio' che e'
 | `epics/epic-06-candidature.md` | F6 — Pagina Candidature + Dettaglio candidatura |
 | `epics/epic-08-impostazioni.md` | F8 — Impostazioni (account, privacy, data portability, elimina account) |
 | `epics/epic-09-legal-privacy.md` | F9 — Legal, Privacy, Trasparenza AI, GDPR |
-| `stories/` | 14 stories implementate (dettaglio atomico per epic) |
 | [`../backlog/`](../backlog/) | Backlog: stories per priorita' (vedi README) |
 
 ---

@@ -9,21 +9,18 @@
 
 ### Problema
 
-Il `package.json` contiene dipendenze che non sono usate nel codice, aumentando il bundle size inutilmente.
+Il `package.json` contiene `zod` che non e' importato in nessun file.
 
 ### Cosa fare
 
-Verificare e rimuovere le dipendenze non importate nel codice. In particolare:
+Rimuovere `zod` da `package.json`. Verificare che l'app compili.
 
-- `zod` — non importato in nessun file
-
-> **Nota:** `lucide-react`, `recharts` e `next-themes` erano nel backlog originale ma risultano effettivamente usati (lucide-react in 19+ file, recharts in ui/chart.tsx, next-themes in ui/sonner.tsx). NON rimuoverli.
+> **Nota:** `lucide-react`, `recharts` e `next-themes` sono effettivamente usati. NON rimuoverli.
 
 ### Criteri di accettazione
 
-- [ ] Le dipendenze inutilizzate sono state rimosse dal `package.json`
+- [ ] `zod` rimosso dal `package.json`
 - [ ] L'app compila senza errori
-- [ ] Nessuna regressione funzionale
 
 ---
 
@@ -31,27 +28,17 @@ Verificare e rimuovere le dipendenze non importate nel codice. In particolare:
 
 ### Problema
 
-Il campo `photo_base64` in `ParsedCV` (`src/types/cv.ts`) contiene in realta' una signed URL, non una stringa base64. Il nome e' fuorviante.
+Il campo `photo_base64` in `ParsedCV` contiene una signed URL, non base64. Il nome e' fuorviante.
 
 ### Cosa fare
 
-1. In `src/types/cv.ts`: rinominare `photo_base64` in `photo_url`
-2. In `supabase/functions/parse-cv/index.ts`: aggiornare il campo nell'output
-3. Cercare e sostituire tutte le occorrenze di `photo_base64` nel codice frontend
-4. Il campo `photo_url` nella tabella `master_cvs` resta invariato (e' un campo separato)
-
-**Attenzione:** i dati gia' salvati in `parsed_data` JSONB avranno ancora il vecchio nome. Gestire il fallback:
-
-```typescript
-const photoUrl = parsedData.photo_url ?? parsedData.photo_base64;
-```
+Rinominare `photo_base64` → `photo_url` in `src/types/cv.ts`, `parse-cv/index.ts`, e tutti i riferimenti frontend. Gestire fallback per dati gia' salvati.
 
 ### Criteri di accettazione
 
-- [ ] Il tipo `ParsedCV` usa `photo_url` invece di `photo_base64`
-- [ ] Tutte le occorrenze nel codice sono aggiornate
+- [ ] Il tipo `ParsedCV` usa `photo_url`
+- [ ] Tutte le occorrenze aggiornate
 - [ ] I CV gia' salvati con `photo_base64` continuano a funzionare (fallback)
-- [ ] I nuovi CV salvano il campo come `photo_url`
 
 ---
 
@@ -59,33 +46,16 @@ const photoUrl = parsedData.photo_url ?? parsedData.photo_base64;
 
 ### Problema
 
-La tabella `job_cache` non ha una policy di DELETE. I record si accumulano indefinitamente. Non c'e' modo di pulire la cache.
+La tabella `job_cache` non ha policy DELETE. I record si accumulano indefinitamente.
 
 ### Cosa fare
 
-Creare una migrazione SQL:
-
-```sql
--- Permetti al service role di eliminare cache scadute
-CREATE POLICY "Service role can delete expired cache"
-ON public.job_cache FOR DELETE
-USING (true);
-
--- Funzione di pulizia chiamabile periodicamente
-CREATE OR REPLACE FUNCTION cleanup_expired_job_cache()
-RETURNS void AS $$
-BEGIN
-  DELETE FROM public.job_cache
-  WHERE created_at < NOW() - INTERVAL '7 days';
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
+Creare migrazione con policy DELETE e funzione `cleanup_expired_job_cache()` che elimina record > 7 giorni.
 
 ### Criteri di accettazione
 
 - [ ] Esiste una policy DELETE su `job_cache`
 - [ ] Esiste una funzione per pulire i record scaduti
-- [ ] La cache continua a funzionare normalmente per i record validi
 
 ---
 
@@ -93,23 +63,14 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ### Problema
 
-`src/pages/Home.tsx` contiene componenti inline (`StatsBar`, `VirginState`, `RecentApplications`, `SalaryDisplay`, `CVCard`) che andrebbero estratti.
+`Home.tsx` contiene componenti inline (`StatsBar`, `VirginState`, `RecentApplications`, `SalaryDisplay`, `CVCard`).
 
 ### Cosa fare
 
-Creare la cartella `src/components/dashboard/` e estrarre:
-
-| File | Contenuto |
-|------|-----------|
-| `StatsBar.tsx` | Barra statistiche in alto |
-| `VirginState.tsx` | Stato senza CV |
-| `RecentApplications.tsx` | Lista candidature recenti |
-| `CVCard.tsx` | Card preview CV master |
-
-`Home.tsx` resta come orchestratore: fetch dati, gestisce i 3 stati, importa i componenti.
+Estrarre ogni componente in `src/components/dashboard/`. `Home.tsx` resta orchestratore (< 200 righe).
 
 ### Criteri di accettazione
 
-- [ ] Ogni componente e' in un file separato in `src/components/dashboard/`
-- [ ] `Home.tsx` e' ridotto a < 200 righe
-- [ ] Nessuna regressione funzionale (tutti e 3 gli stati della dashboard funzionano)
+- [ ] Componenti in file separati in `src/components/dashboard/`
+- [ ] `Home.tsx` ridotto a < 200 righe
+- [ ] Nessuna regressione funzionale
