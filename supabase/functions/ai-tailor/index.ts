@@ -158,6 +158,11 @@ If the job posting is in Italian, the ENTIRE CV must be in Italian.
 Common mistake to AVOID: translating some bullets but leaving others in the original language.
 Check EVERY bullet and EVERY section before finalizing.
 
+## SKILL LABEL RULES
+- Translate generic/descriptive skills to detected_language ("Project Management" → "Gestione progetti", "Team Leadership" → "Leadership del team", "Cross-functional Collaboration" → "Collaborazione interfunzionale").
+- Keep proper nouns and technology names as-is: React, SQL, Figma, AWS, Jira, Python, etc.
+- NEVER wrap skill names in quotes. Wrong: "React". Correct: React.
+
 ## LANGUAGE POLICY EXAMPLES
 - Job posting in English → ALL patches values in English, but diff reasons in Italian: "Aggiunto keyword rilevante..."
 - Job posting in Italian → ALL patches values in Italian, but diff reasons still in Italian
