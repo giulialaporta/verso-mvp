@@ -41,6 +41,16 @@ export default function Onboarding() {
   const [currentRal, setCurrentRal] = useState<string>("");
   const [desiredRal, setDesiredRal] = useState<string>("");
 
+  // Sensitive data consent
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [hasConsent, setHasConsent] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      hasSensitiveDataConsent(user.id).then(setHasConsent);
+    }
+  }, [user]);
+
   const handleFile = useCallback((f: File) => {
     if (f.type !== "application/pdf") {
       toast.error("Solo file PDF sono accettati.");
