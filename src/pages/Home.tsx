@@ -252,7 +252,7 @@ function RecentApplications({ apps }: { apps: AppRow[] }) {
                 </span>
               )}
               {(app as any).ats_score !== null && (app as any).ats_score !== undefined && (
-                <span className="font-mono text-xs font-bold text-secondary">
+                <span className="font-mono text-xs font-bold text-info">
                   ATS {(app as any).ats_score}%
                 </span>
               )}

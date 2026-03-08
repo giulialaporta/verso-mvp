@@ -36,7 +36,7 @@ function SourceBadge({ source }: { source: string }) {
   const isEstimated = source === "estimated";
   return (
     <span className={`font-mono text-[10px] uppercase px-1.5 py-0.5 rounded-full ${
-      isEstimated ? "bg-warning/15 text-warning" : "bg-secondary/15 text-secondary"
+      isEstimated ? "bg-warning/15 text-warning" : "bg-info/15 text-info"
     }`}>
       {label}
     </span>
@@ -65,7 +65,7 @@ function SalaryBar({
       </div>
       <div className="h-2.5 rounded-full bg-muted overflow-hidden relative">
         <motion.div
-          className="absolute h-full rounded-full bg-gradient-to-r from-secondary/60 to-secondary"
+          className="absolute h-full rounded-full bg-gradient-to-r from-info/60 to-info"
           initial={{ left: "0%", width: "0%" }}
           animate={{ left: `${startPercent}%`, width: `${widthPercent - startPercent}%` }}
           transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
@@ -95,7 +95,7 @@ export function SalaryAnalysisCard({ data, delay = 0.5 }: { data: SalaryAnalysis
         <CardContent className="pt-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CurrencyEur size={20} className="text-secondary" />
+              <CurrencyEur size={20} className="text-info" />
               <span className="text-sm font-medium">Analisi Retributiva</span>
             </div>
             <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${dc.bg}`}>

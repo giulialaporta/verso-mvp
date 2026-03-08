@@ -384,7 +384,7 @@ function StepAnnuncio({
                   <CollapsibleContent>
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }} className="mt-3 rounded-lg border border-border/50 bg-surface p-4 space-y-3 text-xs text-muted-foreground">
                       <div className="flex items-start gap-2">
-                        <LinkedinLogo size={16} className="text-secondary shrink-0 mt-0.5" />
+                        <LinkedinLogo size={16} className="text-info shrink-0 mt-0.5" />
                         <div>
                           <p className="text-foreground font-medium mb-1">LinkedIn</p>
                           <ol className="list-decimal list-inside space-y-0.5">
@@ -393,7 +393,7 @@ function StepAnnuncio({
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <Globe size={16} className="text-secondary shrink-0 mt-0.5" />
+                        <Globe size={16} className="text-info shrink-0 mt-0.5" />
                         <div>
                           <p className="text-foreground font-medium mb-1">Indeed, InfoJobs, Monster, Glassdoor</p>
                           <p>Stesso metodo. Apri l'annuncio, seleziona il testo e incollalo qui.</p>
@@ -424,7 +424,7 @@ function StepAnnuncio({
           <Card className="border-primary/30 bg-card/80">
             <CardContent className="pt-6 space-y-4">
               <div className="flex items-start gap-3">
-                <Buildings size={24} className="text-secondary mt-0.5 shrink-0" />
+                <Buildings size={24} className="text-info mt-0.5 shrink-0" />
                 <div className="min-w-0">
                   <h3 className="font-display text-lg font-bold">{jobData.company_name}</h3>
                   <p className="text-primary font-medium">{jobData.role_title}</p>
@@ -579,9 +579,9 @@ function StepVerifica({
 
       {prescreenResult.follow_up_questions.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <Card className="border-secondary/30 bg-card/80">
+          <Card className="border-info/30 bg-card/80">
             <CardContent className="pt-5 space-y-4">
-              <div className="flex items-center gap-2"><ChatTeardropDots size={20} className="text-secondary" weight="fill" /><span className="text-sm font-medium">Aiutaci a conoscerti meglio</span></div>
+              <div className="flex items-center gap-2"><ChatTeardropDots size={20} className="text-info" weight="fill" /><span className="text-sm font-medium">Aiutaci a conoscerti meglio</span></div>
               <p className="text-xs text-muted-foreground">Rispondi alle domande per aiutare Verso a scoprire competenze non esplicite nel tuo CV. Le risposte sono facoltative.</p>
               <div className="space-y-4">
                 {prescreenResult.follow_up_questions.map((q) => (
@@ -700,7 +700,7 @@ function StepTailoring({
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="border-border/50 bg-card/80 h-full"><CardContent className="py-4 text-center">
             <p className="text-xs font-mono text-muted-foreground uppercase mb-1">Punteggio ATS</p>
-            <span className="font-mono text-2xl font-bold text-secondary">{animatedAts}%</span>
+            <span className="font-mono text-2xl font-bold text-info">{animatedAts}%</span>
           </CardContent></Card>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
@@ -734,14 +734,14 @@ function StepTailoring({
       {/* Learning Suggestions */}
       {analyzeResult.learning_suggestions && analyzeResult.learning_suggestions.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-          <Card className="border-secondary/20 bg-card/80"><CardContent className="pt-5 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-secondary"><GraduationCap size={18} weight="fill" /> Risorse per colmare i gap</div>
+          <Card className="border-info/20 bg-card/80"><CardContent className="pt-5 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-info"><GraduationCap size={18} weight="fill" /> Risorse per colmare i gap</div>
             <div className="space-y-2">
               {analyzeResult.learning_suggestions.map((ls, i) => (
-                <a key={i} href={ls.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-3 rounded-lg border border-border/30 hover:border-secondary/40 bg-surface/50 hover:bg-surface transition-colors group">
-                  <GraduationCap size={18} className="text-secondary mt-0.5 shrink-0" />
+                <a key={i} href={ls.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-3 rounded-lg border border-border/30 hover:border-info/40 bg-surface/50 hover:bg-surface transition-colors group">
+                  <GraduationCap size={18} className="text-info mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium group-hover:text-secondary transition-colors">{ls.resource_name}</p>
+                    <p className="text-sm font-medium group-hover:text-info transition-colors">{ls.resource_name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="font-mono text-[10px] uppercase text-muted-foreground">{ls.skill}</span>
                       <span className="text-border">·</span>
@@ -749,7 +749,7 @@ function StepTailoring({
                       {ls.duration && <><span className="text-border">·</span><span className="font-mono text-[10px] text-muted-foreground">{ls.duration}</span></>}
                     </div>
                   </div>
-                  <ArrowRight size={14} className="text-muted-foreground group-hover:text-secondary mt-1 shrink-0 transition-colors" />
+                  <ArrowRight size={14} className="text-muted-foreground group-hover:text-info mt-1 shrink-0 transition-colors" />
                 </a>
               ))}
             </div>
@@ -852,9 +852,9 @@ function StepRevisione({
         <Card className="border-border/50 bg-card/80">
           <CardContent className="py-4 text-center space-y-1">
             <p className="text-[10px] font-mono text-muted-foreground uppercase">ATS</p>
-            <p className="font-mono text-xl font-bold text-secondary">{atsScore}%</p>
+            <p className="font-mono text-xl font-bold text-info">{atsScore}%</p>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <div className="h-full rounded-full bg-secondary" style={{ width: `${atsScore}%` }} />
+              <div className="h-full rounded-full bg-info" style={{ width: `${atsScore}%` }} />
             </div>
           </CardContent>
         </Card>
@@ -1057,7 +1057,7 @@ function StepExport({
       {/* Compact badges */}
       <div className="flex gap-2 flex-wrap">
         <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary">Match {matchScore}%</span>
-        <span className="rounded-full bg-secondary/15 px-3 py-1 font-mono text-xs text-secondary">ATS {atsScore}%</span>
+        <span className="rounded-full bg-info/15 px-3 py-1 font-mono text-xs text-info">ATS {atsScore}%</span>
         <span className={`rounded-full px-3 py-1 font-mono text-xs ${stats.confidence >= 90 ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning"}`}>
           Confidence {stats.confidence}%
         </span>

@@ -23,13 +23,18 @@
     --secondary-foreground: 0 0% 75%;
 
     --muted: 228 10% 12%;
-    --muted-foreground: 0 0% 50%;
+    --muted-foreground: 0 0% 55%;
 
     --accent: 145 62% 55%;
     --accent-foreground: 228 14% 5%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 95%;
+
+    --info: 207 100% 68%; /* #5DBBFF Arctic Blue */
+    --info-foreground: 228 14% 5%;
+    --warning: 42 100% 70%; /* #FFD166 */
+    --warning-foreground: 228 14% 5%;
 
     --border: 228 10% 15%; /* border-subtle */
     --input: 228 10% 15%;

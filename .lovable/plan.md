@@ -1,76 +1,51 @@
 
 
-# Fix Contrasto Testo — Root Cause e Piano
+# Story 17 — Analisi Retributiva nello Step 2
 
-## Problema
+## Acceptance Criteria
 
-`text-secondary` in Tailwind risolve a `hsl(var(--secondary))` = `hsl(228, 10%, 12%)` ≈ `#1C1E28` — quasi nero su sfondo nero. **Tutto il testo marcato `text-secondary` è praticamente invisibile.**
+1. **AC-1**: Se `salary_expectations` è presente nel profilo utente, viene inviato nel body della request a `ai-prescreen`
+2. **AC-2**: Il prompt di `ai-prescreen` include istruzioni per generare `salary_analysis` quando riceve `salary_expectations`
+3. **AC-3**: Il tool schema di `ai-prescreen` include la struttura `salary_analysis` come campo opzionale
+4. **AC-4**: Nello Step 1 (Verifica), se `salary_analysis` è presente nel response, appare la card "Analisi Retributiva" con:
+   - Due barre orizzontali proporzionali (candidato vs posizione)
+   - Range RAL formattati (es. "€35-42K")
+   - Badge fonte per ogni barra (Da te / Dall'annuncio / Stimata)
+   - Delta percentuale colorato (verde ↑ / giallo → / rosso ↓)
+   - Nota esplicativa dall'AI
+   - Disclaimer in testo muted
+5. **AC-5**: Se `salary_analysis` è assente nel response → nessuna sezione, nessun errore
+6. **AC-6**: Se l'utente non ha `salary_expectations` nel profilo → `salary_expectations` non viene inviato, e l'AI può comunque stimare dalla posizione se il range è esplicito nell'annuncio
 
-Il brand system definisce `--color-secondary: #5DBBFF` (Arctic Blue) per "links, info states, score bars", ma nel CSS la variabile `--secondary` è mappata al colore surface-2 (sfondo scuro), non al blu.
+## Piano di implementazione
 
-Stesso problema con `--muted-foreground: 0 0% 50%` (`#808080`) che ha contrasto borderline su sfondi scuri.
+### 1. Edge Function `ai-prescreen` (2 modifiche)
 
-## Impatto
+**Prompt**: Aggiungere sezione che istruisce l'AI a produrre `salary_analysis` quando riceve `salary_expectations` o quando l'annuncio contiene un range esplicito.
 
-~125 occorrenze di `text-secondary` in 9 file — tutte invisibili. Include:
-- **Punteggio ATS** (screenshot allegato)
-- **Status chip "INVIATA"**
-- **Icone info** (LinkedIn, risorse, salary)
-- **Badge e progress bar** ATS
-
-## Piano di Fix
-
-### 1. Aggiungere colore `info` nel CSS (`src/index.css`)
-
-Aggiungere una nuova variabile per il blu Arctic Blue del brand:
-
-```css
---info: 207 100% 68%; /* #5DBBFF */
---info-foreground: 228 14% 5%;
---warning: 42 100% 70%; /* #FFD166 — già usato ma non definito come var */
+**Tool schema**: Aggiungere `salary_analysis` come proprietà opzionale con struttura:
+```
+salary_analysis: {
+  candidate_estimate: { min, max, source, basis }
+  position_estimate: { min, max, source, basis }
+  delta: "positive" | "neutral" | "negative"
+  delta_percentage: string
+  note: string
+}
 ```
 
-E alzare `--muted-foreground` da 50% a 55% per migliorare il contrasto.
+**Request body**: Leggere `salary_expectations` dal body della request e includerlo nel messaggio user all'AI.
 
-### 2. Registrare `info` in Tailwind (`tailwind.config.ts`)
+### 2. Frontend `Nuova.tsx` (2 modifiche)
 
-```typescript
-info: {
-  DEFAULT: "hsl(var(--info))",
-  foreground: "hsl(var(--info-foreground))",
-},
-```
+**Chiamata**: Fetch `salary_expectations` dal profilo utente e passarlo nel body di `ai-prescreen`.
 
-### 3. Sostituire `text-secondary` → `text-info` ovunque usato per testo/icone
+**Componente `SalaryAnalysisCard`**: Nuova sezione dentro `StepVerifica`, renderizzata condizionalmente. Implementa barre proporzionali, badge fonte, delta colorato, disclaimer.
 
-File coinvolti:
-- `src/pages/Nuova.tsx` — score ATS, icone, risorse, badge
-- `src/components/ExportDrawer.tsx` — punteggio ATS, explanation
-- `src/pages/Candidature.tsx` — ATS score badge
-- `src/pages/Home.tsx` — ATS score nella lista
-- `src/components/SalaryAnalysisCard.tsx` — icone e badge
-- `src/components/StatusChip.tsx` — status "inviata" (da `text-secondary` a `text-info`)
+### File coinvolti
 
-**NON toccare** `bg-secondary` nei componenti UI (button, slider, progress, sheet, badge) — quelli usano correttamente il colore come sfondo surface.
-
-### 4. Alzare contrasto `--muted-foreground`
-
-Da `0 0% 50%` a `0 0% 55%` — migliora leggibilità delle label secondarie senza stravolgere il design.
-
----
-
-### File modificati
-
-| File | Modifica |
-|------|----------|
-| `src/index.css` | Aggiungere `--info`, `--warning` vars, alzare `--muted-foreground` |
-| `tailwind.config.ts` | Registrare colore `info` |
-| `src/pages/Nuova.tsx` | `text-secondary` → `text-info` per testo/icone |
-| `src/components/ExportDrawer.tsx` | Idem |
-| `src/pages/Candidature.tsx` | Idem |
-| `src/pages/Home.tsx` | Idem |
-| `src/components/SalaryAnalysisCard.tsx` | Idem |
-| `src/components/StatusChip.tsx` | Status "inviata": `text-secondary` → `text-info` |
-
-Nessuna modifica al database.
+| File | Modifiche |
+|------|-----------|
+| `supabase/functions/ai-prescreen/index.ts` | Prompt + schema + body handling |
+| `src/pages/Nuova.tsx` | Fetch salary, pass to API, render card |
 
