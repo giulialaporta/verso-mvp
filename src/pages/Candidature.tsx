@@ -46,7 +46,7 @@ function formatDate(dateStr: string) {
 export default function Candidature() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [apps, setApps] = useState<AppRow[] | undefined>(undefined);
+  const [apps, setApps] = useState<AppRowWithAts[] | undefined>(undefined);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedApp, setSelectedApp] = useState<AppRow | null>(null);
   const [drawerStatus, setDrawerStatus] = useState("");
