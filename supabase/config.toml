@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.ai-tailor]
 verify_jwt = false
+
+[functions.cv-review]
+verify_jwt = false
