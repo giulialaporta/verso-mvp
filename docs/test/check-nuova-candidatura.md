@@ -55,6 +55,12 @@ Checklist per verificare il wizard a 5 step: Job Input, Pre-screening, Tailoring
 - [ ] **D7** — Il summary viene riscritto per allinearsi al ruolo
 - [ ] **D8** — Le skill vengono riordinate per rilevanza rispetto all'annuncio
 - [ ] **D9** — Se l'annuncio e' in inglese, il CV adattato e' in inglese
+- [ ] **D10** — Language selector: l'utente puo' cambiare la lingua del CV (IT/EN) sovrascrivendo quella rilevata
+- [ ] **D11** — La lingua selezionata viene usata dal tailoring e dall'export PDF
+- [ ] **D12** — Skill overrides: click su una skill mancante la sposta in "Hai gia'" (bordo tratteggiato verde)
+- [ ] **D13** — Le skill overriddate vengono escluse da `skills_missing` nel tailoring
+- [ ] **D14** — Click su una skill overriddata la rimuove (torna in "Ti mancano")
+- [ ] **D15** — Hint visibile: "Clicca su una skill per dire che ce l'hai"
 
 ---
 

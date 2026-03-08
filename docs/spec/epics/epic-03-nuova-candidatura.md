@@ -71,6 +71,11 @@ Chiama Edge Function `ai-prescreen` con CV master + job posting.
 
 Chiama Edge Function `ai-tailor` con CV master + job posting + analisi pre-screening + risposte utente.
 
+**Controlli utente prima del tailoring:**
+
+- **Language selector:** l'utente puo' scegliere la lingua del CV output (Italiano/English), sovrascrivendo quella rilevata automaticamente. La lingua selezionata viene passata ad `ai-tailor` nel campo `detected_language` e usata anche per l'export PDF.
+- **Skill overrides:** l'utente puo' cliccare su una skill nella lista "Ti mancano" per dire "ce l'ho" → la skill si sposta nella lista "Hai gia'" (bordo tratteggiato). Le skill overriddate vengono escluse da `skills_missing` prima di chiamare `ai-tailor` e passate come `skills_overridden`. Click di nuovo per annullare.
+
 **Approccio patch-based (diverso dal piano MVP):**
 - Non genera un CV completo sostitutivo
 - Genera **patch JSON** (path → nuovo valore) per i soli campi da modificare
@@ -159,8 +164,9 @@ Integrato nel wizard (non drawer separato come nel piano MVP).
 ## Rilevamento lingua
 
 - L'analisi AI è sempre in italiano (per coerenza UX)
-- Il contenuto del CV tailored è nella lingua dell'annuncio
-- Se l'annuncio è in inglese, il CV viene adattato in inglese
+- La lingua del CV viene rilevata automaticamente dall'annuncio
+- L'utente puo' sovrascrivere la lingua con il language selector (IT/EN) nello step 3
+- La lingua selezionata viene usata sia per il tailoring che per l'export PDF
 
 ---
 
