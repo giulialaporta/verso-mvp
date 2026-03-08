@@ -210,7 +210,7 @@ function VirginState() {
 }
 
 // ─── Recent Applications ─────────────────────────────────────
-function RecentApplications({ apps }: { apps: AppRow[] }) {
+function RecentApplications({ apps }: { apps: AppRowWithAts[] }) {
   const navigate = useNavigate();
 
   if (apps.length === 0) return null;
