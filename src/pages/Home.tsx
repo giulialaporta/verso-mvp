@@ -501,7 +501,7 @@ export default function Home() {
         ...d,
         ats_score: d.tailored_cvs?.[0]?.ats_score ?? null,
       }));
-      setApps(mappedApps as AppRow[]);
+      setApps(mappedApps as AppRowWithAts[]);
     };
 
     fetchData();

@@ -158,7 +158,7 @@ export default function Candidature() {
     );
   }
 
-  const AppCard = ({ app }: { app: AppRow }) => (
+  const AppCard = ({ app }: { app: AppRowWithAts }) => (
     <div
       className="rounded-lg border border-border/30 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-colors"
       onClick={() => navigate(`/app/candidatura/${app.id}`)}

@@ -35,7 +35,7 @@ function formatDate(dateStr: string) {
 }
 
 interface DetailContentProps {
-  app: AppRow;
+  app: AppRowWithAts;
   drawerStatus: string;
   setDrawerStatus: (s: string) => void;
   drawerNotes: string;
