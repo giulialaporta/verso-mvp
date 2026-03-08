@@ -455,58 +455,18 @@ function CVCard({
 export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [cv, setCv] = useState<MasterCV | null | undefined>(undefined);
-  const [inactiveCvs, setInactiveCvs] = useState<MasterCV[]>([]);
-  const [apps, setApps] = useState<AppRowWithAts[] | undefined>(undefined);
-  const [profileName, setProfileName] = useState("");
-  const [salaryExpectations, setSalaryExpectations] = useState<{ current_ral: number | null; desired_ral: number | null } | null>(null);
+  const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
+  // React Query hooks
+  const { data: profile } = useProfile();
+  const { data: apps } = useApplications(3);
+  const { active: activeCvQuery, inactive: inactiveCvQuery } = useMasterCV();
 
-    const fetchData = async () => {
-      const [{ data: profile }, { data: activeCvs }, { data: oldCvs }, { data: appRows }] =
-        await Promise.all([
-          supabase
-            .from("profiles")
-            .select("full_name, salary_expectations")
-            .eq("user_id", user.id)
-            .single(),
-          supabase
-            .from("master_cvs")
-            .select("id, parsed_data, file_name, file_url, created_at, is_active, photo_url")
-            .eq("user_id", user.id)
-            .eq("is_active", true)
-            .order("created_at", { ascending: false })
-            .limit(1),
-          supabase
-            .from("master_cvs")
-            .select("id, file_name, file_url, created_at, is_active")
-            .eq("user_id", user.id)
-            .eq("is_active", false)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("applications")
-            .select("id, company_name, role_title, match_score, status, created_at, tailored_cvs(ats_score)")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(3),
-        ]);
-
-      setProfileName(profile?.full_name || "");
-      setSalaryExpectations((profile as any)?.salary_expectations || null);
-      setCv(activeCvs && activeCvs.length > 0 ? (activeCvs[0] as unknown as MasterCV) : null);
-      setInactiveCvs((oldCvs as unknown as MasterCV[]) ?? []);
-      const mappedApps = (appRows ?? []).map((d: any) => ({
-        ...d,
-        ats_score: d.tailored_cvs?.[0]?.ats_score ?? null,
-      }));
-      setApps(mappedApps as AppRowWithAts[]);
-    };
-
-    fetchData();
-  }, [user]);
+  const cv = activeCvQuery.data;
+  const inactiveCvs = inactiveCvQuery.data ?? [];
+  const profileName = profile?.full_name || "";
+  const salaryExpectations = (profile as any)?.salary_expectations || null;
 
   const handleDelete = async () => {
     if (!cv || !user) return;
