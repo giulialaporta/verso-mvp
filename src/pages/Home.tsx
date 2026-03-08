@@ -619,7 +619,7 @@ export default function Home() {
       {/* Header */}
       <div>
         <h1 className="font-display text-3xl font-bold">
-          Ciao, {firstName} 👋
+          Ciao, {firstName}
         </h1>
         <p className="mt-1 text-muted-foreground">
           {hasApplications
