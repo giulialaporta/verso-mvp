@@ -48,7 +48,8 @@ function formatDate(dateStr: string) {
 export default function Candidature() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [apps, setApps] = useState<AppRowWithAts[] | undefined>(undefined);
+  const queryClient = useQueryClient();
+  const { data: apps, isLoading: appsLoading } = useApplications(100);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedApp, setSelectedApp] = useState<AppRowWithAts | null>(null);
   const [drawerStatus, setDrawerStatus] = useState("");
@@ -60,23 +61,6 @@ export default function Candidature() {
   const [exportHonestScore, setExportHonestScore] = useState<any>(undefined);
   const [exportCompany, setExportCompany] = useState("");
   const [exportAppId, setExportAppId] = useState("");
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("applications")
-      .select("id, company_name, role_title, match_score, status, created_at, notes, tailored_cvs(ats_score)")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(100)
-      .then(({ data }) => {
-        const rows = (data ?? []).map((d: any) => ({
-          ...d,
-          ats_score: d.tailored_cvs?.[0]?.ats_score ?? null,
-        }));
-        setApps(rows as AppRowWithAts[]);
-      });
-  }, [user]);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
