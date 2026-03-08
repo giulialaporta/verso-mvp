@@ -158,6 +158,8 @@ export default function CandidaturaDetail() {
   const honestScore = tailored?.honest_score as any;
   const skillsMatch = tailored?.skills_match as any;
   const seniorityMatch = tailored?.seniority_match as any;
+  const scoreNote = (tailored as any)?.score_note as string | null;
+  const learningSuggestions = (tailored as any)?.learning_suggestions as any[] | null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4">
