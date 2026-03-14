@@ -57,7 +57,7 @@ const sections: FaqSection[] = [
       },
       {
         q: "Perché Verso fa un pre-screening prima di adattare il CV?",
-        a: "Perché non tutte le candidature hanno senso. Prima di investire tempo (tuo e dell'AI), Verso analizza il match tra il tuo profilo e l'annuncio. Identifica dealbreaker, gap di competenze, disallineamenti di seniority. Se il ruolo richiede 10 anni di esperienza in cloud architecture e tu ne hai 2 nel frontend, Verso te lo dice. Non per scoraggiarti — per aiutarti a concentrare le energie dove puoi davvero fare la differenza.",
+        a: "Perché non tutte le candidature hanno senso. Prima di investire tempo (tuo e dell'AI), analizzo il match tra il tuo profilo e l'annuncio. Identifico dealbreaker, gap di competenze, disallineamenti di seniority. Se il ruolo richiede 10 anni di esperienza in cloud architecture e tu ne hai 2 nel frontend, te lo dico. Non per scoraggiarti — per aiutarti a concentrare le energie dove puoi davvero fare la differenza.",
       },
     ],
   },
