@@ -64,7 +64,7 @@ export function SensitiveDataConsent({ open, onConsent, onCancel }: SensitiveDat
                 selezionati e non saranno utilizzati per altri scopi.
               </p>
               <p>
-                Se non desideri che queste informazioni vengano elaborate, ti consigliamo di
+                Se non desideri che queste informazioni vengano elaborate, ti suggerisco di
                 rimuoverle dal CV prima di caricarlo.
               </p>
             </div>

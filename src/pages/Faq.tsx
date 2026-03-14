@@ -126,7 +126,7 @@ export default function Faq() {
           Guida & FAQ
         </h1>
         <p className="text-sm text-muted-foreground">
-          Tutto quello che devi sapere su ATS, CV tailoring e come Verso ti aiuta a candidarti meglio.
+          Tutto quello che devi sapere su ATS, CV tailoring e come ti aiuto a candidarti meglio.
         </p>
       </div>
 

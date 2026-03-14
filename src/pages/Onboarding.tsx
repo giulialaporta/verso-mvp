@@ -296,7 +296,7 @@ export default function Onboarding() {
                 <CardContent className="pt-5 pb-5 px-4 sm:pt-6 sm:px-6 space-y-5 sm:space-y-6">
                   <div className="text-center space-y-3">
                     <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <h2 className="font-display text-lg sm:text-xl font-bold">Verso sta leggendo il tuo CV...</h2>
+                    <h2 className="font-display text-lg sm:text-xl font-bold">Sto leggendo il tuo CV...</h2>
                     <p className="text-sm text-muted-foreground">Sto estraendo le informazioni.</p>
                   </div>
                   <Progress value={undefined} className="h-1" />
