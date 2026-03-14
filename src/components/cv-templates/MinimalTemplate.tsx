@@ -10,40 +10,40 @@ Font.register({
   ],
 });
 
-const SIDEBAR_BG = "#F5F5F5";
 const SIDEBAR_TEXT = "#1a1a1a";
 const SIDEBAR_MUTED = "#666";
-const LINK_COLOR = "#3366cc";
+const LINK_COLOR = "#2563EB";
 const BODY_TEXT = "#1a1a1a";
 const BODY_MUTED = "#666";
-const BORDER = "#d4d4d4";
+const BORDER = "#E0E0E0";
+const SECTION_TITLE = "#111";
 
 const s = StyleSheet.create({
   page: { fontFamily: "Inter", fontSize: 10, flexDirection: "row" },
-  sidebar: { width: "30%", backgroundColor: SIDEBAR_BG, paddingHorizontal: 14, paddingVertical: 24, color: SIDEBAR_TEXT },
-  main: { width: "70%", paddingHorizontal: 28, paddingVertical: 24, paddingBottom: 60, color: BODY_TEXT },
-  photo: { width: 68, height: 68, borderRadius: 34, marginBottom: 12, alignSelf: "center" },
-  sidebarName: { fontSize: 13, fontWeight: 700, marginBottom: 8, textAlign: "center" },
-  contactItem: { fontSize: 8, color: SIDEBAR_MUTED, marginBottom: 3, lineHeight: 1.4 },
-  contactLink: { fontSize: 8, color: LINK_COLOR, marginBottom: 3, lineHeight: 1.4 },
-  sidebarSection: { fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: SIDEBAR_MUTED, borderBottomWidth: 0.5, borderBottomColor: BORDER, paddingBottom: 3, marginBottom: 6, marginTop: 14 },
-  skillChip: { fontSize: 8, color: SIDEBAR_TEXT, marginBottom: 2, lineHeight: 1.4 },
-  langItem: { fontSize: 8, color: SIDEBAR_TEXT, marginBottom: 2 },
+  sidebar: { width: "26%", paddingHorizontal: 18, paddingVertical: 32, color: SIDEBAR_TEXT, borderRightWidth: 0.5, borderRightColor: BORDER },
+  main: { width: "74%", paddingHorizontal: 36, paddingVertical: 32, paddingBottom: 60, color: BODY_TEXT },
+  photo: { width: 68, height: 68, borderRadius: 34, marginBottom: 16, alignSelf: "center" },
+  contactItem: { fontSize: 8, color: SIDEBAR_MUTED, marginBottom: 4, lineHeight: 1.5 },
+  contactLink: { fontSize: 8, color: LINK_COLOR, marginBottom: 4, lineHeight: 1.5 },
+  sidebarSection: { fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: SIDEBAR_MUTED, borderBottomWidth: 0.5, borderBottomColor: BORDER, paddingBottom: 4, marginBottom: 8, marginTop: 18 },
+  skillChip: { fontSize: 8, color: SIDEBAR_TEXT, marginBottom: 3, lineHeight: 1.5 },
+  langItem: { fontSize: 8, color: SIDEBAR_TEXT, marginBottom: 3 },
   certName: { fontSize: 8, color: SIDEBAR_TEXT, fontWeight: 500 },
-  certMeta: { fontSize: 7, color: SIDEBAR_MUTED, marginBottom: 4 },
-  mainName: { fontSize: 20, fontWeight: 700, marginBottom: 2 },
-  mainSubtitle: { fontSize: 9, color: BODY_MUTED, marginBottom: 14 },
-  divider: { borderBottomWidth: 0.5, borderBottomColor: BORDER, marginVertical: 10 },
-  sectionTitle: { fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#333", marginBottom: 6 },
-  summary: { fontSize: 10, lineHeight: 1.5, marginBottom: 4 },
-  expBlock: { marginBottom: 10 },
-  expRole: { fontSize: 10.5, fontWeight: 700 },
-  expMeta: { fontSize: 9, color: BODY_MUTED, marginBottom: 2 },
-  bullet: { fontSize: 9.5, lineHeight: 1.5, paddingLeft: 10, marginBottom: 1 },
-  eduBlock: { marginBottom: 6 },
+  certMeta: { fontSize: 7, color: SIDEBAR_MUTED, marginBottom: 5 },
+  mainName: { fontSize: 24, fontWeight: 700, marginBottom: 3, letterSpacing: -0.3 },
+  mainSubtitle: { fontSize: 8.5, color: BODY_MUTED, marginBottom: 16, letterSpacing: 0.5, textTransform: "uppercase" },
+  divider: { borderBottomWidth: 0.3, borderBottomColor: BORDER, marginVertical: 14 },
+  sectionTitle: { fontSize: 10, fontWeight: 700, color: SECTION_TITLE, marginBottom: 8 },
+  summary: { fontSize: 10, lineHeight: 1.6, marginBottom: 4 },
+  expBlock: { marginBottom: 12 },
+  expRole: { fontSize: 11, fontWeight: 700 },
+  expCompany: { fontSize: 10, fontWeight: 500, color: BODY_TEXT, marginBottom: 1 },
+  expMeta: { fontSize: 9, color: BODY_MUTED, marginBottom: 3 },
+  bullet: { fontSize: 9.5, lineHeight: 1.5, paddingLeft: 14, marginBottom: 2.5 },
+  eduBlock: { marginBottom: 10 },
   eduTitle: { fontSize: 10, fontWeight: 500 },
   eduMeta: { fontSize: 9, color: BODY_MUTED },
-  projBlock: { marginBottom: 8 },
+  projBlock: { marginBottom: 10 },
   projName: { fontSize: 10, fontWeight: 500 },
   projDesc: { fontSize: 9.5, lineHeight: 1.5, marginTop: 1 },
   projLink: { fontSize: 9, color: LINK_COLOR, marginTop: 1 },
@@ -75,7 +75,6 @@ export function MinimalTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
       <Page size="A4" style={s.page}>
         <View style={s.sidebar}>
           {photoUrl && <Image src={photoUrl} style={s.photo} />}
-          <Text style={s.sidebarName}>{clean(personal.name) || "Nome Cognome"}</Text>
 
           <Text style={s.sidebarSection}>{h("contacts", lang)}</Text>
           {contactParts.map((c, i) => <Text key={i} style={s.contactItem}>{c}</Text>)}
@@ -115,7 +114,7 @@ export function MinimalTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
 
         <View style={s.main}>
           <Text style={s.mainName}>{clean(personal.name) || "Nome Cognome"}</Text>
-          {contactParts.length > 0 && <Text style={s.mainSubtitle}>{contactParts.join("  |  ")}</Text>}
+          {contactParts.length > 0 && <Text style={s.mainSubtitle}>{contactParts.join("  ·  ")}</Text>}
 
           {summary && (
             <>
@@ -131,9 +130,8 @@ export function MinimalTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
               <Text style={s.sectionTitle}>{h("experience", lang)}</Text>
               {experience.map((exp: any, i: number) => (
                 <View key={i} style={s.expBlock} wrap={false}>
-                  <Text style={s.expRole}>
-                    {clean(exp.role) || clean(exp.title)} — {exp.company}
-                  </Text>
+                  <Text style={s.expRole}>{clean(exp.role) || clean(exp.title)}</Text>
+                  <Text style={s.expCompany}>{exp.company}</Text>
                   <Text style={s.expMeta}>
                     {exp.start || exp.period}
                     {exp.end ? ` – ${exp.end}` : exp.current ? " – Attuale" : ""}

@@ -10,39 +10,39 @@ Font.register({
   ],
 });
 
-const SIDEBAR_BG = "#141518";
+const SIDEBAR_BG = "#1C1F26";
 const SIDEBAR_TEXT = "#F2F3F7";
 const SIDEBAR_MUTED = "#8B8FA8";
-const SIDEBAR_ACCENT = "#5DBBFF";
+const SIDEBAR_ACCENT = "#60A5FA";
+const SIDEBAR_BORDER = "#333842";
 const BODY_TEXT = "#1a1a1a";
 const BODY_MUTED = "#555";
-const SECTION_BORDER = "#d0d0d0";
 
 const s = StyleSheet.create({
   page: { fontFamily: "DM Sans", fontSize: 10, flexDirection: "row" },
-  sidebar: { width: "30%", backgroundColor: SIDEBAR_BG, paddingHorizontal: 16, paddingVertical: 24, color: SIDEBAR_TEXT },
-  main: { width: "70%", paddingHorizontal: 28, paddingVertical: 24, paddingBottom: 60, color: BODY_TEXT },
-  photo: { width: 72, height: 72, borderRadius: 36, marginBottom: 12, alignSelf: "center" },
-  sidebarName: { fontSize: 14, fontWeight: 700, marginBottom: 8, textAlign: "center" },
-  contactItem: { fontSize: 8, color: SIDEBAR_MUTED, marginBottom: 3, lineHeight: 1.4 },
-  contactLink: { fontSize: 8, color: SIDEBAR_ACCENT, marginBottom: 3, lineHeight: 1.4 },
-  sidebarSection: { fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, color: SIDEBAR_MUTED, borderBottomWidth: 0.5, borderBottomColor: "#2A2D35", paddingBottom: 3, marginBottom: 6, marginTop: 14 },
-  skillChip: { fontSize: 8, color: SIDEBAR_TEXT, marginBottom: 2, lineHeight: 1.4 },
-  langItem: { fontSize: 8, color: SIDEBAR_TEXT, marginBottom: 2 },
+  sidebar: { width: "28%", backgroundColor: SIDEBAR_BG, paddingHorizontal: 20, paddingVertical: 32, color: SIDEBAR_TEXT },
+  main: { width: "72%", paddingHorizontal: 36, paddingVertical: 32, paddingBottom: 60, color: BODY_TEXT },
+  photo: { width: 72, height: 72, borderRadius: 36, marginBottom: 16, alignSelf: "center" },
+  contactItem: { fontSize: 8, color: SIDEBAR_MUTED, marginBottom: 4, lineHeight: 1.5 },
+  contactLink: { fontSize: 8, color: SIDEBAR_ACCENT, marginBottom: 4, lineHeight: 1.5 },
+  sidebarSection: { fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, color: SIDEBAR_MUTED, borderBottomWidth: 0.5, borderBottomColor: SIDEBAR_BORDER, paddingBottom: 4, marginBottom: 8, marginTop: 18 },
+  skillChip: { fontSize: 8, color: SIDEBAR_TEXT, marginBottom: 3, lineHeight: 1.5 },
+  langItem: { fontSize: 8, color: SIDEBAR_TEXT, marginBottom: 3 },
   certName: { fontSize: 8, color: SIDEBAR_TEXT, fontWeight: 500 },
-  certMeta: { fontSize: 7, color: SIDEBAR_MUTED, marginBottom: 4 },
-  mainName: { fontSize: 20, fontWeight: 700, marginBottom: 2 },
-  mainSubtitle: { fontSize: 9, color: BODY_MUTED, marginBottom: 14 },
-  sectionTitle: { fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, color: BODY_TEXT, borderBottomWidth: 0.5, borderBottomColor: SECTION_BORDER, paddingBottom: 3, marginBottom: 8, marginTop: 14 },
-  summary: { fontSize: 10, lineHeight: 1.5, marginBottom: 4 },
-  expBlock: { marginBottom: 10 },
+  certMeta: { fontSize: 7, color: SIDEBAR_MUTED, marginBottom: 5 },
+  mainName: { fontSize: 22, fontWeight: 700, marginBottom: 2, letterSpacing: 0.5 },
+  mainSubtitle: { fontSize: 9, color: BODY_MUTED, marginBottom: 16, letterSpacing: 0.3 },
+  sectionTitle: { fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, color: BODY_TEXT, borderBottomWidth: 2, borderBottomColor: SIDEBAR_ACCENT, paddingBottom: 4, marginBottom: 10, marginTop: 18 },
+  summary: { fontSize: 10, lineHeight: 1.6, marginBottom: 4 },
+  expBlock: { marginBottom: 12 },
   expRole: { fontSize: 11, fontWeight: 700 },
-  expMeta: { fontSize: 9, color: BODY_MUTED, marginBottom: 2 },
-  bullet: { fontSize: 9.5, lineHeight: 1.5, paddingLeft: 10, marginBottom: 1 },
-  eduBlock: { marginBottom: 6 },
+  expCompany: { fontSize: 10, fontWeight: 500, color: BODY_TEXT, marginBottom: 1 },
+  expMeta: { fontSize: 9, color: BODY_MUTED, marginBottom: 3 },
+  bullet: { fontSize: 9.5, lineHeight: 1.5, paddingLeft: 14, marginBottom: 2.5 },
+  eduBlock: { marginBottom: 8 },
   eduTitle: { fontSize: 10, fontWeight: 500 },
   eduMeta: { fontSize: 9, color: BODY_MUTED },
-  projBlock: { marginBottom: 8 },
+  projBlock: { marginBottom: 10 },
   projName: { fontSize: 10, fontWeight: 500 },
   projDesc: { fontSize: 9.5, lineHeight: 1.5, marginTop: 1 },
   projLink: { fontSize: 9, color: SIDEBAR_ACCENT, marginTop: 1 },
@@ -74,7 +74,6 @@ export function ClassicoTemplate({ cv, lang }: { cv: Record<string, any>; lang?:
       <Page size="A4" style={s.page}>
         <View style={s.sidebar}>
           {photoUrl && <Image src={photoUrl} style={s.photo} />}
-          <Text style={s.sidebarName}>{clean(personal.name) || "Nome Cognome"}</Text>
 
           <Text style={s.sidebarSection}>{h("contacts", lang)}</Text>
           {contactParts.map((c, i) => <Text key={i} style={s.contactItem}>{c}</Text>)}
@@ -114,7 +113,7 @@ export function ClassicoTemplate({ cv, lang }: { cv: Record<string, any>; lang?:
 
         <View style={s.main}>
           <Text style={s.mainName}>{clean(personal.name) || "Nome Cognome"}</Text>
-          {contactParts.length > 0 && <Text style={s.mainSubtitle}>{contactParts.join(" | ")}</Text>}
+          {contactParts.length > 0 && <Text style={s.mainSubtitle}>{contactParts.join(" · ")}</Text>}
 
           {summary && (
             <>
@@ -128,9 +127,8 @@ export function ClassicoTemplate({ cv, lang }: { cv: Record<string, any>; lang?:
               <Text style={s.sectionTitle}>{h("experience", lang)}</Text>
               {experience.map((exp: any, i: number) => (
                 <View key={i} style={s.expBlock} wrap={false}>
-                  <Text style={s.expRole}>
-                    {clean(exp.role) || clean(exp.title)} — {exp.company}
-                  </Text>
+                  <Text style={s.expRole}>{clean(exp.role) || clean(exp.title)}</Text>
+                  <Text style={s.expCompany}>{exp.company}</Text>
                   <Text style={s.expMeta}>
                     {exp.start || exp.period}
                     {exp.end ? ` – ${exp.end}` : exp.current ? " – Attuale" : ""}
