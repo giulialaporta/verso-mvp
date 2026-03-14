@@ -683,6 +683,13 @@ export default function Home() {
   }, [apps]);
   const recentApps = useMemo(() => (apps ?? []).slice(0, 3), [apps]);
 
+  // Redirect to onboarding if user has apps but no CV
+  useEffect(() => {
+    if (!isLoading && !hasCV && hasApplications) {
+      navigate("/onboarding");
+    }
+  }, [isLoading, hasCV, hasApplications, navigate]);
+
   // Loading state
   if (isLoading) {
     return (
@@ -707,13 +714,7 @@ export default function Home() {
     return <VirginState />;
   }
 
-  // Has apps but no CV → prompt to re-upload
-  useEffect(() => {
-    if (!isLoading && !hasCV && hasApplications) {
-      navigate("/onboarding");
-    }
-  }, [isLoading, hasCV, hasApplications, navigate]);
-
+  // Already handled by useEffect above
   if (!hasCV && hasApplications) {
     return null;
   }
