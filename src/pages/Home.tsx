@@ -467,8 +467,26 @@ export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
-  const { isPro } = useSubscription();
+  const { isPro, refresh: refreshSubscription } = useSubscription();
   const checkCanCreate = useProGate();
+
+  // Handle post-upgrade success
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upgrade") === "success") {
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        await refreshSubscription();
+        if (attempts >= 3) {
+          clearInterval(poll);
+          toast.success("Benvenuto in Versō Pro! 🎉");
+          navigate("/app/home", { replace: true });
+        }
+      }, 2000);
+      return () => clearInterval(poll);
+    }
+  }, [refreshSubscription, navigate]);
 
   // React Query hooks
   const { data: profile } = useProfile();
