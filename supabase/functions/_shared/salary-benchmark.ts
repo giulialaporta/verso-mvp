@@ -28,6 +28,7 @@ async function firecrawlSearch(
   apiKey: string,
   limit = 5
 ): Promise<FirecrawlSearchResult[]> {
+  console.log(`[salary-benchmark] Firecrawl query: "${query.slice(0, 80)}"`);
   const res = await fetch("https://api.firecrawl.dev/v1/search", {
     method: "POST",
     headers: {
@@ -37,15 +38,16 @@ async function firecrawlSearch(
     body: JSON.stringify({ query, limit, lang: "it", country: "IT" }),
   });
 
+  const bodyText = await res.text();
+  console.log(`[salary-benchmark] Firecrawl status=${res.status}, body=${bodyText.slice(0, 500)}`);
+
   if (!res.ok) {
-    const errBody = await res.text().catch(() => "");
-    console.warn(`Firecrawl search failed [${res.status}] for query: "${query}" — ${errBody}`);
     return [];
   }
 
-  const json = await res.json();
+  const json = JSON.parse(bodyText);
   const results = (json.data ?? json.results ?? []) as FirecrawlSearchResult[];
-  console.log(`Firecrawl search "${query.slice(0, 60)}..." → ${results.length} results, success=${json.success}`);
+  console.log(`[salary-benchmark] ${results.length} results, success=${json.success}`);
   return results;
 }
 
