@@ -5,7 +5,7 @@ import { CurrencyEur, ArrowUp, ArrowDown, Minus, Info } from "@phosphor-icons/re
 type SalaryEstimate = {
   min: number;
   max: number;
-  source: "user_profile" | "job_posting" | "estimated";
+  source: "user_profile" | "job_posting" | "estimated" | "benchmark";
   basis: string;
 };
 
