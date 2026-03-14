@@ -22,7 +22,19 @@ export default function Upgrade() {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout");
-      if (error) throw error;
+
+      // Handle non-2xx responses (supabase puts them in error)
+      if (error) {
+        // Try to parse the error context for "Already subscribed"
+        const errMsg = error?.message || error?.context?.body || "";
+        if (typeof errMsg === "string" && errMsg.includes("Already subscribed")) {
+          toast.success("Sei già abbonata a Versō Pro!");
+          navigate("/app/home");
+          return;
+        }
+        throw error;
+      }
+
       if (data?.error) {
         if (data.error === "Already subscribed") {
           toast.success("Sei già abbonata a Versō Pro!");
@@ -31,11 +43,19 @@ export default function Upgrade() {
         }
         throw new Error(data.error);
       }
+
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Errore durante il checkout");
+    } catch (e: any) {
+      // Last resort check for "Already subscribed"
+      const msg = e?.message || String(e);
+      if (msg.includes("Already subscribed")) {
+        toast.success("Sei già abbonata a Versō Pro!");
+        navigate("/app/home");
+        return;
+      }
+      toast.error("Errore durante il checkout");
     } finally {
       setLoading(false);
     }
