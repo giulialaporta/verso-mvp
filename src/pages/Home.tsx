@@ -37,6 +37,8 @@ import {
   Check,
   X,
   Crown,
+  DownloadSimple,
+  SpinnerGap,
 } from "@phosphor-icons/react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
