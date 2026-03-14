@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 interface SubscriptionState {
   isPro: boolean;
   subscriptionEnd: string | null;
+  cancelAtPeriodEnd: boolean;
   loading: boolean;
 }
 
@@ -13,6 +14,7 @@ export function useSubscription() {
   const [state, setState] = useState<SubscriptionState>({
     isPro: false,
     subscriptionEnd: null,
+    cancelAtPeriodEnd: false,
     loading: true,
   });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -21,7 +23,7 @@ export function useSubscription() {
   const refresh = useCallback(async () => {
     const token = session?.access_token;
     if (!user || !token) {
-      setState({ isPro: false, subscriptionEnd: null, loading: false });
+      setState({ isPro: false, subscriptionEnd: null, cancelAtPeriodEnd: false, loading: false });
       return;
     }
 
@@ -33,7 +35,6 @@ export function useSubscription() {
       if (!mountedRef.current) return;
 
       if (error) {
-        // Treat as non-fatal — user simply isn't Pro
         console.warn("check-subscription error (non-fatal):", error);
         setState((prev) => ({ ...prev, loading: false }));
         return;
@@ -42,6 +43,7 @@ export function useSubscription() {
       setState({
         isPro: data?.subscribed ?? false,
         subscriptionEnd: data?.subscription_end ?? null,
+        cancelAtPeriodEnd: data?.cancel_at_period_end ?? false,
         loading: false,
       });
     } catch (e) {
@@ -55,7 +57,7 @@ export function useSubscription() {
     mountedRef.current = true;
 
     if (!user || !session?.access_token) {
-      setState({ isPro: false, subscriptionEnd: null, loading: false });
+      setState({ isPro: false, subscriptionEnd: null, cancelAtPeriodEnd: false, loading: false });
       return;
     }
 
@@ -70,6 +72,13 @@ export function useSubscription() {
       }
     };
   }, [user, session?.access_token, refresh]);
+
+  // Refresh on tab focus (e.g. returning from Stripe portal)
+  useEffect(() => {
+    const onFocus = () => { refresh(); };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refresh]);
 
   return { ...state, refresh };
 }
