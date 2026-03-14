@@ -21,6 +21,7 @@ const CookiePolicyPage = lazy(() => import("./pages/CookiePolicy"));
 
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Nuova = lazy(() => import("./pages/Nuova"));
+const Upgrade = lazy(() => import("./pages/Upgrade"));
 const Candidature = lazy(() => import("./pages/Candidature"));
 const Impostazioni = lazy(() => import("./pages/Impostazioni"));
 const CVEdit = lazy(() => import("./pages/CVEdit"));
