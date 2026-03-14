@@ -92,7 +92,7 @@ export function StepVerifica({
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground italic pt-2 border-t border-border/30">Verso non ti impedisce di candidarti, ma vuole che tu sia consapevole di questi gap.</p>
+              <p className="text-xs text-muted-foreground italic pt-2 border-t border-border/30">Non ti impedisco di candidarti, ma voglio che tu sia consapevole di questi gap.</p>
             </CardContent>
           </Card>
         </motion.div>

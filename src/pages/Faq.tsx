@@ -84,7 +84,7 @@ const sections: FaqSection[] = [
       },
       {
         q: "Posso spostare una skill da \"mancante\" a \"presente\"?",
-        a: "Sì. Se Verso non ha riconosciuto una competenza che in realtà hai, puoi spostarla manualmente. Questo aggiorna il match score e il CV adattato. Ma sii onesto: se la sposti, assicurati di poterla sostenere in un colloquio.",
+        a: "Sì. Se non ho riconosciuto una competenza che in realtà hai, puoi spostarla manualmente. Questo aggiorna il match score e il CV adattato. Ma sii onesto: se la sposti, assicurati di poterla sostenere in un colloquio.",
       },
     ],
   },
