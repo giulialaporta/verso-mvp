@@ -94,6 +94,14 @@ If the user section contains "CANDIDATE FOLLOW-UP ANSWERS", use those answers to
 - Discover implicit skills or experience not explicit in the CV
 - Adjust the score upward if answers reveal relevant hidden experience
 
+## STRUCTURED FOLLOW-UP ANSWER RULES
+When answers include a "Level" field, apply these constraints:
+- Level "expert": The skill counts as "has" in skills_present. May increase match_score up to +8 points per skill.
+- Level "some": The skill stays in skills_missing but with severity reduced to "minor". May increase match_score up to +3 points.
+- Level "learning": No effect on score. Skill stays in skills_missing. May appear in learning_suggestions as "partially in progress".
+- Level "none": Confirms the gap. No changes.
+- If only free text is present (no Level — legacy format): Treat as "some" level.
+
 ## SKILL GAP SEVERITY
 For each missing skill, assess severity:
 - critical: Mandatory requirement, clearly missing, would take 1+ years to acquire (e.g., "5 years Java experience" when candidate has 0)
