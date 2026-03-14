@@ -476,6 +476,42 @@ function adjustScore(r: Record<string, unknown>): void {
   }
 }
 
+type FollowUpAnswer = {
+  question?: string;
+  answer?: string;
+  level?: string;
+  detail?: string;
+};
+
+function formatFollowUpAnswers(userAnswers: unknown): string {
+  if (!Array.isArray(userAnswers) || userAnswers.length === 0) return "";
+
+  const lines: string[] = [];
+  for (const item of userAnswers as FollowUpAnswer[]) {
+    const question = typeof item.question === "string" ? item.question.trim() : "";
+    if (!question) continue;
+
+    lines.push("Q: " + question);
+
+    const level = typeof item.level === "string" ? item.level.trim() : "";
+    const detail = typeof item.detail === "string" ? item.detail.trim() : "";
+    const answer = typeof item.answer === "string" ? item.answer.trim() : "";
+
+    if (level) {
+      lines.push("Level: " + level);
+      if (detail) lines.push('Detail: "' + detail + '"');
+    } else {
+      lines.push("A: " + answer);
+    }
+
+    lines.push("");
+  }
+
+  if (lines.length === 0) return "";
+
+  return "\n\nCANDIDATE FOLLOW-UP ANSWERS (STRUCTURED):\n" + lines.join("\n").trim();
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
