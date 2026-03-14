@@ -5,7 +5,7 @@ import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap } from "@phosphor-icons/react";
-import { ClassicoTemplate, MinimalTemplate, TEMPLATES } from "@/components/cv-templates";
+import { ClassicoTemplate, MinimalTemplate, ExecutiveTemplate, ModernoTemplate, TEMPLATES } from "@/components/cv-templates";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
 
@@ -44,7 +44,13 @@ export function StepExport({
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const TemplateComponent = selectedTemplate === "minimal" ? MinimalTemplate : ClassicoTemplate;
+      const templateMap: Record<string, typeof ClassicoTemplate> = {
+        classico: ClassicoTemplate,
+        minimal: MinimalTemplate,
+        executive: ExecutiveTemplate,
+        moderno: ModernoTemplate,
+      };
+      const TemplateComponent = templateMap[selectedTemplate] || ClassicoTemplate;
       const blob = await pdf(<TemplateComponent cv={tailoredCv} lang={cvLang} />).toBlob();
       const fileName = `CV-${personalName.replace(/\s+/g, "-")}-${jobData.company_name.replace(/\s+/g, "-")}.pdf`;
 
@@ -99,7 +105,32 @@ export function StepExport({
                 }`}
               >
                 <div className="h-16 flex items-center justify-center mb-3">
-                  <div className={`w-12 h-16 rounded border ${t.id === "classico" ? "bg-gradient-to-b from-card to-background border-primary/30" : "bg-background border-border"}`} />
+                  {t.id === "classico" && (
+                    <div className="w-12 h-16 rounded border border-primary/30 flex flex-row overflow-hidden">
+                      <div className="w-[30%] bg-[hsl(var(--surface))]" />
+                      <div className="w-[70%] bg-card" />
+                    </div>
+                  )}
+                  {t.id === "minimal" && (
+                    <div className="w-12 h-16 rounded border border-border flex flex-row overflow-hidden">
+                      <div className="w-[26%] bg-background border-r border-border/50" />
+                      <div className="w-[74%] bg-background" />
+                    </div>
+                  )}
+                  {t.id === "executive" && (
+                    <div className="w-12 h-16 rounded border border-border bg-background overflow-hidden p-1">
+                      <div className="w-full h-1 bg-info rounded-full mb-1" />
+                      <div className="w-3/4 h-0.5 bg-muted-foreground/30 rounded mb-1" />
+                      <div className="w-full h-0.5 bg-muted-foreground/20 rounded mb-0.5" />
+                      <div className="w-full h-0.5 bg-muted-foreground/20 rounded" />
+                    </div>
+                  )}
+                  {t.id === "moderno" && (
+                    <div className="w-12 h-16 rounded border border-info/30 flex flex-row overflow-hidden">
+                      <div className="w-[35%] bg-info/20" />
+                      <div className="w-[65%] bg-card" />
+                    </div>
+                  )}
                 </div>
                 <p className="text-sm font-medium">{t.name}</p>
               </button>
