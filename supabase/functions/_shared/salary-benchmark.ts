@@ -76,7 +76,6 @@ function buildQueries(params: BenchmarkParams): string[] {
     `${simple} salary Italy average${sector}`,
     `stipendio ${simple} Italia 2025`,
   ];
-  ];
 }
 
 export async function fetchSalaryBenchmarks(
