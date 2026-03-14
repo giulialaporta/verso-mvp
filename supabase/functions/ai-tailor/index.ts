@@ -27,7 +27,7 @@ function applyPatches(
 
     for (let i = 0; i < segments.length - 1; i++) {
       if (target === null || target === undefined || typeof target !== "object") {
-        console.warn(`applyPatches: skipping patch "${path}" — invalid traversal at segment ${i}`);
+        console.warn("applyPatches: skipping patch \"" + path + "\" — invalid traversal at segment " + i);
         skipped.push(path);
         valid = false;
         break;
