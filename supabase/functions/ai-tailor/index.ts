@@ -148,8 +148,8 @@ This means ALL of the following must be in the SAME language:
 - ALL certification names (keep original if proper nouns)
 - ALL project descriptions
 
-NEVER mix languages within the CV. If the job posting is in English, the ENTIRE CV must be in English.
-If the job posting is in Italian, the ENTIRE CV must be in Italian.
+NEVER mix languages within the CV. If detected_language is "en", the ENTIRE CV must be in English.
+If detected_language is "it", the ENTIRE CV must be in Italian. The user's choice overrides the job posting language.
 
 Common mistake to AVOID: translating some bullets but leaving others in the original language.
 Check EVERY bullet and EVERY section before finalizing.
