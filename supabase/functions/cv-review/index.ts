@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { aiFetch, parseAIResponse } from "../_shared/ai-fetch.ts";
+import { callAi } from "../_shared/ai-provider.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 const SYSTEM_PROMPT = `You are an elite HR reviewer and CV quality controller.
@@ -241,20 +241,19 @@ ${JSON.stringify(cvForReview)}
 
 Apply all 10 rules and return the corrected CV. Remember: EVERY text field must be in "${lang}". Fix ALL bullets to start with action verbs. Remove all artifacts and clichés.`;
 
-    const { data: aiData } = await aiFetch({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userMessage },
-      ],
-      tools: [TOOL_SCHEMA],
-      tool_choice: { type: "function", function: { name: "reviewed_cv" } },
-    });
+    const userId = claimsData.claims.sub as string;
 
-    const parsed = parseAIResponse(aiData);
+    const aiResult = await callAi({
+      task: "cv-review",
+      systemPrompt: SYSTEM_PROMPT,
+      userMessage,
+      tools: [TOOL_SCHEMA],
+      toolChoice: { type: "function", function: { name: "reviewed_cv" } },
+    }, userId);
+
+    const parsed = aiResult.content;
     if (!parsed) {
       console.error("cv-review: failed to parse AI response");
-      // Return original CV if review fails — don't block the flow
       return new Response(
         JSON.stringify({ reviewed_cv: cv, review_failed: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

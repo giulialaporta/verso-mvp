@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage_logs: {
+        Row: {
+          cost_usd: number | null
+          created_at: string | null
+          duration_ms: number | null
+          id: string
+          is_fallback: boolean | null
+          model: string
+          provider: string
+          task: string
+          tokens_in: number
+          tokens_out: number
+          user_id: string | null
+        }
+        Insert: {
+          cost_usd?: number | null
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: string
+          is_fallback?: boolean | null
+          model: string
+          provider: string
+          task: string
+          tokens_in: number
+          tokens_out: number
+          user_id?: string | null
+        }
+        Update: {
+          cost_usd?: number | null
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: string
+          is_fallback?: boolean | null
+          model?: string
+          provider?: string
+          task?: string
+          tokens_in?: number
+          tokens_out?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           ats_score: number | null

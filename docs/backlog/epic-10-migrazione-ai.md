@@ -1,6 +1,6 @@
 # Epic 10 — Migrazione AI Engine (Claude + multi-provider)
 
-> **Stato:** backlog — da sviluppare
+> **Stato:** ✅ implementato
 
 ---
 

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { aiFetch, parseAIResponse } from "../_shared/ai-fetch.ts";
+import { callAi } from "../_shared/ai-provider.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -127,12 +127,7 @@ serve(async (req) => {
 
     // Photo extraction happens AFTER AI call — only upload if AI confirms has_photo
 
-    const { data: aiData } = await aiFetch({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert CV/resume parser. You receive a PDF and must extract ALL data in a structured and complete way.
+    const systemPrompt = `You are an expert CV/resume parser. You receive a PDF and must extract ALL data in a structured and complete way.
 
 CRITICAL LANGUAGE RULE: Preserve the EXACT original language of the CV. If the CV is written in English, ALL extracted text MUST remain in English. If in Italian, keep it in Italian. If in any other language, keep that language. NEVER translate any content. This applies to every single field: summary, role titles, descriptions, bullets, skills, degree names, certifications — everything.
 
@@ -231,158 +226,154 @@ RULES:
   - program: exchange programs, Erasmus, double degree
   - publication: thesis title or related publication
 - ANY CV section that does NOT fit standard categories MUST be captured in extra_sections
-- Extract EVERYTHING. Do not lose any information present in the document.`,
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "file",
-              file: {
-                filename: "cv.pdf",
-                file_data: `data:application/pdf;base64,${pdfBase64}`,
-              },
-            },
-            {
-              type: "text",
-              text: "Extract all structured data from this CV using the extract_cv_data tool. Preserve the original language exactly — do NOT translate any content.",
-            },
-          ],
-        },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "extract_cv_data",
-            description: "Extract all structured CV data from the document",
-            parameters: {
+- Extract EVERYTHING. Do not lose any information present in the document.`;
+
+    const toolSchema = {
+      type: "function" as const,
+      function: {
+        name: "extract_cv_data",
+        description: "Extract all structured CV data from the document",
+        parameters: {
+          type: "object",
+          properties: {
+            personal: {
               type: "object",
               properties: {
-                personal: {
-                  type: "object",
-                  properties: {
-                    name: { type: "string" },
-                    email: { type: "string" },
-                    phone: { type: "string" },
-                    location: { type: "string" },
-                    date_of_birth: { type: "string" },
-                    linkedin: { type: "string" },
-                    website: { type: "string" },
-                  },
+                name: { type: "string" },
+                email: { type: "string" },
+                phone: { type: "string" },
+                location: { type: "string" },
+                date_of_birth: { type: "string" },
+                linkedin: { type: "string" },
+                website: { type: "string" },
+              },
+            },
+            has_photo: { type: "boolean", description: "true ONLY if the CV contains a visible photograph of a person (headshot, portrait, ID photo). NOT logos, icons, or decorative images." },
+            photo_position: {
+              type: "string",
+              enum: ["top-left", "top-right", "top-center", "side-left"],
+              description: "Position of the candidate's photo in the CV layout. Only set if has_photo is true."
+            },
+            summary: {
+              type: "string",
+              description: "REQUIRED. Professional summary extracted or synthesized from CV content.",
+            },
+            experience: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  role: { type: "string" },
+                  company: { type: "string" },
+                  location: { type: "string" },
+                  start: { type: "string" },
+                  end: { type: "string" },
+                  current: { type: "boolean" },
+                  description: { type: "string" },
+                  bullets: { type: "array", items: { type: "string" } },
                 },
-                has_photo: { type: "boolean", description: "true ONLY if the CV contains a visible photograph of a person (headshot, portrait, ID photo). NOT logos, icons, or decorative images." },
-                photo_position: {
-                  type: "string",
-                  enum: ["top-left", "top-right", "top-center", "side-left"],
-                  description: "Position of the candidate's photo in the CV layout. Only set if has_photo is true."
+                required: ["role", "company"],
+              },
+            },
+            education: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  institution: { type: "string" },
+                  degree: { type: "string" },
+                  field: { type: "string" },
+                  start: { type: "string" },
+                  end: { type: "string" },
+                  grade: { type: "string" },
+                  honors: { type: "string" },
+                  program: { type: "string" },
+                  publication: { type: "string" },
                 },
-                summary: {
-                  type: "string",
-                  description: "REQUIRED. Professional summary extracted or synthesized from CV content.",
-                },
-                experience: {
+                required: ["institution", "degree"],
+              },
+            },
+            skills: {
+              type: "object",
+              properties: {
+                technical: { type: "array", items: { type: "string" } },
+                soft: { type: "array", items: { type: "string" } },
+                tools: { type: "array", items: { type: "string" } },
+                languages: {
                   type: "array",
                   items: {
                     type: "object",
                     properties: {
-                      role: { type: "string" },
-                      company: { type: "string" },
-                      location: { type: "string" },
-                      start: { type: "string" },
-                      end: { type: "string" },
-                      current: { type: "boolean" },
-                      description: { type: "string" },
-                      bullets: { type: "array", items: { type: "string" } },
+                      language: { type: "string" },
+                      level: { type: "string" },
+                      descriptor: { type: "string" },
                     },
-                    required: ["role", "company"],
-                  },
-                },
-                education: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      institution: { type: "string" },
-                      degree: { type: "string" },
-                      field: { type: "string" },
-                      start: { type: "string" },
-                      end: { type: "string" },
-                      grade: { type: "string" },
-                      honors: { type: "string" },
-                      program: { type: "string" },
-                      publication: { type: "string" },
-                    },
-                    required: ["institution", "degree"],
-                  },
-                },
-                skills: {
-                  type: "object",
-                  properties: {
-                    technical: { type: "array", items: { type: "string" } },
-                    soft: { type: "array", items: { type: "string" } },
-                    tools: { type: "array", items: { type: "string" } },
-                    languages: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          language: { type: "string" },
-                          level: { type: "string" },
-                          descriptor: { type: "string" },
-                        },
-                        required: ["language"],
-                      },
-                    },
-                  },
-                },
-                certifications: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      name: { type: "string" },
-                      issuer: { type: "string" },
-                      year: { type: "string" },
-                    },
-                    required: ["name"],
-                  },
-                },
-                projects: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      name: { type: "string" },
-                      description: { type: "string" },
-                    },
-                    required: ["name"],
-                  },
-                },
-                extra_sections: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      items: { type: "array", items: { type: "string" } },
-                    },
-                    required: ["title", "items"],
+                    required: ["language"],
                   },
                 },
               },
-              required: ["personal", "summary"],
+            },
+            certifications: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  issuer: { type: "string" },
+                  year: { type: "string" },
+                },
+                required: ["name"],
+              },
+            },
+            projects: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  description: { type: "string" },
+                },
+                required: ["name"],
+              },
+            },
+            extra_sections: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  items: { type: "array", items: { type: "string" } },
+                },
+                required: ["title", "items"],
+              },
             },
           },
+          required: ["personal", "summary"],
+        },
+      },
+    };
+
+    const aiResult = await callAi({
+      task: "parse-cv",
+      systemPrompt,
+      userMessage: [
+        {
+          type: "file",
+          file: {
+            filename: "cv.pdf",
+            file_data: `data:application/pdf;base64,${pdfBase64}`,
+          },
+        },
+        {
+          type: "text",
+          text: "Extract all structured data from this CV using the extract_cv_data tool. Preserve the original language exactly — do NOT translate any content.",
         },
       ],
-      tool_choice: {
-        type: "function",
-        function: { name: "extract_cv_data" },
-      },
-    });
+      tools: [toolSchema],
+      toolChoice: { type: "function", function: { name: "extract_cv_data" } },
+    }, user.id);
 
-    const parsedCV = parseAIResponse(aiData);
+    const parsedCV = aiResult.content;
     if (!parsedCV) {
       return new Response(
         JSON.stringify({ error: "Impossibile analizzare il CV. Riprova." }),

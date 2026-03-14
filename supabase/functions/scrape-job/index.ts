@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { aiFetch, parseAIResponse } from "../_shared/ai-fetch.ts";
+import { callAi } from "../_shared/ai-provider.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -208,12 +208,7 @@ Deno.serve(async (req) => {
 });
 
 async function callAI(jobText: string) {
-  const { data: aiData } = await aiFetch({
-    model: "google/gemini-2.5-flash",
-    messages: [
-      {
-        role: "system",
-        content: `Extract key data from a job posting. Respond ONLY via the tool call.
+  const systemPrompt = `Extract key data from a job posting. Respond ONLY via the tool call.
 
 ## CRITICAL RULE — LANGUAGE IN = LANGUAGE OUT
 Detect the language of the job posting text. ALL extracted fields (role_title, description, key_requirements, required_skills, nice_to_have) MUST be in the SAME language as the job posting.
@@ -227,43 +222,42 @@ Beyond explicitly stated requirements, infer implicit ones:
 - If the posting mentions "team lead" or "mentor junior developers", infer leadership skills
 - If it mentions specific methodologies (Agile, Scrum), infer familiarity with those
 - If it mentions client-facing work, infer communication and presentation skills
-Add these as nice_to_have unless explicitly required.`,
-      },
-      {
-        role: "user",
-        content: `Here is the job posting text:\n\n${jobText}`,
-      },
-    ],
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "extract_job_data",
-          description: "Extract structured job posting data preserving the original language",
-          parameters: {
-            type: "object",
-            properties: {
-              company_name: { type: "string" },
-              role_title: { type: "string" },
-              location: { type: "string" },
-              job_type: { type: "string" },
-              description: { type: "string", description: "Full role description (max 500 words, original language)" },
-              key_requirements: { type: "array", items: { type: "string" } },
-              required_skills: { type: "array", items: { type: "string" } },
-              nice_to_have: { type: "array", items: { type: "string" } },
-              seniority_level: { type: "string", description: "junior/mid/senior/lead/executive if detectable" },
-              salary_range: { type: "string", description: "Salary range if mentioned" },
-              industry: { type: "string", description: "Industry/sector if detectable" },
-            },
-            required: ["company_name", "role_title", "description", "key_requirements", "required_skills"],
-          },
+Add these as nice_to_have unless explicitly required.`;
+
+  const toolSchema = {
+    type: "function" as const,
+    function: {
+      name: "extract_job_data",
+      description: "Extract structured job posting data preserving the original language",
+      parameters: {
+        type: "object",
+        properties: {
+          company_name: { type: "string" },
+          role_title: { type: "string" },
+          location: { type: "string" },
+          job_type: { type: "string" },
+          description: { type: "string", description: "Full role description (max 500 words, original language)" },
+          key_requirements: { type: "array", items: { type: "string" } },
+          required_skills: { type: "array", items: { type: "string" } },
+          nice_to_have: { type: "array", items: { type: "string" } },
+          seniority_level: { type: "string", description: "junior/mid/senior/lead/executive if detectable" },
+          salary_range: { type: "string", description: "Salary range if mentioned" },
+          industry: { type: "string", description: "Industry/sector if detectable" },
         },
+        required: ["company_name", "role_title", "description", "key_requirements", "required_skills"],
       },
-    ],
-    tool_choice: { type: "function", function: { name: "extract_job_data" } },
+    },
+  };
+
+  const aiResult = await callAi({
+    task: "scrape-job",
+    systemPrompt,
+    userMessage: `Here is the job posting text:\n\n${jobText}`,
+    tools: [toolSchema],
+    toolChoice: { type: "function", function: { name: "extract_job_data" } },
   });
 
-  const result = parseAIResponse(aiData);
+  const result = aiResult.content;
   if (!result) throw new Error("Impossibile analizzare l'annuncio. Riprova.");
 
   validateOutput("scrape-job", result);

@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { compactCV } from "../_shared/compact-cv.ts";
-import { aiFetch, parseAIResponse } from "../_shared/ai-fetch.ts";
+import { callAi } from "../_shared/ai-provider.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -517,17 +517,15 @@ Deno.serve(async (req) => {
           : ""
       }`;
 
-      const { data: aiData } = await aiFetch({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT_ANALYZE },
-          { role: "user", content: userContent },
-        ],
+      const aiResult = await callAi({
+        task: "ai-tailor-analyze",
+        systemPrompt: SYSTEM_PROMPT_ANALYZE,
+        userMessage: userContent,
         tools: [TOOL_SCHEMA_ANALYZE],
-        tool_choice: { type: "function", function: { name: "analyze_cv" } },
-      });
+        toolChoice: { type: "function", function: { name: "analyze_cv" } },
+      }, userId);
 
-      const result = parseAIResponse(aiData);
+      const result = aiResult.content;
       if (!result) {
         return new Response(JSON.stringify({ error: "Impossibile completare l'analisi. Riprova." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -552,17 +550,15 @@ Deno.serve(async (req) => {
         : ""
     }${contextInfo}`;
 
-    const { data: aiData } = await aiFetch({
-      model: "google/gemini-2.5-pro",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT_TAILOR },
-        { role: "user", content: userContent },
-      ],
+    const aiTailorResult = await callAi({
+      task: "ai-tailor",
+      systemPrompt: SYSTEM_PROMPT_TAILOR,
+      userMessage: userContent,
       tools: [TOOL_SCHEMA_TAILOR],
-      tool_choice: { type: "function", function: { name: "tailor_cv" } },
-    });
+      toolChoice: { type: "function", function: { name: "tailor_cv" } },
+    }, userId);
 
-    const result = parseAIResponse(aiData);
+    const result = aiTailorResult.content;
     if (!result) {
       return new Response(JSON.stringify({ error: "Impossibile generare il CV. Riprova." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { compactCV } from "../_shared/compact-cv.ts";
-import { aiFetch, parseAIResponse } from "../_shared/ai-fetch.ts";
+import { callAi } from "../_shared/ai-provider.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -209,17 +209,15 @@ Deno.serve(async (req) => {
       userContent += `\n\nSALARY_EXPECTATIONS:\n${JSON.stringify(salary_expectations)}`;
     }
 
-    const { data: aiData } = await aiFetch({
-      model: "google/gemini-2.5-pro",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userContent },
-      ],
+    const aiResult = await callAi({
+      task: "ai-prescreen",
+      systemPrompt: SYSTEM_PROMPT,
+      userMessage: userContent,
       tools: [TOOL_SCHEMA],
-      tool_choice: { type: "function", function: { name: "prescreen_analysis" } },
-    });
+      toolChoice: { type: "function", function: { name: "prescreen_analysis" } },
+    }, userId);
 
-    const result = parseAIResponse(aiData);
+    const result = aiResult.content;
     if (!result) {
       return new Response(
         JSON.stringify({ error: "Impossibile completare l'analisi. Riprova." }),
