@@ -59,6 +59,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { useApplications } from "@/hooks/useApplications";
 import { useMasterCV } from "@/hooks/useMasterCV";
 import { usePrefetchApplication } from "@/hooks/usePrefetchApplication";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useProGate } from "@/hooks/useProGate";
 
 import { StatusChip } from "@/components/StatusChip";
 
