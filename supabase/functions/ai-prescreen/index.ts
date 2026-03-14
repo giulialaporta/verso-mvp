@@ -30,9 +30,13 @@ The rule is simple: this is an Italian product. Analysis is ALWAYS in Italian. N
    - Missing required degree type
    - These are UNBRIDGEABLE gaps — no amount of rewording fixes them
 5. Generate 3-5 FOLLOW-UP QUESTIONS for bridgeable gaps only
-   - Ask about implicit skills the candidate might have but didn't list
-   - Ask about transferable experience
-   - Do NOT ask about unbridgeable gaps (don't ask "do you have 5 years experience?" if the CV shows 1)
+   - Each question MUST be a single, direct question — ONE sentence, max 15 words
+   - Ask YES/NO-style questions about specific skills or experiences
+   - Good: "Hai esperienza con Kubernetes in produzione?"
+   - Bad: "Quale esperienza hai avuto con la gestione end-to-end di discovery e validazione di ipotesi (user research, competitive analysis) prima della delivery di un prodotto? Puoi portare un esempio concreto?"
+   - Do NOT combine multiple questions into one
+   - Do NOT ask the candidate to provide examples or elaborate — the detail field handles that
+   - The "context" field explains WHY you're asking (for the UI), keep it under 20 words
 6. Assess overall feasibility: low / medium / high
 
 ## SALARY ANALYSIS

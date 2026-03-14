@@ -15,35 +15,11 @@ import type { PrescreenResult } from "./wizard-types";
 
 type StructuredAnswer = { level: string; detail: string };
 
-const FIELD_OPTIONS: Record<string, { value: string; label: string }[]> = {
-  experience: [
-    { value: "expert", label: "Sì, esperienza solida" },
-    { value: "some", label: "Qualche esperienza" },
-    { value: "learning", label: "Solo formazione" },
-    { value: "none", label: "No" },
-  ],
-  skills: [
-    { value: "expert", label: "Sì, uso quotidiano" },
-    { value: "some", label: "Uso occasionale" },
-    { value: "learning", label: "Studio/certificazione" },
-    { value: "none", label: "No" },
-  ],
-  education: [
-    { value: "expert", label: "Sì, completato" },
-    { value: "some", label: "In corso" },
-    { value: "learning", label: "Formazione equivalente" },
-    { value: "none", label: "No" },
-  ],
-  other: [
-    { value: "expert", label: "Sì" },
-    { value: "some", label: "In parte" },
-    { value: "none", label: "No" },
-  ],
-};
-
-function getOptionsForField(field: string): { value: string; label: string }[] {
-  return FIELD_OPTIONS[field] || FIELD_OPTIONS.other;
-}
+const DEFAULT_OPTIONS = [
+  { value: "expert", label: "Sì, molto" },
+  { value: "some", label: "Un po'" },
+  { value: "none", label: "No" },
+];
 
 export function StepVerifica({
   prescreenResult,
@@ -177,7 +153,7 @@ export function StepVerifica({
               <p className="text-xs text-muted-foreground">Seleziona il tuo livello per ogni domanda. Le risposte sono facoltative ma aiutano Verso a personalizzare il CV.</p>
               <div className="space-y-5">
                 {prescreenResult.follow_up_questions.map((q) => {
-                  const options = q.options || getOptionsForField(q.field);
+                  const options = q.options || DEFAULT_OPTIONS;
                   const current = answers[q.id] || { level: "", detail: "" };
                   return (
                     <div key={q.id} className="space-y-2.5">
