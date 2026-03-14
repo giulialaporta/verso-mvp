@@ -37,7 +37,7 @@ function applyPatches(
       if (!isNaN(idx)) {
         // Bounds check for array access
         if (Array.isArray(target) && (idx < 0 || idx >= (target as unknown[]).length)) {
-          console.warn(`applyPatches: skipping patch "${path}" — array index ${idx} out of bounds`);
+          console.warn("applyPatches: skipping patch \"" + path + "\" — array index " + idx + " out of bounds");
           skipped.push(path);
           valid = false;
           break;
