@@ -708,8 +708,13 @@ export default function Home() {
   }
 
   // Has apps but no CV → prompt to re-upload
+  useEffect(() => {
+    if (!isLoading && !hasCV && hasApplications) {
+      navigate("/onboarding");
+    }
+  }, [isLoading, hasCV, hasApplications, navigate]);
+
   if (!hasCV && hasApplications) {
-    navigate("/onboarding");
     return null;
   }
 
