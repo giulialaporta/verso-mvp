@@ -145,7 +145,7 @@ const TOOL_SCHEMA = {
               properties: {
                 min: { type: "number", description: "Minimum annual salary in euros" },
                 max: { type: "number", description: "Maximum annual salary in euros" },
-                source: { type: "string", enum: ["job_posting", "estimated"] },
+                source: { type: "string", enum: ["job_posting", "estimated", "benchmark"] },
                 basis: { type: "string", description: "Brief explanation of source — when estimated, list all factors used" },
                 estimation_factors: { type: "array", items: { type: "string" }, description: "Factors used for estimation when source is 'estimated' (e.g. 'industry: fintech', 'seniority: senior', 'location: Milano', 'company_size: enterprise')" },
               },
