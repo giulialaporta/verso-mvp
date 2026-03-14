@@ -15,6 +15,7 @@ export type SalaryAnalysis = {
   delta: "positive" | "neutral" | "negative";
   delta_percentage: string;
   note: string;
+  sources?: { url: string; title: string }[];
 };
 
 function formatRAL(min: number, max: number): string {
