@@ -25,7 +25,7 @@ export default function Upgrade() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.url) {
-        window.open(data.url, "_blank");
+        window.location.href = data.url;
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Errore durante il checkout");
