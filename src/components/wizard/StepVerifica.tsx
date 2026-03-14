@@ -2,7 +2,9 @@ import { useState } from "react";
 import { AiLabel } from "@/components/AiLabel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, CheckCircle, XCircle, Warning,
@@ -10,6 +12,38 @@ import {
 } from "@phosphor-icons/react";
 import { SalaryAnalysisCard } from "@/components/SalaryAnalysisCard";
 import type { PrescreenResult } from "./wizard-types";
+
+type StructuredAnswer = { level: string; detail: string };
+
+const FIELD_OPTIONS: Record<string, { value: string; label: string }[]> = {
+  experience: [
+    { value: "expert", label: "Sì, esperienza solida" },
+    { value: "some", label: "Qualche esperienza" },
+    { value: "learning", label: "Solo formazione" },
+    { value: "none", label: "No" },
+  ],
+  skills: [
+    { value: "expert", label: "Sì, uso quotidiano" },
+    { value: "some", label: "Uso occasionale" },
+    { value: "learning", label: "Studio/certificazione" },
+    { value: "none", label: "No" },
+  ],
+  education: [
+    { value: "expert", label: "Sì, completato" },
+    { value: "some", label: "In corso" },
+    { value: "learning", label: "Formazione equivalente" },
+    { value: "none", label: "No" },
+  ],
+  other: [
+    { value: "expert", label: "Sì" },
+    { value: "some", label: "In parte" },
+    { value: "none", label: "No" },
+  ],
+};
+
+function getOptionsForField(field: string): { value: string; label: string }[] {
+  return FIELD_OPTIONS[field] || FIELD_OPTIONS.other;
+}
 
 export function StepVerifica({
   prescreenResult,
@@ -19,10 +53,10 @@ export function StepVerifica({
 }: {
   prescreenResult: PrescreenResult | null;
   loading: boolean;
-  onProceed: (answers: { question: string; answer: string }[]) => void;
+  onProceed: (answers: { question: string; answer: string; level?: string; detail?: string }[]) => void;
   onBack: () => void;
 }) {
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, StructuredAnswer>>({});
 
   if (loading) {
     return (
@@ -51,8 +85,13 @@ export function StepVerifica({
 
   const handleProceed = () => {
     const formattedAnswers = prescreenResult.follow_up_questions
-      .filter((q) => answers[q.id]?.trim())
-      .map((q) => ({ question: q.question, answer: answers[q.id].trim() }));
+      .filter((q) => answers[q.id]?.level)
+      .map((q) => ({
+        question: q.question,
+        answer: `${answers[q.id].level}${answers[q.id].detail ? ` — ${answers[q.id].detail}` : ""}`,
+        level: answers[q.id].level,
+        detail: answers[q.id].detail || "",
+      }));
     onProceed(formattedAnswers);
   };
 
@@ -135,15 +174,48 @@ export function StepVerifica({
           <Card className="border-info/30 bg-card/80">
             <CardContent className="pt-5 space-y-4">
               <div className="flex items-center gap-2"><ChatTeardropDots size={20} className="text-info" weight="fill" /><span className="text-sm font-medium">Aiutami a conoscerti meglio</span></div>
-              <p className="text-xs text-muted-foreground">Rispondi alle domande per aiutare Verso a scoprire competenze non esplicite nel tuo CV. Le risposte sono facoltative.</p>
-              <div className="space-y-4">
-                {prescreenResult.follow_up_questions.map((q) => (
-                  <div key={q.id} className="space-y-2">
-                    <p className="text-sm font-medium">{q.question}</p>
-                    <p className="text-xs text-muted-foreground italic">{q.context}</p>
-                    <Textarea value={answers[q.id] || ""} onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))} placeholder="La tua risposta (facoltativa)..." rows={2} className="resize-none" />
-                  </div>
-                ))}
+              <p className="text-xs text-muted-foreground">Seleziona il tuo livello per ogni domanda. Le risposte sono facoltative ma aiutano Verso a personalizzare il CV.</p>
+              <div className="space-y-5">
+                {prescreenResult.follow_up_questions.map((q) => {
+                  const options = q.options || getOptionsForField(q.field);
+                  const current = answers[q.id] || { level: "", detail: "" };
+                  return (
+                    <div key={q.id} className="space-y-2.5">
+                      <p className="text-sm font-medium">{q.question}</p>
+                      <p className="text-xs text-muted-foreground italic">{q.context}</p>
+                      <RadioGroup
+                        value={current.level}
+                        onValueChange={(val) =>
+                          setAnswers((prev) => ({ ...prev, [q.id]: { ...prev[q.id], level: val, detail: prev[q.id]?.detail || "" } }))
+                        }
+                        className="flex flex-wrap gap-2"
+                      >
+                        {options.map((opt) => (
+                          <div key={opt.value} className="flex items-center">
+                            <RadioGroupItem value={opt.value} id={`${q.id}-${opt.value}`} className="sr-only peer" />
+                            <Label
+                              htmlFor={`${q.id}-${opt.value}`}
+                              className="cursor-pointer rounded-full border border-border px-3 py-1.5 text-xs font-medium transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:text-primary hover:border-muted-foreground/50"
+                            >
+                              {opt.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                      {current.level && current.level !== "none" && (
+                        <Input
+                          value={current.detail}
+                          onChange={(e) =>
+                            setAnswers((prev) => ({ ...prev, [q.id]: { ...prev[q.id], detail: e.target.value.slice(0, 200) } }))
+                          }
+                          placeholder="Dettaglio opzionale (max 200 car.)..."
+                          maxLength={200}
+                          className="text-sm h-9"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

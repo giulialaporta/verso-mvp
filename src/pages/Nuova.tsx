@@ -203,7 +203,7 @@ export default function Nuova() {
   };
 
   // Step 1 → Step 2
-  const handleVerificaProceed = async (answers: { question: string; answer: string }[]) => {
+  const handleVerificaProceed = async (answers: { question: string; answer: string; level?: string; detail?: string }[]) => {
     if (!user || !jobData) return;
     setUserAnswers(answers);
     updateStep(2);
