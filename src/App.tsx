@@ -27,6 +27,7 @@ const Impostazioni = lazy(() => import("./pages/Impostazioni"));
 const CVEdit = lazy(() => import("./pages/CVEdit"));
 const CandidaturaDetail = lazy(() => import("./pages/CandidaturaDetail"));
 const DevTest = lazy(() => import("./pages/DevTest"));
+const Faq = lazy(() => import("./pages/Faq"));
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => (
                 <Route path="impostazioni" element={<Suspense fallback={<PageSkeleton />}><Impostazioni /></Suspense>} />
                 <Route path="cv-edit" element={<Suspense fallback={<PageSkeleton />}><CVEdit /></Suspense>} />
                 <Route path="candidatura/:id" element={<Suspense fallback={<PageSkeleton />}><CandidaturaDetail /></Suspense>} />
+                <Route path="faq" element={<Suspense fallback={<PageSkeleton />}><Faq /></Suspense>} />
                 {import.meta.env.DEV && (
                   <Route path="dev-test" element={<Suspense fallback={null}><DevTest /></Suspense>} />
                 )}
