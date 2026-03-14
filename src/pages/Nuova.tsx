@@ -207,14 +207,22 @@ export default function Nuova() {
     if (!user || !jobData) return;
     setUserAnswers(answers);
     updateStep(2);
+
+    if (applicationId && answers.length > 0) {
+      supabase.from("applications").update({ user_answers: answers } as any).eq("id", applicationId).then(() => {});
+    }
+
+    // Use cached analyze if available (from parallel call), otherwise fetch
+    if (cachedAnalyzeRef.current && answers.length === 0) {
+      setAnalyzeResult(cachedAnalyzeRef.current);
+      setLanguageOverride(cachedAnalyzeRef.current.detected_language || "it");
+      return;
+    }
+
     setAnalyzing(true);
     setAnalyzeResult(null);
 
     try {
-      if (applicationId && answers.length > 0) {
-        await supabase.from("applications").update({ user_answers: answers } as any).eq("id", applicationId);
-      }
-
       const { data: result, error } = await supabase.functions.invoke("ai-tailor", {
         body: { job_data: jobData, user_answers: answers.length > 0 ? answers : undefined, mode: "analyze" },
       });
