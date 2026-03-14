@@ -17,6 +17,8 @@ import { StepExport } from "@/components/wizard/StepExport";
 import { StepCompleta } from "@/components/wizard/StepCompleta";
 import { computeConfidence } from "@/components/wizard/wizard-utils";
 import type { JobData, PrescreenResult, AnalyzeResult, TailorResult } from "@/components/wizard/wizard-types";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useProGate } from "@/hooks/useProGate";
 
 export default function Nuova() {
   const { user } = useAuth();
