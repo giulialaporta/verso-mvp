@@ -45,7 +45,7 @@ const sections: FaqSection[] = [
     items: [
       {
         q: "Verso scrive il CV al posto mio?",
-        a: "No. Verso non inventa nulla. Parte dal tuo CV reale — le tue esperienze, le tue competenze, i tuoi risultati — e li riorganizza, riformula e ottimizza per una specifica posizione. È la differenza tra mentire e comunicare bene. Un avvocato non cambia i fatti: li presenta nel modo più efficace. Verso fa lo stesso con il tuo profilo professionale.",
+        a: "No. Non invento nulla. Parto dal tuo CV reale — le tue esperienze, le tue competenze, i tuoi risultati — e li riorganizzo, riformulo e ottimizzo per una specifica posizione. È la differenza tra mentire e comunicare bene. Un avvocato non cambia i fatti: li presenta nel modo più efficace. Faccio lo stesso con il tuo profilo professionale.",
       },
       {
         q: "Cos'è il \"tailoring\" e perché è importante?",
