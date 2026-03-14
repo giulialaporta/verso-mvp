@@ -495,18 +495,12 @@ Deno.serve(async (req) => {
 
       const { data: profile } = await adminClient
         .from("profiles")
-        .select("is_pro")
+        .select("is_pro, free_apps_used")
         .eq("user_id", userId)
         .single();
 
       if (!profile?.is_pro) {
-        const { count } = await adminClient
-          .from("applications")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", userId)
-          .not("status", "eq", "ko");
-
-        if ((count ?? 0) > 1) {
+        if ((profile?.free_apps_used ?? 0) >= 1) {
           return new Response(
             JSON.stringify({ error: "UPGRADE_REQUIRED" }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

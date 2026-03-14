@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { CheckCircle, PaperPlaneTilt, Clock, Plus, Crown } from "@phosphor-icons/react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useProGate } from "@/hooks/useProGate";
-import { useApplications } from "@/hooks/useApplications";
 import type { JobData } from "./wizard-types";
 
 export function StepCompleta({
@@ -20,11 +19,10 @@ export function StepCompleta({
   onNewApplication: () => void;
 }) {
   const { isPro } = useSubscription();
-  const { data: apps } = useApplications();
   const checkCanCreate = useProGate();
 
-  const activeCount = (apps ?? []).filter(a => !["ko", "draft"].includes(a.status.toLowerCase())).length;
-  const showFreeBanner = !isPro && activeCount >= 1;
+  // Banner always shown for free users completing an application (they just used their slot)
+  const showFreeBanner = !isPro;
 
   const handleNewApp = async () => {
     const canCreate = await checkCanCreate(isPro);
