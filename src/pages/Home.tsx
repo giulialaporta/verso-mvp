@@ -563,7 +563,7 @@ export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
-  const { isPro, refresh: refreshSubscription } = useSubscription();
+  const { isPro, loading: subLoading, refresh: refreshSubscription } = useSubscription();
   const checkCanCreate = useProGate();
 
   // Handle post-upgrade success
