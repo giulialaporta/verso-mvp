@@ -152,7 +152,7 @@ export function MinimalTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
               <View style={s.divider} />
               <Text style={s.sectionTitle}>{h("education", lang)}</Text>
               {education.map((ed: any, i: number) => (
-                <View key={i} style={s.eduBlock}>
+                <View key={i} style={s.eduBlock} wrap={false}>
                   <Text style={s.eduTitle}>
                     {ed.degree}{clean(ed.field) ? ` in ${ed.field}` : ""} — {ed.institution}
                   </Text>
@@ -170,7 +170,7 @@ export function MinimalTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
               <View style={s.divider} />
               <Text style={s.sectionTitle}>{h("projects", lang)}</Text>
               {projects.map((proj: any, i: number) => (
-                <View key={i} style={s.projBlock}>
+                <View key={i} style={s.projBlock} wrap={false}>
                   <Text style={s.projName}>{proj.name}</Text>
                   {clean(proj.description) && <Text style={s.projDesc}>{proj.description}</Text>}
                   {clean(proj.link) && <Text style={s.projLink}>{proj.link}</Text>}
@@ -180,7 +180,7 @@ export function MinimalTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
           )}
 
           {extraSections.map((sec: any, i: number) => (
-            <View key={i}>
+            <View key={i} wrap={false}>
               <View style={s.divider} />
               <Text style={s.sectionTitle}>{sec.title}</Text>
               {(sec.items || []).filter((item: string) => clean(item)).map((item: string, j: number) => (

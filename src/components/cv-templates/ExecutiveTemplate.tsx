@@ -153,7 +153,7 @@ export function ExecutiveTemplate({ cv, lang }: { cv: Record<string, any>; lang?
 
         {/* Skills & Languages side by side */}
         {(allSkills.length > 0 || languages.length > 0) && (
-          <View style={s.twoCol}>
+          <View style={s.twoCol} wrap={false}>
             {allSkills.length > 0 && (
               <View style={s.colHalf}>
                 <Text style={s.sectionTitle}>{h("skills", lang)}</Text>
@@ -185,7 +185,7 @@ export function ExecutiveTemplate({ cv, lang }: { cv: Record<string, any>; lang?
             <Text style={s.sectionTitle}>{h("certifications", lang)}</Text>
             <View style={s.sectionAccent} />
             {certifications.map((cert: any, i: number) => (
-              <View key={i}>
+              <View key={i} wrap={false}>
                 <Text style={s.certName}>{cert.name}{clean(cert.issuer) ? ` — ${cert.issuer}` : ""}</Text>
                 {clean(cert.year) && <Text style={s.certMeta}>{cert.year}</Text>}
               </View>
@@ -199,7 +199,7 @@ export function ExecutiveTemplate({ cv, lang }: { cv: Record<string, any>; lang?
             <Text style={s.sectionTitle}>{h("projects", lang)}</Text>
             <View style={s.sectionAccent} />
             {projects.map((proj: any, i: number) => (
-              <View key={i} style={s.projBlock}>
+              <View key={i} style={s.projBlock} wrap={false}>
                 <Text style={s.projName}>{proj.name}</Text>
                 {clean(proj.description) && <Text style={s.projDesc}>{proj.description}</Text>}
                 {clean(proj.link) && <Text style={s.projLink}>{proj.link}</Text>}
@@ -210,7 +210,7 @@ export function ExecutiveTemplate({ cv, lang }: { cv: Record<string, any>; lang?
 
         {/* Extra sections */}
         {extraSections.map((sec: any, i: number) => (
-          <View key={i}>
+          <View key={i} wrap={false}>
             <Text style={s.sectionTitle}>{sec.title}</Text>
             <View style={s.sectionAccent} />
             {(sec.items || []).filter((item: string) => clean(item)).map((item: string, j: number) => (
