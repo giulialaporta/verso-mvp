@@ -50,6 +50,8 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/spec/verso-prd-app.md` | PRD dell'app sviluppata |
 | `docs/spec/epics/` | 8 epic implementate (F1–F6, F8–F9) |
 | `docs/backlog/` | Cose da costruire (flat, come spec/) |
+| `docs/backlog/epic-07-verso-pro.md` | F7 — Versō Pro (abbonamento Stripe, €12.99/mese) |
+| `docs/backlog/epic-10-migrazione-ai.md` | F10 — Migrazione AI (Claude Sonnet 4 + Haiku, multi-provider) |
 | `docs/backlog/stories-p3-pulizia.md` | P3 — 4 stories pulizia tecnica |
 | `docs/backlog/CLAUDE_epic-template.md` | Template per scrivere nuovi epic |
 | `docs/test/` | Checklist di acceptance criteria per test manuale (7 file, comando `/test`) |
