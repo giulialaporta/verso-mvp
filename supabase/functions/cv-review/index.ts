@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { aiFetch, parseAIResponse } from "../_shared/ai-fetch.ts";
+import { callAi } from "../_shared/ai-provider.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 const SYSTEM_PROMPT = `You are an elite HR reviewer and CV quality controller.
