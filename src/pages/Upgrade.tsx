@@ -23,7 +23,14 @@ export default function Upgrade() {
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout");
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        if (data.error === "Already subscribed") {
+          toast.success("Sei già abbonata a Versō Pro!");
+          navigate("/app/home");
+          return;
+        }
+        throw new Error(data.error);
+      }
       if (data?.url) {
         window.location.href = data.url;
       }
