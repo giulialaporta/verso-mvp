@@ -144,7 +144,10 @@ export default function Nuova() {
     })();
   }, [searchParams, user, updateStep]);
 
-  // Step 0 → Step 1
+  // Cached analyze result from parallel call
+  const cachedAnalyzeRef = useRef<AnalyzeResult | null>(null);
+
+  // Step 0 → Step 1 (parallel: prescreen + analyze)
   const handleAnnuncioConfirm = async (data: JobData, url?: string, _text?: string) => {
     if (!user) return;
     setJobData(data);
@@ -152,6 +155,7 @@ export default function Nuova() {
     updateStep(1);
     setPrescreening(true);
     setPrescreenResult(null);
+    cachedAnalyzeRef.current = null;
 
     try {
       let appId = applicationId;
@@ -166,15 +170,29 @@ export default function Nuova() {
       }
 
       const { data: profile } = await supabase.from("profiles").select("salary_expectations").eq("user_id", user.id).single();
-      const body: Record<string, unknown> = { job_data: data };
-      if (profile?.salary_expectations) body.salary_expectations = profile.salary_expectations;
+      const prescreenBody: Record<string, unknown> = { job_data: data };
+      if (profile?.salary_expectations) prescreenBody.salary_expectations = profile.salary_expectations;
 
-      const { data: result, error } = await supabase.functions.invoke("ai-prescreen", { body });
-      if (error) throw error;
-      if (result?.error) throw new Error(result.error);
-      setPrescreenResult(result);
-      if (applicationId) {
-        supabase.from("applications").update({ prescreen_data: result } as any).eq("id", applicationId).then(() => {});
+      // Launch prescreen + analyze in parallel
+      const [prescreenRes, analyzeRes] = await Promise.all([
+        supabase.functions.invoke("ai-prescreen", { body: prescreenBody }),
+        supabase.functions.invoke("ai-tailor", { body: { job_data: data, mode: "analyze" } }),
+      ]);
+
+      // Handle prescreen result
+      if (prescreenRes.error) throw prescreenRes.error;
+      if (prescreenRes.data?.error) throw new Error(prescreenRes.data.error);
+      setPrescreenResult(prescreenRes.data);
+      if (appId) {
+        supabase.from("applications").update({ prescreen_data: prescreenRes.data } as any).eq("id", appId).then(() => {});
+      }
+
+      // Cache analyze result (don't set state yet — user hasn't proceeded)
+      if (!analyzeRes.error && analyzeRes.data && !analyzeRes.data.error) {
+        cachedAnalyzeRef.current = analyzeRes.data;
+        if (appId) {
+          supabase.from("applications").update({ match_score: analyzeRes.data.match_score } as any).eq("id", appId).then(() => {});
+        }
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Errore durante il pre-screening");
