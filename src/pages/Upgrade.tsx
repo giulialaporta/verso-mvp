@@ -72,7 +72,7 @@ export default function Upgrade() {
       throw new Error("Checkout URL not available");
     } catch (e: unknown) {
       if (isAlreadySubscribed(e)) {
-        toast.success("Sei già abbonata a Versō Pro!");
+        toast.success("Sei già abbonata a Verso Pro!");
         navigate("/app/home");
         return;
       }
