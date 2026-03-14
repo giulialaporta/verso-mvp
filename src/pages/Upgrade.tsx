@@ -111,7 +111,7 @@ export default function Upgrade() {
           <h1 className="font-display text-2xl font-bold">Hai raggiunto il limite</h1>
           <p className="text-muted-foreground text-sm">
             Con il piano Free puoi creare <span className="text-foreground font-medium">1 sola candidatura</span>.
-            Per continuare, passa a Versō Pro.
+            Per continuare, passa a Verso Pro.
           </p>
         </motion.div>
 
