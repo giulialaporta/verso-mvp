@@ -76,7 +76,7 @@ const sections: FaqSection[] = [
       },
       {
         q: "Come migliorare il Punteggio ATS?",
-        a: "Il Punteggio ATS misura quanto il tuo CV è ottimizzato per i sistemi di screening automatico. Verso ti mostra 7 check specifici: keyword presenti, formato corretto, sezioni standard, lunghezza adeguata, verbi d'azione, risultati misurabili, assenza di elementi problematici. Per ogni check fallito, hai un'indicazione precisa su cosa migliorare. In molti casi, Verso lo corregge automaticamente durante il tailoring.",
+        a: "Il Punteggio ATS misura quanto il tuo CV è ottimizzato per i sistemi di screening automatico. Ti mostro 7 check specifici: keyword presenti, formato corretto, sezioni standard, lunghezza adeguata, verbi d'azione, risultati misurabili, assenza di elementi problematici. Per ogni check fallito, hai un'indicazione precisa su cosa migliorare. In molti casi, lo correggo automaticamente durante il tailoring.",
       },
       {
         q: "Quando usare i suggerimenti AI?",
