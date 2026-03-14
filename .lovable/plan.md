@@ -1,34 +1,26 @@
 
-# Piano di implementazione — Epic 07: Versō Pro ✅
+# Piano di implementazione — Cancellazione abbonamento in-app ✅
 
 Implementazione completata.
 
 ## Cosa è stato costruito
 
-### Database
-- Colonne aggiunte a `profiles`: `is_pro`, `stripe_customer_id`, `stripe_subscription_id`, `pro_since`, `pro_expires_at`, `free_apps_used`
-- Trigger `trg_increment_free_apps`: incrementa `free_apps_used` quando una candidatura esce da draft (non ko), solo per utenti Free
-- Trigger `trg_decrement_on_ko`: decrementa `free_apps_used` quando una candidatura viene segnata come ko
-- Migrazione grandfathering: `free_apps_used` impostato per utenti esistenti
-
 ### Edge Functions
-- `create-checkout` — Crea sessione Stripe Checkout
-- `check-subscription` — Verifica stato abbonamento, aggiorna profilo
-- `customer-portal` — Sessione Stripe Billing Portal
+- `cancel-subscription` — Autentica utente, recupera `stripe_subscription_id` dal profilo, chiama `stripe.subscriptions.update(subId, { cancel_at_period_end: true })`. Ritorna `{ canceled: true, cancel_at: "..." }`
+- `check-subscription` — Aggiunto `cancel_at_period_end` alla response
 
 ### Frontend
-- `useSubscription` hook — polling ogni 60s
-- `useProGate` hook — gate basato su `profiles.free_apps_used` (lifetime counter)
-- `/upgrade` page — value prop + CTA checkout
-- Gate in Home, Nuova, AppShell FAB, StepCompleta
-- Sezione Piano in Impostazioni
-- Post-upgrade polling + toast benvenuto
-- Server-side gate in `ai-tailor` (403 UPGRADE_REQUIRED, usa `free_apps_used`)
-- Micro-banner Free in StepCompleta
+- `useSubscription` hook — Espone `cancelAtPeriodEnd` nello state + refresh automatico su window focus
+- `Impostazioni.tsx` — Piano card con tre stati:
+  1. **Pro attivo**: badge verde + "Gestisci abbonamento" + link "Annulla abbonamento"
+  2. **In scadenza** (cancelAtPeriodEnd): badge amber + data scadenza + "Riattiva abbonamento"
+  3. **Free**: link a /upgrade
+- AlertDialog di conferma cancellazione con conseguenze chiare
+- Toast di conferma post-cancellazione con data di scadenza
+- Refresh immediato dopo cancellazione
 
-### Edge case gestiti
-- Eliminazione candidatura non resetta il contatore
-- Bozze abbandonate non consumano la candidatura gratuita
-- Candidatura in ko restituisce lo slot
-- Utenti pre-esistenti grandfathered correttamente
-- Soglia server allineata (`>= 1`)
+### Flusso utente
+1. Pro → Impostazioni → "Annulla abbonamento"
+2. Dialog: "Vuoi annullare Versō Pro?" con dettagli su cosa succede
+3. "Conferma annullazione" → edge function → badge diventa "In scadenza il [data]"
+4. Se cambia idea → "Riattiva abbonamento" → Stripe Portal per ri-attivare
