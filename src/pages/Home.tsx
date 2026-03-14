@@ -125,11 +125,32 @@ function StatsBar({
 }
 
 // ─── Plan Card ───────────────────────────────────────────────
-function PlanCard({ isPro, loading }: { isPro: boolean; loading: boolean }) {
+function PlanCard({ isPro, loading, cancelAtPeriodEnd, subscriptionEnd }: { isPro: boolean; loading: boolean; cancelAtPeriodEnd: boolean; subscriptionEnd: string | null }) {
   const navigate = useNavigate();
 
   if (loading) {
     return <Skeleton className="h-16 w-full" />;
+  }
+
+  if (isPro && cancelAtPeriodEnd && subscriptionEnd) {
+    const endDate = new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
+    const daysLeft = Math.max(0, Math.ceil((new Date(subscriptionEnd).getTime() - Date.now()) / 86_400_000));
+    return (
+      <Card className="border-warning/30 bg-card/80">
+        <CardContent className="flex items-center gap-3 py-3 px-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-warning/15">
+            <Crown size={20} className="text-warning" weight="fill" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">Verso Pro · <span className="text-warning">In scadenza</span></p>
+            <p className="text-xs text-muted-foreground">Attivo fino al {endDate} ({daysLeft}g)</p>
+          </div>
+          <Button variant="outline" size="sm" className="shrink-0 text-xs" onClick={() => navigate("/app/impostazioni")}>
+            Riattiva
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (isPro) {
@@ -563,7 +584,7 @@ export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
-  const { isPro, loading: subLoading, refresh: refreshSubscription } = useSubscription();
+  const { isPro, loading: subLoading, refresh: refreshSubscription, cancelAtPeriodEnd, subscriptionEnd } = useSubscription();
   const checkCanCreate = useProGate();
 
   // Handle post-upgrade success
@@ -726,7 +747,7 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05, duration: 0.25 }}
       >
-        <PlanCard isPro={isPro} loading={subLoading} />
+        <PlanCard isPro={isPro} loading={subLoading} cancelAtPeriodEnd={cancelAtPeriodEnd} subscriptionEnd={subscriptionEnd} />
       </motion.div>
 
       {/* CTA */}
