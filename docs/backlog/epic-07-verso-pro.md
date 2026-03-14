@@ -6,7 +6,7 @@
 
 ## Obiettivo
 
-Introdurre **Versō Pro**, un abbonamento mensile a €9.99 che sblocca candidature illimitate. Gli utenti Free possono creare **1 sola candidatura** (= 1 tailored CV). Questo epic copre l'esperienza di abbonamento, non la logica dei contenuti premium futuri.
+Introdurre **Versō Pro**, un abbonamento mensile a **€12.99** che sblocca candidature illimitate e funzionalità premium. Gli utenti Free possono creare **3 candidature al mese** (reset il 1° di ogni mese). Questo epic copre l'esperienza di abbonamento, i gate sulle feature e la gestione del piano.
 
 ---
 
@@ -18,7 +18,7 @@ Per capire dove si inserisce questa feature:
 - **Candidatura** = wizard `/app/nuova` che genera un **tailored CV** adattato a un'offerta specifica. Ogni candidatura crea 1 record in `applications` + 1 in `tailored_cvs`.
 - **Il limite Free si applica alle candidature** (e quindi ai tailored CV), non al master CV.
 - **Dashboard** (`/app/home`) ha 3 stati (epic-05): virgin, CV caricato, CV + candidature. Il banner Pro appare nello stato 3.
-- **Impostazioni** (`/app/impostazioni`) ha sezioni: Account, Privacy e Dati, Assistenza, Sicurezza, Zona pericolosa (epic-08).
+- **Impostazioni** (`/app/impostazioni`) ha sezioni: Account, Privacy e Dati, Assistenza, Sicurezza, Zona pericolosa (epic-08). La gestione del piano va dentro la card **Account** come sottosezione "Piano".
 
 ---
 
@@ -36,7 +36,7 @@ Prima di sviluppare, serve configurare Stripe. Questi step sono manuali, non li 
 
 - Dashboard Stripe → Prodotti → "+ Aggiungi prodotto"
 - Nome: "Versō Pro"
-- Prezzo: €9.99/mese, ricorrente
+- Prezzo: **€12.99/mese**, ricorrente
 - Copia il `price_id` (inizia con `price_...`) — serve nella Edge Function
 
 ### 3. Configurare il webhook
@@ -71,10 +71,12 @@ Prima di sviluppare, serve configurare Stripe. Questi step sono manuali, non li 
 
 | | Free | Versō Pro |
 |--|------|-----------|
-| Candidature (tailored CV) | 1 | Illimitate |
-| Prezzo | Gratis | €9.99/mese |
+| Candidature (tailored CV) | 3 al mese | Illimitate |
+| Template CV | Classico, Minimal | Tutti (inclusi futuri) |
+| Export | PDF | PDF + DOCX (futuro) |
+| Prezzo | Gratis | €12.99/mese |
 
-> Il conteggio candidature include quelle con status diverso da `ko`. Le candidature rifiutate non contano ai fini del limite.
+> Il conteggio candidature è **mensile**: conta le candidature create nel mese corrente con status diverso da `ko`. Le candidature rifiutate e quelle dei mesi precedenti non contano ai fini del limite. Il conteggio si resetta automaticamente il 1° di ogni mese.
 
 ---
 
@@ -92,7 +94,7 @@ ALTER TABLE profiles ADD COLUMN pro_expires_at timestamptz;
 
 > **Perché su `profiles` e non una tabella separata:** l'app ha un solo piano (Free vs Pro). Una tabella `subscriptions` separata ha senso solo con piani multipli. Per ora, campi su `profiles` è la scelta più semplice e coerente con lo schema esistente.
 
-**RLS:** questi campi sono già protetti dalla policy esistente su `profiles` (`auth.uid() = id`). Nessuna policy aggiuntiva necessaria.
+**RLS:** questi campi sono già protetti dalla policy esistente su `profiles` (`auth.uid() = user_id`). Nessuna policy aggiuntiva necessaria.
 
 ---
 
@@ -103,12 +105,12 @@ ALTER TABLE profiles ADD COLUMN pro_expires_at timestamptz;
 **Dove si applica:** quando l'utente clicca "Nuova candidatura" (CTA su dashboard o pulsante `+` nella nav).
 
 **Logica:**
-1. Query: `SELECT count(*) FROM applications WHERE user_id = :uid AND status != 'ko'`
-2. Se count ≥ 1 AND `profiles.is_pro = false` → **non aprire il wizard**, mostra il banner Pro
-3. Se count < 1 OR `profiles.is_pro = true` → procedi normalmente a `/app/nuova`
+1. Query: `SELECT count(*) FROM applications WHERE user_id = :uid AND status != 'ko' AND created_at >= date_trunc('month', now())`
+2. Se count ≥ 3 AND `profiles.is_pro = false` → **non aprire il wizard**, mostra il banner Pro
+3. Se count < 3 OR `profiles.is_pro = true` → procedi normalmente a `/app/nuova`
 
 **Enforcement lato server (Edge Function `ai-tailor`):**
-- Prima di eseguire il tailoring, verifica: utente Pro? Oppure candidature attive < 1?
+- Prima di eseguire il tailoring, verifica: utente Pro? Oppure candidature del mese corrente < 3?
 - Se limite superato → risponde `{ error: 'UPGRADE_REQUIRED' }` con status 403
 - Il frontend intercetta e mostra il banner
 
@@ -121,18 +123,18 @@ ALTER TABLE profiles ADD COLUMN pro_expires_at timestamptz;
 **Dove:** Dashboard (`/app/home`), visibile nello stato 3 (CV + candidature presenti). Appare **sopra** la sezione "Candidature recenti".
 
 **Quando appare:**
-- `is_pro = false` AND l'utente ha già 1 candidatura attiva (status ≠ `ko`)
+- `is_pro = false` AND l'utente ha raggiunto 3 candidature nel mese corrente (status ≠ `ko`)
 
 **Contenuto:**
 - Icona (es. `Star` o `RocketLaunch` da Phosphor)
 - Titolo: "Sblocca candidature illimitate"
-- Sottotitolo: "Con Versō Pro crei CV personalizzati per ogni opportunità. €9.99/mese."
+- Sottotitolo: "Hai usato le tue 3 candidature questo mese. Con Versō Pro crei CV personalizzati per ogni opportunità. €12.99/mese."
 - CTA: "Scopri Versō Pro" → redirect a `/pro`
 
 **Quando NON appare:**
 - Utente è Pro → al suo posto, badge "Versō Pro" (vedi punto 4)
-- Utente non ha ancora candidature → non serve, non ha raggiunto il limite
-- Utente ha 1 candidatura ma è in stato `ko` → non conta, può crearne un'altra
+- Utente non ha ancora raggiunto il limite → non serve
+- Utente ha candidature solo in stato `ko` nel mese → non contano, può crearne altre
 
 **Stile:** coerente col brand system — sfondo `surface` (`#141518`), bordo accent (`#A8FF78`), CTA accent. Non deve sembrare un annuncio invadente.
 
@@ -144,13 +146,14 @@ ALTER TABLE profiles ADD COLUMN pro_expires_at timestamptz;
 
 **Layout:**
 - Headline: "Versō Pro"
-- Value proposition: 2-3 punti chiari
-  - CV personalizzato per ogni candidatura
-  - Nessun limite al numero di candidature
-  - Supporto prioritario (o altro benefit percepito)
-- Prezzo: "€9.99/mese" ben visibile
+- Value proposition: 3-4 punti chiari
+  - CV personalizzato per ogni candidatura — senza limiti
+  - Tutti i template CV (inclusi i futuri)
+  - Export DOCX (prossimamente)
+  - Supporto prioritario
+- Prezzo: **"€12.99/mese"** ben visibile
 - CTA: "Abbonati" → chiama Edge Function `create-checkout-session`, redirect a Stripe Checkout
-- Se utente non loggato → CTA porta a `/login` prima, poi torna a `/pro`
+- Se utente non loggato → CTA porta a `/login?redirect=/pro`
 - Se utente già Pro → messaggio "Sei già Versō Pro!" + badge, nessuna CTA di acquisto
 
 **Stile:** dark mode, accent per CTA e highlight, coerente con brand system.
@@ -169,19 +172,19 @@ ALTER TABLE profiles ADD COLUMN pro_expires_at timestamptz;
 
 ---
 
-### 5. Sezione abbonamento in Impostazioni
+### 5. Gestione piano in Impostazioni
 
-Aggiungere una nuova sezione in `/app/impostazioni`, **tra "Account" e "Privacy e Dati"**.
+La gestione del piano è una **sottosezione dentro la card "Account"** in `/app/impostazioni`, subito dopo le info utente (email, nome).
 
 **Utente Free:**
 - Label: "Piano: Free"
-- Testo: "Puoi creare 1 candidatura."
+- Contatore uso: "X di 3 candidature usate questo mese" (con barra di progresso)
 - Link: "Scopri Versō Pro" → `/pro`
 
 **Utente Pro:**
 - Label: "Piano: Versō Pro" con badge accent
-- Data rinnovo: "Si rinnova il [pro_expires_at formattata]"
 - Data attivazione: "Attivo dal [pro_since formattata]"
+- Data rinnovo: "Si rinnova il [pro_expires_at formattata]"
 - Link: "Gestisci abbonamento" → apre Stripe Customer Portal (vedi Edge Function sotto)
 
 ---
@@ -247,11 +250,28 @@ Per permettere all'utente Pro di gestire il suo abbonamento (cancellare, aggiorn
 
 ---
 
+## Gate template e export
+
+### Template CV
+
+- **Free:** solo "Classico" e "Minimal"
+- **Pro:** tutti i template (inclusi quelli aggiunti in futuro)
+- Gate nel selettore template (wizard step 3): template Pro mostrano icona lucchetto e tooltip "Disponibile con Versō Pro"
+- Click su template bloccato → toast con link a `/pro`
+
+### Export
+
+- **Free:** solo PDF
+- **Pro:** PDF + DOCX (quando implementato)
+- Gate nel drawer di export: opzione DOCX disabilitata con label "Pro"
+
+---
+
 ## Flussi
 
 ### Happy path — Upgrade
 
-1. Utente Free ha 1 candidatura attiva
+1. Utente Free ha creato 3 candidature nel mese corrente
 2. Clicca "Nuova candidatura" sulla dashboard
 3. Vede il banner "Sblocca candidature illimitate" (il wizard non si apre)
 4. Clicca "Scopri Versō Pro" → atterra su `/pro`
@@ -264,21 +284,21 @@ Per permettere all'utente Pro di gestire il suo abbonamento (cancellare, aggiorn
 
 ### Cancellazione
 
-1. Utente Pro → Impostazioni → "Gestisci abbonamento"
+1. Utente Pro → Impostazioni → Account → Piano → "Gestisci abbonamento"
 2. Redirect a Stripe Customer Portal → cancella
 3. Stripe invia webhook `customer.subscription.deleted` a fine periodo pagato
 4. DB: `is_pro = false`
 5. L'utente mantiene accesso Pro fino a `pro_expires_at`
-6. Dopo scadenza → limite 1 candidatura riattivato
+6. Dopo scadenza → limite 3 candidature/mese riattivato
 7. Le candidature esistenti restano accessibili (consultabili, non cancellate)
 
 ### Utente torna dopo la cancellazione
 
-1. Ha 5 candidature create quando era Pro
+1. Ha 10 candidature create quando era Pro
 2. Ora è Free con `is_pro = false`
-3. Può vedere e consultare tutte le 5 candidature
-4. Non può crearne di nuove (ha più di 1 attiva)
-5. Se archivia candidature fino ad averne 0 attive (tutte `ko`), può crearne 1 nuova
+3. Può vedere e consultare tutte le 10 candidature
+4. Non può crearne di nuove se ha già 3 candidature nel mese corrente (status ≠ `ko`)
+5. Il mese successivo, il contatore si resetta e può crearne altre 3
 6. Banner Pro visibile per invitarlo a ri-abbonarsi
 
 ### Pagamento fallito
@@ -300,24 +320,31 @@ Per permettere all'utente Pro di gestire il suo abbonamento (cancellare, aggiorn
 | Utente Pro clicca "Nuova candidatura" | Wizard si apre normalmente, nessun banner |
 | Webhook arriva prima del redirect | Nessun problema — DB già aggiornato quando l'utente atterra sulla dashboard |
 | Webhook arriva dopo il redirect | L'utente vede la dashboard senza badge; implementare polling breve: 3 tentativi ogni 2s su `/app/home?upgrade=success`, query `profiles.is_pro` fino a `true` |
-| Utente Free con 1 candidatura in `ko` | Non conta — può creare una nuova candidatura (count esclude `ko`) |
+| Utente Free con 3 candidature tutte in `ko` nel mese | Non contano — può creare nuove candidature (count esclude `ko`) |
 | Utente cancella e ri-sottoscrive | Funziona normalmente: `create-checkout-session` crea nuova subscription, webhook aggiorna `is_pro = true` |
 | Candidatura in stato `draft` | Conta nel limite — una draft è una candidatura iniziata |
-| Edge Function `ai-tailor` chiamata senza Pro | Risponde 403 `UPGRADE_REQUIRED` se limite superato |
+| Edge Function `ai-tailor` chiamata senza Pro | Risponde 403 `UPGRADE_REQUIRED` se limite mensile superato |
+| Fine mese | Il contatore si resetta automaticamente — la query filtra per `created_at >= date_trunc('month', now())` |
+| Template Pro selezionato da utente Free | Toast "Disponibile con Versō Pro" + link a `/pro`, template non applicato |
 
 ---
 
 ## Criteri di accettazione
 
-- [ ] Utente Free può creare 1 sola candidatura (check client + server)
-- [ ] Banner Pro appare sulla dashboard quando Free ha 1 candidatura attiva e tenta di crearne un'altra
+- [ ] Utente Free può creare max 3 candidature al mese (check client + server)
+- [ ] Il conteggio si resetta il 1° di ogni mese
+- [ ] Banner Pro appare sulla dashboard quando Free ha raggiunto il limite mensile
 - [ ] Banner non appare se utente è Pro
 - [ ] Badge "Versō Pro" visibile su dashboard per utenti Pro
-- [ ] Pagina `/pro` mostra benefici, prezzo e CTA
+- [ ] Pagina `/pro` mostra benefici, prezzo €12.99/mese e CTA
 - [ ] CTA su `/pro` avvia Stripe Checkout e completa il pagamento
 - [ ] Dopo il pagamento, utente è reindirizzato alla dashboard con badge Pro
 - [ ] Webhook aggiorna `is_pro` su `profiles`
-- [ ] Impostazioni mostra stato piano e data rinnovo per utenti Pro
+- [ ] Impostazioni → Account → Piano mostra stato piano corrente
+- [ ] Utente Free vede contatore candidature usate/disponibili nel mese
+- [ ] Utente Pro vede badge, date attivazione/rinnovo e link "Gestisci abbonamento"
 - [ ] "Gestisci abbonamento" apre Stripe Customer Portal
 - [ ] Candidature esistenti restano accessibili dopo downgrade a Free
-- [ ] Edge Function `ai-tailor` blocca tailoring se limite superato e utente non Pro
+- [ ] Edge Function `ai-tailor` blocca tailoring se limite mensile superato e utente non Pro
+- [ ] Template Pro mostrano lucchetto per utenti Free
+- [ ] Utente Free può usare solo template Classico e Minimal
