@@ -525,6 +525,12 @@ export default function Impostazioni() {
             Hai bisogno di aiuto o vuoi esercitare i tuoi diritti privacy? Contattaci via email. Rispondiamo entro 48 ore lavorative.
           </p>
           <div className="flex flex-col gap-2">
+            <Link
+              to="/app/faq"
+              className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 underline underline-offset-4"
+            >
+              <Question size={16} weight="bold" /> Guida & FAQ
+            </Link>
             <a
               href="mailto:supporto@verso-cv.app"
               className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 underline underline-offset-4"
