@@ -25,7 +25,7 @@ export default function Nuova() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isPro } = useSubscription();
+  const { isPro, loading } = useSubscription();
   const checkCanCreate = useProGate();
   const [proChecked, setProChecked] = useState(false);
   const [step, setStep] = useState(() => {
@@ -62,10 +62,11 @@ export default function Nuova() {
     const draftId = searchParams.get("draft");
     if (draftId) { setProChecked(true); return; }
     if (!user) return;
+    if (loading) return;
     checkCanCreate(isPro).then((ok) => {
       if (ok) setProChecked(true);
     });
-  }, [user, isPro, checkCanCreate, searchParams]);
+  }, [user, isPro, loading, checkCanCreate, searchParams]);
 
   // CV Guard
   useEffect(() => {
@@ -333,7 +334,7 @@ export default function Nuova() {
 
   const handleAbandon = () => handleNewApplication();
 
-  if (cvCheck === "loading" || !proChecked) {
+  if (cvCheck === "loading" || !proChecked || loading) {
     return <div className="flex items-center justify-center py-20"><SpinnerGap size={32} className="text-primary animate-spin" /></div>;
   }
 
