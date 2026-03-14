@@ -356,7 +356,43 @@ export default function Impostazioni() {
         </CardContent>
       </Card>
 
-      {/* Privacy e Dati */}
+      {/* Cancel subscription dialog */}
+      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <AlertDialogContent className="border-border bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Vuoi annullare Versō Pro?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>Se annulli l'abbonamento:</p>
+                <ul className="list-disc pl-4 space-y-1">
+                  <li>
+                    Mantieni l'accesso Pro fino al{" "}
+                    <span className="text-foreground font-medium">
+                      {subscriptionEnd
+                        ? new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })
+                        : "termine del periodo"}
+                    </span>
+                  </li>
+                  <li>Dopo questa data tornerai al piano Free (1 candidatura)</li>
+                  <li>Le candidature e i CV già creati restano accessibili</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={canceling}>Mantieni Pro</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={canceling}
+              onClick={handleCancelSubscription}
+            >
+              {canceling ? "Annullamento..." : "Conferma annullazione"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       <Card className="border-border bg-card">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
