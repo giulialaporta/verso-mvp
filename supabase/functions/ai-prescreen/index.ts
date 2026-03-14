@@ -154,6 +154,18 @@ const TOOL_SCHEMA = {
             delta: { type: "string", enum: ["positive", "neutral", "negative"] },
             delta_percentage: { type: "string", description: "e.g. '+12%', '-8%', '~0%'" },
             note: { type: "string", description: "Brief Italian explanation" },
+            sources: {
+              type: "array",
+              description: "Optional: benchmark source URLs used for estimation",
+              items: {
+                type: "object",
+                properties: {
+                  url: { type: "string" },
+                  title: { type: "string" },
+                },
+                required: ["url", "title"],
+              },
+            },
           },
           required: ["candidate_estimate", "position_estimate", "delta", "delta_percentage", "note"],
         },
