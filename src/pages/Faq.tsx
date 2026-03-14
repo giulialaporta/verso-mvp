@@ -80,7 +80,7 @@ const sections: FaqSection[] = [
       },
       {
         q: "Quando usare i suggerimenti AI?",
-        a: "Verso ti segnala le competenze che ti mancano rispetto all'annuncio e suggerisce risorse per colmare i gap: corsi su Coursera, LinkedIn Learning, certificazioni. Non devi necessariamente completarli prima di candidarti — ma sapere cosa ti manca ti aiuta a prepararti per il colloquio e a pianificare la crescita professionale. Se una skill è marcata come \"essenziale\" e non ce l'hai, valuta seriamente se è il caso di candidarti.",
+        a: "Ti segnalo le competenze che ti mancano rispetto all'annuncio e suggerisco risorse per colmare i gap: corsi su Coursera, LinkedIn Learning, certificazioni. Non devi necessariamente completarli prima di candidarti — ma sapere cosa ti manca ti aiuta a prepararti per il colloquio e a pianificare la crescita professionale. Se una skill è marcata come \"essenziale\" e non ce l'hai, valuta seriamente se è il caso di candidarti.",
       },
       {
         q: "Posso spostare una skill da \"mancante\" a \"presente\"?",
