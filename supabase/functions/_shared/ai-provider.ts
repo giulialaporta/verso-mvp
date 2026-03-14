@@ -214,8 +214,7 @@ async function callAnthropic(request: AiRequest, model: string): Promise<Provide
     body.tool_choice = toAnthropicToolChoice(request.toolChoice);
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90000);
+  console.log(`[AI] Calling Anthropic ${model}, body size: ${JSON.stringify(body).length} bytes`);
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -226,7 +225,6 @@ async function callAnthropic(request: AiRequest, model: string): Promise<Provide
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
-      signal: controller.signal,
     });
 
     clearTimeout(timeout);
