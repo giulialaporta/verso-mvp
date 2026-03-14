@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { CheckCircle, PaperPlaneTilt, Clock, Plus } from "@phosphor-icons/react";
+import { CheckCircle, PaperPlaneTilt, Clock, Plus, Crown } from "@phosphor-icons/react";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useProGate } from "@/hooks/useProGate";
+import { useApplications } from "@/hooks/useApplications";
 import type { JobData } from "./wizard-types";
 
 export function StepCompleta({
@@ -16,6 +19,18 @@ export function StepCompleta({
   onKeepDraft: () => void;
   onNewApplication: () => void;
 }) {
+  const { isPro } = useSubscription();
+  const { data: apps } = useApplications();
+  const checkCanCreate = useProGate();
+
+  const activeCount = (apps ?? []).filter(a => !["ko", "draft"].includes(a.status.toLowerCase())).length;
+  const showFreeBanner = !isPro && activeCount >= 1;
+
+  const handleNewApp = async () => {
+    const canCreate = await checkCanCreate(isPro);
+    if (canCreate) onNewApplication();
+  };
+
   return (
     <div className="mx-auto max-w-md space-y-8 px-4 py-8 text-center">
       <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
@@ -44,11 +59,23 @@ export function StepCompleta({
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <Button variant="ghost" onClick={onNewApplication} className="w-full gap-2 text-muted-foreground">
+          <Button variant="ghost" onClick={handleNewApp} className="w-full gap-2 text-muted-foreground">
             <Plus size={16} /> Nuova candidatura
           </Button>
         </motion.div>
       </div>
+
+      {showFreeBanner && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="flex items-center gap-2 justify-center text-[11px] text-muted-foreground pt-2"
+        >
+          <Crown size={14} className="text-warning" />
+          <span>Hai usato la tua candidatura gratuita. La prossima volta, Versō Pro.</span>
+        </motion.div>
+      )}
     </div>
   );
 }
