@@ -249,6 +249,53 @@ export default function Impostazioni() {
         </CardContent>
       </Card>
 
+      {/* Piano */}
+      <Card className={`border-border bg-card ${isPro ? "border-primary/30" : ""}`}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Crown size={20} weight="bold" className={isPro ? "text-primary" : ""} />
+            Piano
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {isPro ? (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary font-bold">Versō Pro</span>
+              </div>
+              {subscriptionEnd && (
+                <p className="text-xs text-muted-foreground">
+                  Prossimo rinnovo: {new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={handleManageBilling}
+                disabled={portalLoading}
+              >
+                {portalLoading ? "Caricamento..." : "Gestisci abbonamento"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Piano: <span className="text-foreground font-medium">Free</span> — puoi creare 1 candidatura.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => navigate("/upgrade")}
+              >
+                <Crown size={16} /> Scopri Versō Pro <ArrowRight size={14} />
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Privacy e Dati */}
       <Card className="border-border bg-card">
         <CardHeader className="pb-3">
