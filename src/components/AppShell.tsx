@@ -137,7 +137,7 @@ function MobileTabBar() {
         {/* FAB + */}
         <div className="flex flex-col items-center justify-center px-3 -mt-5">
           <button
-            onClick={() => navigate("/app/nuova")}
+            onClick={handleNewApp}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-105 active:scale-95"
             aria-label="Nuova candidatura"
           >

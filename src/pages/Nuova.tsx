@@ -328,7 +328,7 @@ export default function Nuova() {
 
   const handleAbandon = () => handleNewApplication();
 
-  if (cvCheck === "loading") {
+  if (cvCheck === "loading" || !proChecked) {
     return <div className="flex items-center justify-center py-20"><SpinnerGap size={32} className="text-primary animate-spin" /></div>;
   }
 
