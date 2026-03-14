@@ -291,7 +291,7 @@ export default function Impostazioni() {
                 {cancelAtPeriodEnd ? (
                   <span className="rounded-full bg-warning/15 px-3 py-1 font-mono text-xs text-warning font-bold">In scadenza</span>
                 ) : (
-                  <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary font-bold">Versō Pro</span>
+                  <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary font-bold">Verso Pro</span>
                 )}
                 {!cancelAtPeriodEnd && (
                   <span className="text-xs text-muted-foreground">€9,90/mese</span>
