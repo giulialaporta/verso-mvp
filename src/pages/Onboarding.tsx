@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { SensitiveDataConsent, hasSensitiveDataConsent } from "@/components/SensitiveDataConsent";
@@ -29,6 +30,7 @@ type Step = "upload" | "parsing" | "preview" | "salary";
 export default function Onboarding() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -156,6 +158,7 @@ export default function Onboarding() {
       }
 
       toast.success("CV salvato con successo!");
+      await queryClient.invalidateQueries({ queryKey: ["masterCV"] });
       navigate("/app/home");
     } catch (e: any) {
       toast.error(e.message || "Errore durante il salvataggio.");
