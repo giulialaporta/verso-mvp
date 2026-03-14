@@ -153,7 +153,7 @@ export function ExecutiveTemplate({ cv, lang }: { cv: Record<string, any>; lang?
 
         {/* Skills & Languages side by side */}
         {(allSkills.length > 0 || languages.length > 0) && (
-          <View style={s.twoCol}>
+          <View style={s.twoCol} wrap={false}>
             {allSkills.length > 0 && (
               <View style={s.colHalf}>
                 <Text style={s.sectionTitle}>{h("skills", lang)}</Text>
