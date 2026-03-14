@@ -16,16 +16,28 @@ export function useSubscription() {
     loading: true,
   });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
 
   const refresh = useCallback(async () => {
-    if (!session?.access_token) {
+    const token = session?.access_token;
+    if (!user || !token) {
       setState({ isPro: false, subscriptionEnd: null, loading: false });
       return;
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke("check-subscription");
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("check-subscription", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!mountedRef.current) return;
+
+      if (error) {
+        // Treat as non-fatal — user simply isn't Pro
+        console.warn("check-subscription error (non-fatal):", error);
+        setState((prev) => ({ ...prev, loading: false }));
+        return;
+      }
 
       setState({
         isPro: data?.subscribed ?? false,
@@ -33,25 +45,31 @@ export function useSubscription() {
         loading: false,
       });
     } catch (e) {
-      console.warn("check-subscription failed:", e);
+      if (!mountedRef.current) return;
+      console.warn("check-subscription failed (non-fatal):", e);
       setState((prev) => ({ ...prev, loading: false }));
     }
-  }, [session?.access_token]);
+  }, [user, session?.access_token]);
 
-  // Check on login and poll every 60s
   useEffect(() => {
-    if (!user) {
+    mountedRef.current = true;
+
+    if (!user || !session?.access_token) {
       setState({ isPro: false, subscriptionEnd: null, loading: false });
       return;
     }
 
     refresh();
-
     intervalRef.current = setInterval(refresh, 60_000);
+
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      mountedRef.current = false;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
-  }, [user, refresh]);
+  }, [user, session?.access_token, refresh]);
 
   return { ...state, refresh };
 }

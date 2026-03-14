@@ -59,8 +59,18 @@ export default function Login() {
     );
   }
 
+  useEffect(() => {
+    if (user) {
+      navigate(fromPath, { replace: true });
+    }
+  }, [user, fromPath, navigate]);
+
   if (user) {
-    return <Navigate to={fromPath} replace />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   // Compute whether form is valid for submit
