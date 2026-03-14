@@ -330,7 +330,7 @@ export default function Onboarding() {
                     </div>
                     <h2 className="font-display text-lg sm:text-xl font-bold">CV analizzato</h2>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                      Abbiamo trovato{" "}
+                      Ho trovato{" "}
                       {parsedData.experience?.length ?? 0} esperienze,{" "}
                       {[...(parsedData.skills?.technical ?? []), ...(parsedData.skills?.soft ?? []), ...(parsedData.skills?.tools ?? [])].length} competenze
                       {parsedData.certifications?.length ? `, ${parsedData.certifications.length} certificazioni` : ""}.

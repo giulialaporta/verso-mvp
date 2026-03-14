@@ -556,7 +556,7 @@ Deno.serve(async (req) => {
 
     // ==================== MODE: TAILOR ====================
     const contextInfo = analyze_context
-      ? `\n\nPRIOR ANALYSIS CONTEXT:\n- Match score: ${analyze_context.match_score}\n- Skills missing: ${JSON.stringify(analyze_context.skills_missing)}\n- Detected language: ${analyze_context.detected_language}`
+      ? `\n\nPRIOR ANALYSIS CONTEXT:\n- Match score: ${analyze_context.match_score}\n- Skills missing: ${JSON.stringify(analyze_context.skills_missing)}\n- Target CV language (user's explicit choice): ${analyze_context.detected_language}\n- IMPORTANT: Use "${analyze_context.detected_language}" as the language for ALL CV content, even if the job posting is in a different language.`
       : "";
 
     const userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}${
