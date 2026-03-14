@@ -17,7 +17,7 @@ function applyPatches(
 
     // Validate path format
     if (!path || typeof path !== "string") {
-      skipped.push(`Invalid path: ${path}`);
+      skipped.push("Invalid path: " + String(path));
       continue;
     }
 
@@ -27,7 +27,7 @@ function applyPatches(
 
     for (let i = 0; i < segments.length - 1; i++) {
       if (target === null || target === undefined || typeof target !== "object") {
-        console.warn(`applyPatches: skipping patch "${path}" — invalid traversal at segment ${i}`);
+        console.warn("applyPatches: skipping patch \"" + path + "\" — invalid traversal at segment " + i);
         skipped.push(path);
         valid = false;
         break;
@@ -37,7 +37,7 @@ function applyPatches(
       if (!isNaN(idx)) {
         // Bounds check for array access
         if (Array.isArray(target) && (idx < 0 || idx >= (target as unknown[]).length)) {
-          console.warn(`applyPatches: skipping patch "${path}" — array index ${idx} out of bounds`);
+          console.warn("applyPatches: skipping patch \"" + path + "\" — array index " + idx + " out of bounds");
           skipped.push(path);
           valid = false;
           break;
@@ -251,7 +251,7 @@ Answers are self-reported, UNVERIFIED claims. They constrain what you can do:
 - If only free text is present (no Level — legacy format):
   - Treat as "some" level. Use detail for context only, never as source for new content.
 
-Respond ONLY with the required tool function call.
+Respond ONLY with the required tool function call.`;
 
 // ==================== TOOL SCHEMAS ====================
 
@@ -476,6 +476,42 @@ function adjustScore(r: Record<string, unknown>): void {
   }
 }
 
+type FollowUpAnswer = {
+  question?: string;
+  answer?: string;
+  level?: string;
+  detail?: string;
+};
+
+function formatFollowUpAnswers(userAnswers: unknown): string {
+  if (!Array.isArray(userAnswers) || userAnswers.length === 0) return "";
+
+  const lines: string[] = [];
+  for (const item of userAnswers as FollowUpAnswer[]) {
+    const question = typeof item.question === "string" ? item.question.trim() : "";
+    if (!question) continue;
+
+    lines.push("Q: " + question);
+
+    const level = typeof item.level === "string" ? item.level.trim() : "";
+    const detail = typeof item.detail === "string" ? item.detail.trim() : "";
+    const answer = typeof item.answer === "string" ? item.answer.trim() : "";
+
+    if (level) {
+      lines.push("Level: " + level);
+      if (detail) lines.push('Detail: "' + detail + '"');
+    } else {
+      lines.push("A: " + answer);
+    }
+
+    lines.push("");
+  }
+
+  if (lines.length === 0) return "";
+
+  return "\n\nCANDIDATE FOLLOW-UP ANSWERS (STRUCTURED):\n" + lines.join("\n").trim();
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -562,15 +598,8 @@ Deno.serve(async (req) => {
 
     // ==================== MODE: ANALYZE ====================
     if (mode === "analyze") {
-      const userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}${
-        user_answers && Array.isArray(user_answers) && user_answers.length > 0
-          ? `\n\nCANDIDATE FOLLOW-UP ANSWERS (STRUCTURED):\n${user_answers.map((a: { question: string; answer: string; level?: string; detail?: string }) =>
-              a.level
-                ? `Q: ${a.question}\nLevel: ${a.level}${a.detail ? `\nDetail: "${a.detail}"` : ""}`
-                : `Q: ${a.question}\nA: ${a.answer}`
-            ).join("\n\n")}`
-          : ""
-      }`;
+      let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data);
+      userContent += formatFollowUpAnswers(user_answers);
 
       const aiResult = await callAi({
         task: "ai-tailor-analyze",
@@ -595,19 +624,18 @@ Deno.serve(async (req) => {
     }
 
     // ==================== MODE: TAILOR ====================
-    const contextInfo = analyze_context
-      ? `\n\nPRIOR ANALYSIS CONTEXT:\n- Match score: ${analyze_context.match_score}\n- Skills missing: ${JSON.stringify(analyze_context.skills_missing)}\n- Target CV language (user's explicit choice): ${analyze_context.detected_language}\n- IMPORTANT: Use "${analyze_context.detected_language}" as the language for ALL CV content, even if the job posting is in a different language.`
-      : "";
+    let contextInfo = "";
+    if (analyze_context) {
+      contextInfo = "\n\nPRIOR ANALYSIS CONTEXT:\n"
+        + "- Match score: " + String(analyze_context.match_score)
+        + "\n- Skills missing: " + JSON.stringify(analyze_context.skills_missing)
+        + "\n- Target CV language (user's explicit choice): " + String(analyze_context.detected_language)
+        + "\n- IMPORTANT: Use \"" + String(analyze_context.detected_language) + "\" as the language for ALL CV content, even if the job posting is in a different language.";
+    }
 
-    const userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}${
-      user_answers && Array.isArray(user_answers) && user_answers.length > 0
-        ? `\n\nCANDIDATE FOLLOW-UP ANSWERS (STRUCTURED):\n${user_answers.map((a: { question: string; answer: string; level?: string; detail?: string }) =>
-            a.level
-              ? `Q: ${a.question}\nLevel: ${a.level}${a.detail ? `\nDetail: "${a.detail}"` : ""}`
-              : `Q: ${a.question}\nA: ${a.answer}`
-          ).join("\n\n")}`
-        : ""
-    }${contextInfo}`;
+    let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data);
+    userContent += formatFollowUpAnswers(user_answers);
+    userContent += contextInfo;
 
     const aiTailorResult = await callAi({
       task: "ai-tailor",
@@ -643,7 +671,7 @@ Deno.serve(async (req) => {
     const totalFields = Object.keys(originalCV).length;
     const changeRatio = patches.length / Math.max(totalFields, 1);
     if (changeRatio > 0.6) {
-      console.warn(`Change ratio warning: ${(changeRatio * 100).toFixed(0)}% of fields modified (${patches.length}/${totalFields})`);
+      console.warn("Change ratio warning: " + (changeRatio * 100).toFixed(0) + "% of fields modified (" + patches.length + "/" + totalFields + ")");
     }
 
     // Apply patches with validation
