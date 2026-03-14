@@ -158,6 +158,7 @@ export default function Onboarding() {
       }
 
       toast.success("CV salvato con successo!");
+      await queryClient.invalidateQueries({ queryKey: ["masterCV"] });
       navigate("/app/home");
     } catch (e: any) {
       toast.error(e.message || "Errore durante il salvataggio.");
