@@ -38,7 +38,7 @@ export function StepTailoring({
   if (analyzeLoading) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 px-4">
-        <div><h2 className="font-display text-2xl font-bold">Analisi in corso</h2><p className="text-muted-foreground mt-1">Verso sta confrontando il tuo CV con l'annuncio...</p></div>
+        <div><h2 className="font-display text-2xl font-bold">Analisi in corso</h2><p className="text-muted-foreground mt-1">Sto confrontando il tuo CV con l'annuncio...</p></div>
         {["Confronto competenze...", "Calcolo match score...", "Analisi ATS..."].map((msg, i) => (
           <motion.div key={msg} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 1.2, duration: 0.4 }}>
             <Card className="border-border/30 bg-card/60"><CardContent className="py-6">
