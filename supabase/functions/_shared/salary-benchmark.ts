@@ -38,12 +38,15 @@ async function firecrawlSearch(
   });
 
   if (!res.ok) {
-    console.warn(`Firecrawl search failed [${res.status}] for query: ${query}`);
+    const errBody = await res.text().catch(() => "");
+    console.warn(`Firecrawl search failed [${res.status}] for query: "${query}" — ${errBody}`);
     return [];
   }
 
   const json = await res.json();
-  return (json.data ?? json.results ?? []) as FirecrawlSearchResult[];
+  const results = (json.data ?? json.results ?? []) as FirecrawlSearchResult[];
+  console.log(`Firecrawl search "${query.slice(0, 60)}..." → ${results.length} results, success=${json.success}`);
+  return results;
 }
 
 function buildQueries(params: BenchmarkParams): string[] {
