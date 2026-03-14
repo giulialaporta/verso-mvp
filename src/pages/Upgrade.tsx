@@ -59,7 +59,7 @@ export default function Upgrade() {
       }
 
       if (data?.already_subscribed || data?.error === "Already subscribed") {
-        toast.success("Sei già abbonata a Versō Pro!");
+        toast.success("Sei già abbonata a Verso Pro!");
         navigate("/app/home");
         return;
       }
