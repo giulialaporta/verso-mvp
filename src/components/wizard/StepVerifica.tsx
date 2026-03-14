@@ -15,35 +15,11 @@ import type { PrescreenResult } from "./wizard-types";
 
 type StructuredAnswer = { level: string; detail: string };
 
-const FIELD_OPTIONS: Record<string, { value: string; label: string }[]> = {
-  experience: [
-    { value: "expert", label: "Sì, esperienza solida" },
-    { value: "some", label: "Qualche esperienza" },
-    { value: "learning", label: "Solo formazione" },
-    { value: "none", label: "No" },
-  ],
-  skills: [
-    { value: "expert", label: "Sì, uso quotidiano" },
-    { value: "some", label: "Uso occasionale" },
-    { value: "learning", label: "Studio/certificazione" },
-    { value: "none", label: "No" },
-  ],
-  education: [
-    { value: "expert", label: "Sì, completato" },
-    { value: "some", label: "In corso" },
-    { value: "learning", label: "Formazione equivalente" },
-    { value: "none", label: "No" },
-  ],
-  other: [
-    { value: "expert", label: "Sì" },
-    { value: "some", label: "In parte" },
-    { value: "none", label: "No" },
-  ],
-};
-
-function getOptionsForField(field: string): { value: string; label: string }[] {
-  return FIELD_OPTIONS[field] || FIELD_OPTIONS.other;
-}
+const DEFAULT_OPTIONS = [
+  { value: "expert", label: "Sì, molto" },
+  { value: "some", label: "Un po'" },
+  { value: "none", label: "No" },
+];
 
 export function StepVerifica({
   prescreenResult,
