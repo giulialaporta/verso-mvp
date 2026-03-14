@@ -233,10 +233,25 @@ Deno.serve(async (req) => {
 
     const compactedCV = compactCV(masterCV.parsed_data as Record<string, unknown>);
 
+    // Fetch salary benchmarks via Firecrawl (non-blocking)
+    const benchmarkPromise = fetchSalaryBenchmarks({
+      role_title: job_data.role_title || job_data.title || "",
+      company_name: job_data.company_name || job_data.company || undefined,
+      location: job_data.location || undefined,
+      industry: job_data.industry || job_data.sector || undefined,
+    });
+
     // Build user message with optional salary expectations
     let userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}`;
     if (salary_expectations) {
       userContent += `\n\nSALARY_EXPECTATIONS:\n${JSON.stringify(salary_expectations)}`;
+    }
+
+    // Wait for benchmarks and append if available
+    const benchmarks = await benchmarkPromise;
+    if (benchmarks) {
+      userContent += `\n\nSALARY_BENCHMARKS (from web search — use as primary source for position_estimate):\n${benchmarks.raw_context}`;
+      console.log(`salary-benchmark: found ${benchmarks.sources.length} sources`);
     }
 
     const aiResult = await callAi({

@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.cv-review]
 verify_jwt = true
+
+[functions.ai-prescreen]
+verify_jwt = false
