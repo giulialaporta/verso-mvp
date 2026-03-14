@@ -185,7 +185,12 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_pro: boolean | null
+          pro_expires_at: string | null
+          pro_since: string | null
           salary_expectations: Json | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           updated_at: string
           user_id: string
         }
@@ -194,7 +199,12 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_pro?: boolean | null
+          pro_expires_at?: string | null
+          pro_since?: string | null
           salary_expectations?: Json | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -203,7 +213,12 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_pro?: boolean | null
+          pro_expires_at?: string | null
+          pro_since?: string | null
           salary_expectations?: Json | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           user_id?: string
         }
