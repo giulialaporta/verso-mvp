@@ -628,15 +628,9 @@ Deno.serve(async (req) => {
       ? `\n\nPRIOR ANALYSIS CONTEXT:\n- Match score: ${analyze_context.match_score}\n- Skills missing: ${JSON.stringify(analyze_context.skills_missing)}\n- Target CV language (user's explicit choice): ${analyze_context.detected_language}\n- IMPORTANT: Use "${analyze_context.detected_language}" as the language for ALL CV content, even if the job posting is in a different language.`
       : "";
 
-    const userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}${
-      user_answers && Array.isArray(user_answers) && user_answers.length > 0
-        ? `\n\nCANDIDATE FOLLOW-UP ANSWERS (STRUCTURED):\n${user_answers.map((a: { question: string; answer: string; level?: string; detail?: string }) =>
-            a.level
-              ? `Q: ${a.question}\nLevel: ${a.level}${a.detail ? `\nDetail: "${a.detail}"` : ""}`
-              : `Q: ${a.question}\nA: ${a.answer}`
-          ).join("\n\n")}`
-        : ""
-    }${contextInfo}`;
+    let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data);
+    userContent += formatFollowUpAnswers(user_answers);
+    userContent += contextInfo;
 
     const aiTailorResult = await callAi({
       task: "ai-tailor",
