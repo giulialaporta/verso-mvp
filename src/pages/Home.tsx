@@ -124,6 +124,56 @@ function StatsBar({
   );
 }
 
+// ─── Plan Card ───────────────────────────────────────────────
+function PlanCard({ isPro, loading }: { isPro: boolean; loading: boolean }) {
+  const navigate = useNavigate();
+
+  if (loading) {
+    return <Skeleton className="h-16 w-full" />;
+  }
+
+  if (isPro) {
+    return (
+      <Card className="border-primary/30 bg-card/80">
+        <CardContent className="flex items-center gap-3 py-3 px-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15">
+            <Crown size={20} className="text-primary" weight="fill" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">Versō Pro</p>
+            <p className="text-xs text-muted-foreground">Candidature illimitate</p>
+          </div>
+          <Badge variant="outline" className="border-primary/40 text-primary font-mono text-[10px]">
+            ATTIVO
+          </Badge>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-warning/20 bg-card/80">
+      <CardContent className="flex items-center gap-3 py-3 px-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-warning/15">
+          <Crown size={20} className="text-warning" weight="fill" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">Piano Free</p>
+          <p className="text-xs text-muted-foreground">1 candidatura inclusa</p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 text-xs border-warning/40 text-warning hover:bg-warning/10 hover:text-warning shrink-0"
+          onClick={() => navigate("/upgrade")}
+        >
+          <Crown size={14} weight="fill" /> Upgrade
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Virgin State ────────────────────────────────────────────
 function VirginState() {
   const navigate = useNavigate();
