@@ -290,7 +290,12 @@ export default function Nuova() {
 
       updateStep(3);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Errore durante la generazione del CV");
+      const msg = e instanceof Error ? e.message : "Errore durante la generazione del CV";
+      if (msg === "UPGRADE_REQUIRED" || (typeof msg === "string" && msg.includes("UPGRADE_REQUIRED"))) {
+        navigate("/upgrade");
+        return;
+      }
+      toast.error(msg);
     } finally {
       setTailoring(false);
     }
