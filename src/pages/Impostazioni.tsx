@@ -71,6 +71,31 @@ export default function Impostazioni() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [canceling, setCanceling] = useState(false);
 
+  const handleCancelSubscription = async () => {
+    setCanceling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No session");
+      const { data, error } = await supabase.functions.invoke("cancel-subscription", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setCancelOpen(false);
+      await refreshSubscription();
+      toast({
+        title: "Abbonamento in cancellazione",
+        description: data?.cancel_at
+          ? `Hai accesso a Versō Pro fino al ${new Date(data.cancel_at).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}.`
+          : "L'abbonamento non verrà rinnovato.",
+      });
+    } catch {
+      toast({ title: "Errore", description: "Non è stato possibile annullare l'abbonamento.", variant: "destructive" });
+    } finally {
+      setCanceling(false);
+    }
+  };
+
   const handleManageBilling = async () => {
     setPortalLoading(true);
     try {
