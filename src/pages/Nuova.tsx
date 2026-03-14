@@ -17,12 +17,17 @@ import { StepExport } from "@/components/wizard/StepExport";
 import { StepCompleta } from "@/components/wizard/StepCompleta";
 import { computeConfidence } from "@/components/wizard/wizard-utils";
 import type { JobData, PrescreenResult, AnalyzeResult, TailorResult } from "@/components/wizard/wizard-types";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useProGate } from "@/hooks/useProGate";
 
 export default function Nuova() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isPro } = useSubscription();
+  const checkCanCreate = useProGate();
+  const [proChecked, setProChecked] = useState(false);
   const [step, setStep] = useState(() => {
     const s = parseInt(searchParams.get("step") || "0", 10);
     return isNaN(s) ? 0 : s;
@@ -51,6 +56,16 @@ export default function Nuova() {
       return next;
     }, { replace: true });
   }, [setSearchParams]);
+
+  // Pro gate — only for new applications (not draft resumption)
+  useEffect(() => {
+    const draftId = searchParams.get("draft");
+    if (draftId) { setProChecked(true); return; }
+    if (!user) return;
+    checkCanCreate(isPro).then((ok) => {
+      if (ok) setProChecked(true);
+    });
+  }, [user, isPro, checkCanCreate, searchParams]);
 
   // CV Guard
   useEffect(() => {
@@ -275,7 +290,12 @@ export default function Nuova() {
 
       updateStep(3);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Errore durante la generazione del CV");
+      const msg = e instanceof Error ? e.message : "Errore durante la generazione del CV";
+      if (msg === "UPGRADE_REQUIRED" || (typeof msg === "string" && msg.includes("UPGRADE_REQUIRED"))) {
+        navigate("/upgrade");
+        return;
+      }
+      toast.error(msg);
     } finally {
       setTailoring(false);
     }
@@ -313,7 +333,7 @@ export default function Nuova() {
 
   const handleAbandon = () => handleNewApplication();
 
-  if (cvCheck === "loading") {
+  if (cvCheck === "loading" || !proChecked) {
     return <div className="flex items-center justify-center py-20"><SpinnerGap size={32} className="text-primary animate-spin" /></div>;
   }
 

@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Trash, User, Warning, Lock, SignOut, ShieldCheck,
   Cookie, ArrowSquareOut, CheckCircle, XCircle, DownloadSimple, Headset, EnvelopeSimple,
+  Crown, ArrowRight,
 } from "@phosphor-icons/react";
 import { resetCookieConsent, getCookieConsent } from "@/components/CookieBanner";
 import { hashEmail } from "@/lib/hash-email";
@@ -57,6 +59,7 @@ export default function Impostazioni() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isPro, subscriptionEnd } = useSubscription();
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -64,6 +67,21 @@ export default function Impostazioni() {
   const [loadingConsents, setLoadingConsents] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const handleManageBilling = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) window.open(data.url, "_blank");
+    } catch {
+      toast({ title: "Errore", description: "Non è stato possibile aprire il portale.", variant: "destructive" });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   // Load user consents
   useEffect(() => {
@@ -228,6 +246,53 @@ export default function Impostazioni() {
               {user?.user_metadata?.full_name || user?.user_metadata?.name || "—"}
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Piano */}
+      <Card className={`border-border bg-card ${isPro ? "border-primary/30" : ""}`}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Crown size={20} weight="bold" className={isPro ? "text-primary" : ""} />
+            Piano
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {isPro ? (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary font-bold">Versō Pro</span>
+              </div>
+              {subscriptionEnd && (
+                <p className="text-xs text-muted-foreground">
+                  Prossimo rinnovo: {new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={handleManageBilling}
+                disabled={portalLoading}
+              >
+                {portalLoading ? "Caricamento..." : "Gestisci abbonamento"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Piano: <span className="text-foreground font-medium">Free</span> — puoi creare 1 candidatura.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => navigate("/upgrade")}
+              >
+                <Crown size={16} /> Scopri Versō Pro <ArrowRight size={14} />
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
 

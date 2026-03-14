@@ -21,6 +21,7 @@ const CookiePolicyPage = lazy(() => import("./pages/CookiePolicy"));
 
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Nuova = lazy(() => import("./pages/Nuova"));
+const Upgrade = lazy(() => import("./pages/Upgrade"));
 const Candidature = lazy(() => import("./pages/Candidature"));
 const Impostazioni = lazy(() => import("./pages/Impostazioni"));
 const CVEdit = lazy(() => import("./pages/CVEdit"));
@@ -44,6 +45,14 @@ const App = () => (
               <Route path="/privacy" element={<Suspense fallback={<PageSkeleton />}><PrivacyPage /></Suspense>} />
               <Route path="/cookie-policy" element={<Suspense fallback={<PageSkeleton />}><CookiePolicyPage /></Suspense>} />
               <Route path="/" element={<Navigate to="/app/home" replace />} />
+              <Route
+                path="/upgrade"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageSkeleton />}><Upgrade /></Suspense>
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/onboarding"
                 element={

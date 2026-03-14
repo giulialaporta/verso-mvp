@@ -1,6 +1,8 @@
 import { Outlet, useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { House, Briefcase, SignOut, List, Plus, Flask, Gear } from "@phosphor-icons/react";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useProGate } from "@/hooks/useProGate";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -101,8 +103,15 @@ function DesktopSidebar() {
 function MobileTabBar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isPro } = useSubscription();
+  const checkCanCreate = useProGate();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleNewApp = async () => {
+    const canCreate = await checkCanCreate(isPro);
+    if (canCreate) navigate("/app/nuova");
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
@@ -128,7 +137,7 @@ function MobileTabBar() {
         {/* FAB + */}
         <div className="flex flex-col items-center justify-center px-3 -mt-5">
           <button
-            onClick={() => navigate("/app/nuova")}
+            onClick={handleNewApp}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-105 active:scale-95"
             aria-label="Nuova candidatura"
           >

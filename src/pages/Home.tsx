@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,6 +34,7 @@ import {
   PencilSimple,
   Check,
   X,
+  Crown,
 } from "@phosphor-icons/react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { useApplications } from "@/hooks/useApplications";
 import { useMasterCV } from "@/hooks/useMasterCV";
 import { usePrefetchApplication } from "@/hooks/usePrefetchApplication";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useProGate } from "@/hooks/useProGate";
 
 import { StatusChip } from "@/components/StatusChip";
 
@@ -465,6 +468,26 @@ export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
+  const { isPro, refresh: refreshSubscription } = useSubscription();
+  const checkCanCreate = useProGate();
+
+  // Handle post-upgrade success
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upgrade") === "success") {
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        await refreshSubscription();
+        if (attempts >= 3) {
+          clearInterval(poll);
+          toast.success("Benvenuto in Versō Pro! 🎉");
+          navigate("/app/home", { replace: true });
+        }
+      }, 2000);
+      return () => clearInterval(poll);
+    }
+  }, [refreshSubscription, navigate]);
 
   // React Query hooks
   const { data: profile } = useProfile();
@@ -604,7 +627,10 @@ export default function Home() {
 
       {/* CTA */}
       <Button
-        onClick={() => navigate("/app/nuova")}
+        onClick={async () => {
+          const canCreate = await checkCanCreate(isPro);
+          if (canCreate) navigate("/app/nuova");
+        }}
         className="w-full gap-2 h-12 text-base"
       >
         Nuova candidatura <ArrowRight size={18} />
