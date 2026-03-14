@@ -66,7 +66,7 @@ const TASK_ROUTING: Record<AiTask, ModelConfig> = {
   },
   "ai-prescreen": {
     provider: "anthropic",
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     fallbackProvider: "google",
     fallbackModel: "gemini-2.5-flash",
   },
@@ -78,7 +78,7 @@ const TASK_ROUTING: Record<AiTask, ModelConfig> = {
   },
   "ai-tailor-analyze": {
     provider: "anthropic",
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     fallbackProvider: "google",
     fallbackModel: "gemini-2.5-flash",
   },
