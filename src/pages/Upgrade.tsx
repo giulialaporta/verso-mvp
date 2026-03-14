@@ -149,7 +149,7 @@ export default function Upgrade() {
             <CardContent className="py-5 px-5 space-y-4">
               <div className="flex items-center gap-2">
                 <Crown size={20} className="text-primary" weight="fill" />
-                <span className="font-display text-lg font-bold">Versō Pro</span>
+                <span className="font-display text-lg font-bold">Verso Pro</span>
                 <span className="ml-auto font-mono text-sm text-primary font-bold">€9,90/mese</span>
               </div>
 
