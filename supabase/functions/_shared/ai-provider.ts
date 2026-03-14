@@ -297,8 +297,7 @@ async function callGoogleAI(request: AiRequest, model: string): Promise<Provider
     }
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90000);
+  console.log(`[AI] Calling Google AI ${model}`);
 
   try {
     const res = await fetch(
@@ -307,11 +306,10 @@ async function callGoogleAI(request: AiRequest, model: string): Promise<Provider
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-        signal: controller.signal,
       }
     );
 
-    clearTimeout(timeout);
+    console.log(`[AI] Google AI responded: ${res.status}`);
 
     if (!res.ok) {
       const errText = await res.text();
@@ -330,8 +328,9 @@ async function callGoogleAI(request: AiRequest, model: string): Promise<Provider
       tokensIn: usage.promptTokenCount || 0,
       tokensOut: usage.candidatesTokenCount || 0,
     };
-  } finally {
-    clearTimeout(timeout);
+  } catch (e) {
+    console.error(`[AI] Google AI fetch error:`, (e as Error).message);
+    throw e;
   }
 }
 
