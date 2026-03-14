@@ -517,17 +517,15 @@ Deno.serve(async (req) => {
           : ""
       }`;
 
-      const { data: aiData } = await aiFetch({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT_ANALYZE },
-          { role: "user", content: userContent },
-        ],
+      const aiResult = await callAi({
+        task: "ai-tailor-analyze",
+        systemPrompt: SYSTEM_PROMPT_ANALYZE,
+        userMessage: userContent,
         tools: [TOOL_SCHEMA_ANALYZE],
-        tool_choice: { type: "function", function: { name: "analyze_cv" } },
-      });
+        toolChoice: { type: "function", function: { name: "analyze_cv" } },
+      }, userId);
 
-      const result = parseAIResponse(aiData);
+      const result = aiResult.content;
       if (!result) {
         return new Response(JSON.stringify({ error: "Impossibile completare l'analisi. Riprova." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
