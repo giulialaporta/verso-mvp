@@ -1,51 +1,35 @@
 
 
-# Story 17 — Analisi Retributiva nello Step 2
+# Aggiornamento Epic 07 — Verso Pro
 
-## Acceptance Criteria
+## Modifiche al documento `docs/backlog/epic-07-verso-pro.md`
 
-1. **AC-1**: Se `salary_expectations` è presente nel profilo utente, viene inviato nel body della request a `ai-prescreen`
-2. **AC-2**: Il prompt di `ai-prescreen` include istruzioni per generare `salary_analysis` quando riceve `salary_expectations`
-3. **AC-3**: Il tool schema di `ai-prescreen` include la struttura `salary_analysis` come campo opzionale
-4. **AC-4**: Nello Step 1 (Verifica), se `salary_analysis` è presente nel response, appare la card "Analisi Retributiva" con:
-   - Due barre orizzontali proporzionali (candidato vs posizione)
-   - Range RAL formattati (es. "€35-42K")
-   - Badge fonte per ogni barra (Da te / Dall'annuncio / Stimata)
-   - Delta percentuale colorato (verde ↑ / giallo → / rosso ↓)
-   - Nota esplicativa dall'AI
-   - Disclaimer in testo muted
-5. **AC-5**: Se `salary_analysis` è assente nel response → nessuna sezione, nessun errore
-6. **AC-6**: Se l'utente non ha `salary_expectations` nel profilo → `salary_expectations` non viene inviato, e l'AI può comunque stimare dalla posizione se il range è esplicito nell'annuncio
+Aggiornare l'epic con la strategia rivista:
 
-## Piano di implementazione
+1. **Prezzo**: €9.99 → **€12.99/mese**
+2. **Limite Free**: 1 candidatura → **3 candidature al mese** (conteggio mensile, reset il 1° del mese)
+3. **Modello esteso**: aggiungere gate template (Free = Classico + Minimal, Pro = tutti) e gate export (Free = PDF, Pro = PDF + DOCX futuro)
+4. **Sezione abbonamento**: spostare da "tra Account e Privacy" a **dentro la card Account** come sottosezione "Piano"
+5. **Logica conteggio**: da `status != 'ko'` globale a `created_at >= inizio mese corrente AND status != 'ko'`
 
-### 1. Edge Function `ai-prescreen` (2 modifiche)
+### Punti specifici da modificare nel documento
 
-**Prompt**: Aggiungere sezione che istruisce l'AI a produrre `salary_analysis` quando riceve `salary_expectations` o quando l'annuncio contiene un range esplicito.
+| Sezione | Prima | Dopo |
+|---------|-------|------|
+| Obiettivo | €9.99, 1 candidatura | €12.99, 3 candidature/mese |
+| Tabella Modello | Free: 1 candidatura | Free: 3/mese, 2 template, PDF only. Pro: illimitate, tutti template, PDF+DOCX |
+| Query limite | `count(*) WHERE status != 'ko'` | `count(*) WHERE status != 'ko' AND created_at >= date_trunc('month', now())` |
+| Soglia | `count >= 1` | `count >= 3` |
+| Banner copy | "1 candidatura" | "3 candidature questo mese" |
+| Pagina /pro prezzo | €9.99 | €12.99 |
+| Impostazioni | Sezione separata tra Account e Privacy | Sottosezione "Piano" dentro la card Account |
+| Impostazioni Free | "Puoi creare 1 candidatura" | "Piano Free — 3 candidature/mese" + contatore uso |
+| Impostazioni Pro | Sezione separata | Dentro Account: badge, rinnovo, "Gestisci abbonamento" |
+| Criteri accettazione | "1 sola candidatura" | "3 candidature al mese" |
 
-**Tool schema**: Aggiungere `salary_analysis` come proprietà opzionale con struttura:
-```
-salary_analysis: {
-  candidate_estimate: { min, max, source, basis }
-  position_estimate: { min, max, source, basis }
-  delta: "positive" | "neutral" | "negative"
-  delta_percentage: string
-  note: string
-}
-```
+### File coinvolto
 
-**Request body**: Leggere `salary_expectations` dal body della request e includerlo nel messaggio user all'AI.
-
-### 2. Frontend `Nuova.tsx` (2 modifiche)
-
-**Chiamata**: Fetch `salary_expectations` dal profilo utente e passarlo nel body di `ai-prescreen`.
-
-**Componente `SalaryAnalysisCard`**: Nuova sezione dentro `StepVerifica`, renderizzata condizionalmente. Implementa barre proporzionali, badge fonte, delta colorato, disclaimer.
-
-### File coinvolti
-
-| File | Modifiche |
-|------|-----------|
-| `supabase/functions/ai-prescreen/index.ts` | Prompt + schema + body handling |
-| `src/pages/Nuova.tsx` | Fetch salary, pass to API, render card |
+| File | Azione |
+|------|--------|
+| `docs/backlog/epic-07-verso-pro.md` | Riscrittura con nuova strategia |
 
