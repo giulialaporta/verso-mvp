@@ -5,7 +5,7 @@ import { CurrencyEur, ArrowUp, ArrowDown, Minus, Info } from "@phosphor-icons/re
 type SalaryEstimate = {
   min: number;
   max: number;
-  source: "user_profile" | "job_posting" | "estimated";
+  source: "user_profile" | "job_posting" | "estimated" | "benchmark";
   basis: string;
 };
 
@@ -15,6 +15,7 @@ export type SalaryAnalysis = {
   delta: "positive" | "neutral" | "negative";
   delta_percentage: string;
   note: string;
+  sources?: { url: string; title: string }[];
 };
 
 function formatRAL(min: number, max: number): string {
@@ -29,15 +30,20 @@ const SOURCE_LABELS: Record<string, string> = {
   user_profile: "Da te",
   job_posting: "Dall'annuncio",
   estimated: "Stimata",
+  benchmark: "Da benchmark",
 };
 
 function SourceBadge({ source }: { source: string }) {
   const label = SOURCE_LABELS[source] || source;
+  const isBenchmark = source === "benchmark";
   const isEstimated = source === "estimated";
+  const colorClass = isBenchmark
+    ? "bg-primary/15 text-primary"
+    : isEstimated
+      ? "bg-warning/15 text-warning"
+      : "bg-info/15 text-info";
   return (
-    <span className={`font-mono text-[10px] uppercase px-1.5 py-0.5 rounded-full ${
-      isEstimated ? "bg-warning/15 text-warning" : "bg-info/15 text-info"
-    }`}>
+    <span className={`font-mono text-[10px] uppercase px-1.5 py-0.5 rounded-full ${colorClass}`}>
       {label}
     </span>
   );
@@ -126,9 +132,26 @@ export function SalaryAnalysisCard({ data, delay = 0.5 }: { data: SalaryAnalysis
           <div className="flex items-start gap-1.5 pt-1 border-t border-border/30">
             <Info size={12} className="text-muted-foreground shrink-0 mt-0.5" />
             <p className="text-[10px] text-muted-foreground">
-              I dati retributivi sono indicativi. Il range della posizione potrebbe essere stimato dall'AI quando non esplicitato nell'annuncio.
+              {data.position_estimate.source === "benchmark"
+                ? "Range basato su dati retributivi reali raccolti dal web. I valori restano indicativi."
+                : "I dati retributivi sono indicativi. Il range della posizione potrebbe essere stimato dall'AI quando non esplicitato nell'annuncio."}
             </p>
           </div>
+          {data.sources && data.sources.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {data.sources.slice(0, 3).map((s, i) => (
+                <a
+                  key={i}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-info/70 hover:text-info underline truncate max-w-[180px]"
+                >
+                  {s.title}
+                </a>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

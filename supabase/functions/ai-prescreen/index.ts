@@ -3,6 +3,7 @@ import { compactCV } from "../_shared/compact-cv.ts";
 import { callAi } from "../_shared/ai-provider.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { fetchSalaryBenchmarks } from "../_shared/salary-benchmark.ts";
 
 const SYSTEM_PROMPT = `You are an expert, honest recruiter performing a pre-screening analysis.
 
@@ -55,7 +56,10 @@ For position_estimate:
 Calculate delta: "positive" if candidate expects less than position offers (good for candidate), "negative" if candidate expects more, "neutral" if overlapping
 - delta_percentage: approximate percentage difference between midpoints (e.g. "+12%", "-8%", "~0%")
 - note: brief Italian explanation of the comparison
-- If NEITHER salary_expectations NOR a salary range in the posting is available, do NOT include salary_analysis
+- If SALARY_BENCHMARKS data is provided, use it as PRIMARY source for position_estimate. Set source = "benchmark".
+- Cross-reference benchmark data with your own knowledge for validation.
+- In "basis", cite the benchmark sources used (e.g. "Da benchmark: Glassdoor, Indeed — ruolo Senior a Milano").
+- If NEITHER salary_expectations NOR a salary range in the posting NOR benchmark data is available, do NOT include salary_analysis
 
 ## HONESTY RULES
 - Be direct and honest. Don't sugarcoat dealbreakers.
@@ -141,7 +145,7 @@ const TOOL_SCHEMA = {
               properties: {
                 min: { type: "number", description: "Minimum annual salary in euros" },
                 max: { type: "number", description: "Maximum annual salary in euros" },
-                source: { type: "string", enum: ["job_posting", "estimated"] },
+                source: { type: "string", enum: ["job_posting", "estimated", "benchmark"] },
                 basis: { type: "string", description: "Brief explanation of source — when estimated, list all factors used" },
                 estimation_factors: { type: "array", items: { type: "string" }, description: "Factors used for estimation when source is 'estimated' (e.g. 'industry: fintech', 'seniority: senior', 'location: Milano', 'company_size: enterprise')" },
               },
@@ -150,6 +154,18 @@ const TOOL_SCHEMA = {
             delta: { type: "string", enum: ["positive", "neutral", "negative"] },
             delta_percentage: { type: "string", description: "e.g. '+12%', '-8%', '~0%'" },
             note: { type: "string", description: "Brief Italian explanation" },
+            sources: {
+              type: "array",
+              description: "Optional: benchmark source URLs used for estimation",
+              items: {
+                type: "object",
+                properties: {
+                  url: { type: "string" },
+                  title: { type: "string" },
+                },
+                required: ["url", "title"],
+              },
+            },
           },
           required: ["candidate_estimate", "position_estimate", "delta", "delta_percentage", "note"],
         },
@@ -217,10 +233,25 @@ Deno.serve(async (req) => {
 
     const compactedCV = compactCV(masterCV.parsed_data as Record<string, unknown>);
 
+    // Fetch salary benchmarks via Firecrawl (non-blocking)
+    const benchmarkPromise = fetchSalaryBenchmarks({
+      role_title: job_data.role_title || job_data.title || "",
+      company_name: job_data.company_name || job_data.company || undefined,
+      location: job_data.location || undefined,
+      industry: job_data.industry || job_data.sector || undefined,
+    });
+
     // Build user message with optional salary expectations
     let userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}`;
     if (salary_expectations) {
       userContent += `\n\nSALARY_EXPECTATIONS:\n${JSON.stringify(salary_expectations)}`;
+    }
+
+    // Wait for benchmarks and append if available
+    const benchmarks = await benchmarkPromise;
+    if (benchmarks) {
+      userContent += `\n\nSALARY_BENCHMARKS (from web search — use as primary source for position_estimate):\n${benchmarks.raw_context}`;
+      console.log(`salary-benchmark: found ${benchmarks.sources.length} sources`);
     }
 
     const aiResult = await callAi({
