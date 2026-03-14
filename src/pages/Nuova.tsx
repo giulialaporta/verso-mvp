@@ -271,14 +271,14 @@ export default function Nuova() {
         if (mcv?.parsed_data) setOriginalCv(mcv.parsed_data as Record<string, unknown>);
       }
 
-      const frontendConfidence = computeConfidence(result.original_cv ?? null, reviewedCv, result.diff ?? []);
+      const frontendConfidence = computeConfidence(result.original_cv ?? null, result.tailored_cv, result.diff ?? []);
 
       if (applicationId) {
         const tcPayload = {
           user_id: user.id,
           application_id: applicationId,
           master_cv_id: result.master_cv_id,
-          tailored_data: reviewedCv as any,
+          tailored_data: result.tailored_cv as any,
           skills_match: { present: analyzeResult.skills_present || [], missing: analyzeResult.skills_missing || [] } as any,
           suggestions: result.diff as any,
           ats_score: analyzeResult.ats_score,
