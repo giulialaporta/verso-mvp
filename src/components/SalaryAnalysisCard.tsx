@@ -30,6 +30,7 @@ const SOURCE_LABELS: Record<string, string> = {
   user_profile: "Da te",
   job_posting: "Dall'annuncio",
   estimated: "Stimata",
+  benchmark: "Da benchmark",
 };
 
 function SourceBadge({ source }: { source: string }) {
