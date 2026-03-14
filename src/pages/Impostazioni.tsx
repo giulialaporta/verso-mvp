@@ -59,7 +59,7 @@ export default function Impostazioni() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isPro, subscriptionEnd } = useSubscription();
+  const { isPro, subscriptionEnd, cancelAtPeriodEnd, refresh: refreshSubscription } = useSubscription();
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -68,6 +68,33 @@ export default function Impostazioni() {
   const [revoking, setRevoking] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+
+  const handleCancelSubscription = async () => {
+    setCanceling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No session");
+      const { data, error } = await supabase.functions.invoke("cancel-subscription", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setCancelOpen(false);
+      await refreshSubscription();
+      toast({
+        title: "Abbonamento in cancellazione",
+        description: data?.cancel_at
+          ? `Hai accesso a Versō Pro fino al ${new Date(data.cancel_at).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}.`
+          : "L'abbonamento non verrà rinnovato.",
+      });
+    } catch {
+      toast({ title: "Errore", description: "Non è stato possibile annullare l'abbonamento.", variant: "destructive" });
+    } finally {
+      setCanceling(false);
+    }
+  };
 
   const handleManageBilling = async () => {
     setPortalLoading(true);
@@ -250,10 +277,10 @@ export default function Impostazioni() {
       </Card>
 
       {/* Piano */}
-      <Card className={`border-border bg-card ${isPro ? "border-primary/30" : ""}`}>
+      <Card className={`border-border bg-card ${isPro && !cancelAtPeriodEnd ? "border-primary/30" : ""} ${cancelAtPeriodEnd ? "border-warning/30" : ""}`}>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Crown size={20} weight="bold" className={isPro ? "text-primary" : ""} />
+            <Crown size={20} weight="bold" className={isPro ? (cancelAtPeriodEnd ? "text-warning" : "text-primary") : ""} />
             Piano
           </CardTitle>
         </CardHeader>
@@ -261,22 +288,55 @@ export default function Impostazioni() {
           {isPro ? (
             <>
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary font-bold">Versō Pro</span>
+                {cancelAtPeriodEnd ? (
+                  <span className="rounded-full bg-warning/15 px-3 py-1 font-mono text-xs text-warning font-bold">In scadenza</span>
+                ) : (
+                  <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary font-bold">Versō Pro</span>
+                )}
               </div>
-              {subscriptionEnd && (
-                <p className="text-xs text-muted-foreground">
-                  Prossimo rinnovo: {new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
-                </p>
+              {cancelAtPeriodEnd && subscriptionEnd ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Il tuo piano scade il <span className="text-foreground font-medium">{new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}</span>. Dopo questa data tornerai al piano Free.
+                  </p>
+                  <p className="text-xs text-muted-foreground">Le candidature e i CV già creati restano accessibili.</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={handleManageBilling}
+                    disabled={portalLoading}
+                  >
+                    {portalLoading ? "Caricamento..." : "Riattiva abbonamento"}
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {subscriptionEnd && (
+                    <p className="text-xs text-muted-foreground">
+                      Prossimo rinnovo: {new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={handleManageBilling}
+                      disabled={portalLoading}
+                    >
+                      {portalLoading ? "Caricamento..." : "Gestisci abbonamento"}
+                    </Button>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-[12px] text-muted-foreground/60 hover:text-destructive underline underline-offset-4 transition-colors"
+                    onClick={() => setCancelOpen(true)}
+                  >
+                    Annulla abbonamento
+                  </button>
+                </>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={handleManageBilling}
-                disabled={portalLoading}
-              >
-                {portalLoading ? "Caricamento..." : "Gestisci abbonamento"}
-              </Button>
             </>
           ) : (
             <>
@@ -296,7 +356,43 @@ export default function Impostazioni() {
         </CardContent>
       </Card>
 
-      {/* Privacy e Dati */}
+      {/* Cancel subscription dialog */}
+      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <AlertDialogContent className="border-border bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Vuoi annullare Versō Pro?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>Se annulli l'abbonamento:</p>
+                <ul className="list-disc pl-4 space-y-1">
+                  <li>
+                    Mantieni l'accesso Pro fino al{" "}
+                    <span className="text-foreground font-medium">
+                      {subscriptionEnd
+                        ? new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })
+                        : "termine del periodo"}
+                    </span>
+                  </li>
+                  <li>Dopo questa data tornerai al piano Free (1 candidatura)</li>
+                  <li>Le candidature e i CV già creati restano accessibili</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={canceling}>Mantieni Pro</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={canceling}
+              onClick={handleCancelSubscription}
+            >
+              {canceling ? "Annullamento..." : "Conferma annullazione"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       <Card className="border-border bg-card">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">

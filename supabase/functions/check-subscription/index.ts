@@ -80,13 +80,15 @@ Deno.serve(async (req: Request) => {
     const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
     const hasActiveSub = subscriptions.data.length > 0;
     let subscriptionEnd: string | null = null;
+    let cancelAtPeriodEnd = false;
 
     if (hasActiveSub) {
       const sub = subscriptions.data[0];
       subscriptionEnd = safeTimestamp(sub.current_period_end);
+      cancelAtPeriodEnd = sub.cancel_at_period_end === true;
       const proSince = safeTimestamp(sub.start_date) ?? safeTimestamp(sub.created) ?? new Date().toISOString();
 
-      logStep("Active subscription found", { subscriptionId: sub.id, endDate: subscriptionEnd });
+      logStep("Active subscription found", { subscriptionId: sub.id, endDate: subscriptionEnd, cancelAtPeriodEnd });
 
       await supabase.from("profiles").update({
         is_pro: true,
@@ -107,6 +109,7 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
       subscription_end: subscriptionEnd,
+      cancel_at_period_end: cancelAtPeriodEnd,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
