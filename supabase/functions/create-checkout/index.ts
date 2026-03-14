@@ -56,10 +56,10 @@ Deno.serve(async (req: Request) => {
     // Save stripe_customer_id to profiles
     await supabase.from("profiles").update({ stripe_customer_id: customerId }).eq("user_id", user.id);
 
-    // Check for existing active subscription
+    // Check for existing active subscription — return 200 (idempotent)
     const subs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
     if (subs.data.length > 0) {
-      logStep("User already has active subscription");
+      logStep("User already has active subscription — returning 200");
       return new Response(JSON.stringify({ already_subscribed: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

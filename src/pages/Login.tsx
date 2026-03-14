@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Navigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { AppleLogo } from "@phosphor-icons/react";
@@ -51,16 +51,19 @@ export default function Login() {
     saveRegistrationConsents(user.id, user.email ?? "").catch(() => {});
   }, [user]);
 
-  if (loading) {
+  // Redirect authenticated users imperatively (avoids Navigate ref warning)
+  useEffect(() => {
+    if (!loading && user) {
+      navigate(fromPath, { replace: true });
+    }
+  }, [loading, user, fromPath, navigate]);
+
+  if (loading || user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
-  }
-
-  if (user) {
-    return <Navigate to={fromPath} replace />;
   }
 
   // Compute whether form is valid for submit

@@ -6,6 +6,20 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
 };
 
+/** Safely convert a Stripe timestamp (seconds) to ISO string. Returns null on any failure. */
+function safeTimestamp(value: unknown): string | null {
+  if (value == null) return null;
+  const num = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  try {
+    const d = new Date(num * 1000);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -21,7 +35,12 @@ Deno.serve(async (req: Request) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      // Graceful: no auth → not subscribed (avoids 500 on race conditions)
+      logStep("No auth header, returning unsubscribed");
+      return new Response(JSON.stringify({ subscribed: false, subscription_end: null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
     const supabase = createClient(
@@ -32,7 +51,14 @@ Deno.serve(async (req: Request) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData.user?.email) throw new Error("User not authenticated");
+    if (userError || !userData.user?.email) {
+      // Graceful: invalid token → not subscribed
+      logStep("User not authenticated, returning unsubscribed");
+      return new Response(JSON.stringify({ subscribed: false, subscription_end: null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
     const user = userData.user;
     logStep("User authenticated", { userId: user.id });
 
@@ -41,9 +67,8 @@ Deno.serve(async (req: Request) => {
 
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");
-      // Ensure is_pro is false
       await supabase.from("profiles").update({ is_pro: false, stripe_subscription_id: null, pro_expires_at: null }).eq("user_id", user.id);
-      return new Response(JSON.stringify({ subscribed: false }), {
+      return new Response(JSON.stringify({ subscribed: false, subscription_end: null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -58,15 +83,10 @@ Deno.serve(async (req: Request) => {
 
     if (hasActiveSub) {
       const sub = subscriptions.data[0];
-      subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
-      logStep("Active subscription found", { subscriptionId: sub.id, endDate: subscriptionEnd });
+      subscriptionEnd = safeTimestamp(sub.current_period_end);
+      const proSince = safeTimestamp(sub.start_date) ?? safeTimestamp(sub.created) ?? new Date().toISOString();
 
-      // Update profile with Pro status
-      const proSince = sub.start_date
-        ? new Date(sub.start_date * 1000).toISOString()
-        : sub.created
-          ? new Date(sub.created * 1000).toISOString()
-          : new Date().toISOString();
+      logStep("Active subscription found", { subscriptionId: sub.id, endDate: subscriptionEnd });
 
       await supabase.from("profiles").update({
         is_pro: true,
