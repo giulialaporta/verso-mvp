@@ -46,6 +46,14 @@ const App = () => (
               <Route path="/cookie-policy" element={<Suspense fallback={<PageSkeleton />}><CookiePolicyPage /></Suspense>} />
               <Route path="/" element={<Navigate to="/app/home" replace />} />
               <Route
+                path="/upgrade"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageSkeleton />}><Upgrade /></Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/onboarding"
                 element={
                   <ProtectedRoute>
