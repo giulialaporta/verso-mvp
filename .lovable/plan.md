@@ -1,51 +1,138 @@
 
 
-# Story 17 — Analisi Retributiva nello Step 2
+# Piano di implementazione — Epic 07: Versō Pro
 
-## Acceptance Criteria
+## Riepilogo
 
-1. **AC-1**: Se `salary_expectations` è presente nel profilo utente, viene inviato nel body della request a `ai-prescreen`
-2. **AC-2**: Il prompt di `ai-prescreen` include istruzioni per generare `salary_analysis` quando riceve `salary_expectations`
-3. **AC-3**: Il tool schema di `ai-prescreen` include la struttura `salary_analysis` come campo opzionale
-4. **AC-4**: Nello Step 1 (Verifica), se `salary_analysis` è presente nel response, appare la card "Analisi Retributiva" con:
-   - Due barre orizzontali proporzionali (candidato vs posizione)
-   - Range RAL formattati (es. "€35-42K")
-   - Badge fonte per ogni barra (Da te / Dall'annuncio / Stimata)
-   - Delta percentuale colorato (verde ↑ / giallo → / rosso ↓)
-   - Nota esplicativa dall'AI
-   - Disclaimer in testo muted
-5. **AC-5**: Se `salary_analysis` è assente nel response → nessuna sezione, nessun errore
-6. **AC-6**: Se l'utente non ha `salary_expectations` nel profilo → `salary_expectations` non viene inviato, e l'AI può comunque stimare dalla posizione se il range è esplicito nell'annuncio
+Implementare il sistema di abbonamento Versō Pro (€9.90/mese) con Stripe Checkout, limite 1 candidatura per utenti Free, pagina upgrade, e gestione piano nelle impostazioni.
 
-## Piano di implementazione
+**Stripe già configurato:**
+- Prodotto: `prod_U9GMtzF9xUXuJD`
+- Prezzo: `price_1TAxqBHrhFDiG0jqQeXXvMMu` (€9.90/mese ricorrente)
+- Secret `STRIPE_SECRET_KEY` già presente
 
-### 1. Edge Function `ai-prescreen` (2 modifiche)
+---
 
-**Prompt**: Aggiungere sezione che istruisce l'AI a produrre `salary_analysis` quando riceve `salary_expectations` o quando l'annuncio contiene un range esplicito.
+## Fase 1 — Database
 
-**Tool schema**: Aggiungere `salary_analysis` come proprietà opzionale con struttura:
-```
-salary_analysis: {
-  candidate_estimate: { min, max, source, basis }
-  position_estimate: { min, max, source, basis }
-  delta: "positive" | "neutral" | "negative"
-  delta_percentage: string
-  note: string
-}
+**Migrazione:** aggiungere colonne a `profiles`:
+```sql
+ALTER TABLE profiles ADD COLUMN is_pro boolean DEFAULT false;
+ALTER TABLE profiles ADD COLUMN stripe_customer_id text;
+ALTER TABLE profiles ADD COLUMN stripe_subscription_id text;
+ALTER TABLE profiles ADD COLUMN pro_since timestamptz;
+ALTER TABLE profiles ADD COLUMN pro_expires_at timestamptz;
 ```
 
-**Request body**: Leggere `salary_expectations` dal body della request e includerlo nel messaggio user all'AI.
+Le policy RLS esistenti su `profiles` proteggono già questi campi.
 
-### 2. Frontend `Nuova.tsx` (2 modifiche)
+---
 
-**Chiamata**: Fetch `salary_expectations` dal profilo utente e passarlo nel body di `ai-prescreen`.
+## Fase 2 — Edge Functions (3 nuove)
 
-**Componente `SalaryAnalysisCard`**: Nuova sezione dentro `StepVerifica`, renderizzata condizionalmente. Implementa barre proporzionali, badge fonte, delta colorato, disclaimer.
+### `create-checkout` 
+- Autentica utente via JWT
+- Cerca/crea Stripe Customer per email
+- Salva `stripe_customer_id` su profiles
+- Crea Checkout Session (`mode: subscription`, price `price_1TAxqBHrhFDiG0jqQeXXvMMu`)
+- `success_url` → `/app/home?upgrade=success`, `cancel_url` → `/upgrade`
 
-### File coinvolti
+### `check-subscription`
+- Autentica utente, cerca customer Stripe per email
+- Controlla subscription attiva
+- Restituisce `{ subscribed, subscription_end }`
+- Usata su login, page load, e polling post-checkout
 
-| File | Modifiche |
-|------|-----------|
-| `supabase/functions/ai-prescreen/index.ts` | Prompt + schema + body handling |
-| `src/pages/Nuova.tsx` | Fetch salary, pass to API, render card |
+### `customer-portal`
+- Autentica utente, cerca `stripe_customer_id`
+- Crea Billing Portal Session
+- `return_url` → `/app/impostazioni`
+
+> Niente webhook per ora (come da linee guida Stripe). Lo stato Pro viene verificato in tempo reale via `check-subscription`.
+
+---
+
+## Fase 3 — Frontend: Subscription Context
+
+Nuovo hook `useSubscription` che:
+- Chiama `check-subscription` al login e ogni 60s
+- Espone `{ isPro, subscriptionEnd, loading, refresh }`
+- Integrato nell'`AuthContext` o come context separato
+
+---
+
+## Fase 4 — Gate candidature
+
+### Client-side (UX)
+- Prima di navigare a `/app/nuova`: query `applications` con `status != 'ko'`
+- Se count ≥ 1 e `isPro === false` → redirect a `/upgrade`
+- Punti di gate: CTA dashboard, FAB mobile, sidebar, StepCompleta "Nuova candidatura"
+
+### Server-side (ai-tailor)
+- Aggiungere check: se utente non Pro e ha ≥ 1 candidatura attiva → 403 `UPGRADE_REQUIRED`
+- Il frontend intercetta e fa redirect a `/upgrade`
+
+---
+
+## Fase 5 — Pagina `/upgrade`
+
+Nuova pagina pubblica (protetta da auth) con:
+- **Blocco 1:** riepilogo prima candidatura (azienda, ruolo, match score)
+- **Blocco 2:** value proposition e limite Free
+- **Blocco 3:** benefit Pro (€9.90/mese, candidature illimitate, tutti i template)
+- **Blocco 4:** CTA "Passa a Versō Pro" → invoca `create-checkout` → redirect Stripe
+- CTA secondaria "Resta con il piano Free" → torna a dashboard
+
+Stile: layout centrato, spazioso, dark mode coerente con l'app.
+
+---
+
+## Fase 6 — Post-upgrade UX
+
+- Rotta `/app/home?upgrade=success`: polling `check-subscription` (3 tentativi ogni 2s)
+- Toast "Benvenuto in Versō Pro!"
+- Badge "Versō Pro" nella StatsBar della dashboard (icona Crown)
+
+---
+
+## Fase 7 — Impostazioni → Piano
+
+Sottosezione nella card Account:
+- **Free:** "Piano: Free" + "Puoi creare 1 candidatura" + link "Scopri Versō Pro"
+- **Pro:** "Piano: Versō Pro" + badge + date attivazione/rinnovo + "Gestisci abbonamento" (→ customer-portal)
+
+---
+
+## Fase 8 — Gate template
+
+- Aggiornare `TEMPLATES` in `cv-templates/index.ts`: marcare template futuri come `free: false`
+- Nel selettore template (StepExport): lucchetto su template Pro per utenti Free
+- Click → toast con link a `/upgrade`
+
+---
+
+## Fase 9 — Micro-banner StepCompleta
+
+Dopo le 3 card azione esistenti, aggiungere per utenti Free con ≥1 candidatura:
+> "Hai usato la tua candidatura gratuita. La prossima volta, Versō Pro."
+
+Tono discreto, nessun CTA aggressivo.
+
+---
+
+## Riepilogo file coinvolti
+
+| Area | File |
+|------|------|
+| DB | Migrazione `profiles` |
+| Edge Functions | `create-checkout/index.ts`, `check-subscription/index.ts`, `customer-portal/index.ts` |
+| Config | `supabase/config.toml` (verify_jwt per nuove functions) |
+| Context | Nuovo `src/hooks/useSubscription.ts` |
+| Pages | Nuova `src/pages/Upgrade.tsx` |
+| Routing | `src/App.tsx` (aggiunta rotta `/upgrade`) |
+| Gate | `src/pages/Nuova.tsx`, `src/pages/Home.tsx`, `src/components/AppShell.tsx` |
+| Wizard | `src/components/wizard/StepCompleta.tsx`, `src/components/wizard/StepExport.tsx` |
+| Impostazioni | `src/pages/Impostazioni.tsx` |
+| Templates | `src/components/cv-templates/index.ts` |
+| Server gate | `supabase/functions/ai-tailor/index.ts` |
 
