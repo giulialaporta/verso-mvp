@@ -550,17 +550,15 @@ Deno.serve(async (req) => {
         : ""
     }${contextInfo}`;
 
-    const { data: aiData } = await aiFetch({
-      model: "google/gemini-2.5-pro",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT_TAILOR },
-        { role: "user", content: userContent },
-      ],
+    const aiTailorResult = await callAi({
+      task: "ai-tailor",
+      systemPrompt: SYSTEM_PROMPT_TAILOR,
+      userMessage: userContent,
       tools: [TOOL_SCHEMA_TAILOR],
-      tool_choice: { type: "function", function: { name: "tailor_cv" } },
-    });
+      toolChoice: { type: "function", function: { name: "tailor_cv" } },
+    }, userId);
 
-    const result = parseAIResponse(aiData);
+    const result = aiTailorResult.content;
     if (!result) {
       return new Response(JSON.stringify({ error: "Impossibile generare il CV. Riprova." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
