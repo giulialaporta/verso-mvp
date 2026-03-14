@@ -456,14 +456,22 @@ function adjustScore(r: Record<string, unknown>): void {
   if (finalScore !== aiScore) {
     const parts: string[] = [];
     if (criticalCount > 0) {
-      parts.push(`${criticalCount} gap critic${criticalCount === 1 ? "o" : "i"}`);
+      const cSuffix = criticalCount === 1 ? "o" : "i";
+      parts.push(criticalCount + " gap critic" + cSuffix);
     } else if (essentialMissing > 0) {
-      parts.push(`${essentialMissing} competenz${essentialMissing === 1 ? "a essenziale mancante" : "e essenziali mancanti"}`);
+      const eSuffix = essentialMissing === 1 ? "a essenziale mancante" : "e essenziali mancanti";
+      parts.push(essentialMissing + " competenz" + eSuffix);
     }
-    if (moderateCount > 0) parts.push(`${moderateCount} gap moderat${moderateCount === 1 ? "o" : "i"}`);
+    if (moderateCount > 0) {
+      const mSuffix = moderateCount === 1 ? "o" : "i";
+      parts.push(moderateCount + " gap moderat" + mSuffix);
+    }
     if (seniorityPenalty > 0) parts.push("disallineamento seniority");
-    if (atsPenalty > 0) parts.push(`${atsFails} check ATS non superat${atsFails === 1 ? "o" : "i"}`);
-    r.score_note = `Punteggio adeguato: ${parts.join(", ")}.`;
+    if (atsPenalty > 0) {
+      const aSuffix = atsFails === 1 ? "o" : "i";
+      parts.push(atsFails + " check ATS non superat" + aSuffix);
+    }
+    r.score_note = "Punteggio adeguato: " + parts.join(", ") + ".";
     r.match_score = finalScore;
   }
 }
