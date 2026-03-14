@@ -242,6 +242,7 @@ Add these as nice_to_have unless explicitly required.`;
           nice_to_have: { type: "array", items: { type: "string" } },
           seniority_level: { type: "string", description: "junior/mid/senior/lead/executive if detectable" },
           salary_range: { type: "string", description: "Salary range if mentioned" },
+          company_size: { type: "string", description: "Company size if detectable (startup, PMI, mid-size, enterprise, or employee count)" },
           industry: { type: "string", description: "Industry/sector if detectable" },
         },
         required: ["company_name", "role_title", "description", "key_requirements", "required_skills"],
