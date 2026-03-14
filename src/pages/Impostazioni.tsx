@@ -297,7 +297,11 @@ export default function Impostazioni() {
               {cancelAtPeriodEnd ? (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
-                    Il tuo piano scade il <span className="text-foreground font-medium">{new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}</span>. Dopo questa data tornerai al piano Free.
+                    {subscriptionEnd ? (
+                      <>Il tuo piano scade il <span className="text-foreground font-medium">{new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}</span>. Dopo questa data tornerai al piano Free.</>
+                    ) : (
+                      <>Il tuo abbonamento è in fase di annullamento. Tornerai al piano Free al termine del periodo corrente.</>
+                    )}
                   </p>
                   <p className="text-xs text-muted-foreground">Le candidature e i CV già creati restano accessibili.</p>
                   <Button
