@@ -17,40 +17,61 @@ export default function Upgrade() {
 
   const firstApp = apps?.[0];
 
+  const isAlreadySubscribed = (payload: unknown) => {
+    if (!payload) return false;
+    if (typeof payload === "string") return payload.toLowerCase().includes("already subscribed");
+    if (typeof payload === "object") {
+      const value = payload as { error?: unknown; message?: unknown };
+      return isAlreadySubscribed(value.error) || isAlreadySubscribed(value.message);
+    }
+    return false;
+  };
+
   const handleCheckout = async () => {
     if (!user) return;
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout");
 
-      // Handle non-2xx responses (supabase puts them in error)
       if (error) {
-        // Try to parse the error context for "Already subscribed"
-        const errMsg = error?.message || error?.context?.body || "";
-        if (typeof errMsg === "string" && errMsg.includes("Already subscribed")) {
+        let contextBody: unknown = null;
+        const context = (error as { context?: unknown }).context;
+
+        if (context instanceof Response) {
+          try {
+            contextBody = await context.clone().json();
+          } catch {
+            try {
+              contextBody = await context.clone().text();
+            } catch {
+              contextBody = null;
+            }
+          }
+        }
+
+        if (isAlreadySubscribed(error) || isAlreadySubscribed(contextBody)) {
           toast.success("Sei già abbonata a Versō Pro!");
           navigate("/app/home");
           return;
         }
+
         throw error;
       }
 
-      if (data?.error) {
-        if (data.error === "Already subscribed") {
-          toast.success("Sei già abbonata a Versō Pro!");
-          navigate("/app/home");
-          return;
-        }
-        throw new Error(data.error);
+      if (data?.already_subscribed || data?.error === "Already subscribed") {
+        toast.success("Sei già abbonata a Versō Pro!");
+        navigate("/app/home");
+        return;
       }
 
       if (data?.url) {
         window.location.href = data.url;
+        return;
       }
-    } catch (e: any) {
-      // Last resort check for "Already subscribed"
-      const msg = e?.message || String(e);
-      if (msg.includes("Already subscribed")) {
+
+      throw new Error("Checkout URL not available");
+    } catch (e: unknown) {
+      if (isAlreadySubscribed(e)) {
         toast.success("Sei già abbonata a Versō Pro!");
         navigate("/app/home");
         return;
