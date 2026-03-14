@@ -153,7 +153,7 @@ export function StepVerifica({
               <p className="text-xs text-muted-foreground">Seleziona il tuo livello per ogni domanda. Le risposte sono facoltative ma aiutano Verso a personalizzare il CV.</p>
               <div className="space-y-5">
                 {prescreenResult.follow_up_questions.map((q) => {
-                  const options = q.options || getOptionsForField(q.field);
+                  const options = q.options || DEFAULT_OPTIONS;
                   const current = answers[q.id] || { level: "", detail: "" };
                   return (
                     <div key={q.id} className="space-y-2.5">
