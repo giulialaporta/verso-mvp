@@ -59,6 +59,7 @@ export default function Impostazioni() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isPro, subscriptionEnd } = useSubscription();
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -66,6 +67,21 @@ export default function Impostazioni() {
   const [loadingConsents, setLoadingConsents] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const handleManageBilling = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) window.open(data.url, "_blank");
+    } catch {
+      toast({ title: "Errore", description: "Non è stato possibile aprire il portale.", variant: "destructive" });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   // Load user consents
   useEffect(() => {
