@@ -248,8 +248,9 @@ async function callAnthropic(request: AiRequest, model: string): Promise<Provide
       tokensIn: usage.input_tokens || 0,
       tokensOut: usage.output_tokens || 0,
     };
-  } finally {
-    clearTimeout(timeout);
+  } catch (e) {
+    console.error(`[AI] Anthropic fetch error:`, (e as Error).message);
+    throw e;
   }
 }
 
