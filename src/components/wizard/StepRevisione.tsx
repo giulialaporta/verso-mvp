@@ -80,7 +80,7 @@ export function StepRevisione({
         <CardContent className="py-5 space-y-3">
           <div className="flex items-center gap-2">
             <ListChecks size={18} className="text-primary" />
-            <span className="text-sm font-medium">Cosa abbiamo cambiato</span>
+            <span className="text-sm font-medium">Cosa ho cambiato</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="rounded-lg border border-border/30 p-3 text-center">

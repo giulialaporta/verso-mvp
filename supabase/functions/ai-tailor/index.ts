@@ -132,13 +132,14 @@ const SYSTEM_PROMPT_TAILOR = `You are an expert career coach and ATS specialist 
 
 ## CRITICAL RULE — TWO-LEVEL LANGUAGE POLICY
 1. CV CONTENT (tailored_patches values, summary, bullets, skill labels, descriptions) 
-   MUST be in the SAME LANGUAGE as the job posting (provided as detected_language).
+   MUST be in the TARGET LANGUAGE chosen by the user (provided as detected_language in the PRIOR ANALYSIS CONTEXT).
+   This is the user's explicit choice — it may differ from the job posting language. ALWAYS respect it.
 2. ANALYSIS & UI TEXT (diff reasons, structural_changes reason/item) 
    MUST ALWAYS be in ITALIAN, regardless of the job posting language.
 This rule is ABSOLUTE. No exceptions.
 
 ## LANGUAGE CONSISTENCY — ABSOLUTE RULE
-The ENTIRE tailored CV content MUST be in ONE single language: the language of the job posting.
+The ENTIRE tailored CV content MUST be in ONE single language: the TARGET language specified in detected_language.
 This means ALL of the following must be in the SAME language:
 - summary
 - ALL experience descriptions and bullets (every single one)
@@ -147,8 +148,8 @@ This means ALL of the following must be in the SAME language:
 - ALL certification names (keep original if proper nouns)
 - ALL project descriptions
 
-NEVER mix languages within the CV. If the job posting is in English, the ENTIRE CV must be in English.
-If the job posting is in Italian, the ENTIRE CV must be in Italian.
+NEVER mix languages within the CV. If detected_language is "en", the ENTIRE CV must be in English.
+If detected_language is "it", the ENTIRE CV must be in Italian. The user's choice overrides the job posting language.
 
 Common mistake to AVOID: translating some bullets but leaving others in the original language.
 Check EVERY bullet and EVERY section before finalizing.
@@ -555,7 +556,7 @@ Deno.serve(async (req) => {
 
     // ==================== MODE: TAILOR ====================
     const contextInfo = analyze_context
-      ? `\n\nPRIOR ANALYSIS CONTEXT:\n- Match score: ${analyze_context.match_score}\n- Skills missing: ${JSON.stringify(analyze_context.skills_missing)}\n- Detected language: ${analyze_context.detected_language}`
+      ? `\n\nPRIOR ANALYSIS CONTEXT:\n- Match score: ${analyze_context.match_score}\n- Skills missing: ${JSON.stringify(analyze_context.skills_missing)}\n- Target CV language (user's explicit choice): ${analyze_context.detected_language}\n- IMPORTANT: Use "${analyze_context.detected_language}" as the language for ALL CV content, even if the job posting is in a different language.`
       : "";
 
     const userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}${

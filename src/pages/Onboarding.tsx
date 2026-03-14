@@ -297,7 +297,7 @@ export default function Onboarding() {
                   <div className="text-center space-y-3">
                     <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                     <h2 className="font-display text-lg sm:text-xl font-bold">Verso sta leggendo il tuo CV...</h2>
-                    <p className="text-sm text-muted-foreground">Stiamo estraendo le informazioni.</p>
+                    <p className="text-sm text-muted-foreground">Sto estraendo le informazioni.</p>
                   </div>
                   <Progress value={undefined} className="h-1" />
                   <div className="space-y-4">
@@ -330,7 +330,7 @@ export default function Onboarding() {
                     </div>
                     <h2 className="font-display text-lg sm:text-xl font-bold">CV analizzato</h2>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                      Abbiamo trovato{" "}
+                      Ho trovato{" "}
                       {parsedData.experience?.length ?? 0} esperienze,{" "}
                       {[...(parsedData.skills?.technical ?? []), ...(parsedData.skills?.soft ?? []), ...(parsedData.skills?.tools ?? [])].length} competenze
                       {parsedData.certifications?.length ? `, ${parsedData.certifications.length} certificazioni` : ""}.

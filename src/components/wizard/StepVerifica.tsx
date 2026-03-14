@@ -134,7 +134,7 @@ export function StepVerifica({
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="border-info/30 bg-card/80">
             <CardContent className="pt-5 space-y-4">
-              <div className="flex items-center gap-2"><ChatTeardropDots size={20} className="text-info" weight="fill" /><span className="text-sm font-medium">Aiutaci a conoscerti meglio</span></div>
+              <div className="flex items-center gap-2"><ChatTeardropDots size={20} className="text-info" weight="fill" /><span className="text-sm font-medium">Aiutami a conoscerti meglio</span></div>
               <p className="text-xs text-muted-foreground">Rispondi alle domande per aiutare Verso a scoprire competenze non esplicite nel tuo CV. Le risposte sono facoltative.</p>
               <div className="space-y-4">
                 {prescreenResult.follow_up_questions.map((q) => (
