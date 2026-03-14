@@ -5,7 +5,7 @@ import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap } from "@phosphor-icons/react";
-import { ClassicoTemplate, MinimalTemplate, TEMPLATES } from "@/components/cv-templates";
+import { ClassicoTemplate, MinimalTemplate, ExecutiveTemplate, ModernoTemplate, TEMPLATES } from "@/components/cv-templates";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
 
