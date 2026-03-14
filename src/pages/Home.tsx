@@ -467,6 +467,8 @@ export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
+  const { isPro } = useSubscription();
+  const checkCanCreate = useProGate();
 
   // React Query hooks
   const { data: profile } = useProfile();
