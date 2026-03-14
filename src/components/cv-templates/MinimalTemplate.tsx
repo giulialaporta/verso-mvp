@@ -180,7 +180,7 @@ export function MinimalTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
           )}
 
           {extraSections.map((sec: any, i: number) => (
-            <View key={i}>
+            <View key={i} wrap={false}>
               <View style={s.divider} />
               <Text style={s.sectionTitle}>{sec.title}</Text>
               {(sec.items || []).filter((item: string) => clean(item)).map((item: string, j: number) => (

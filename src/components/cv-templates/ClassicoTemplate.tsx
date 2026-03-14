@@ -176,7 +176,7 @@ export function ClassicoTemplate({ cv, lang }: { cv: Record<string, any>; lang?:
           )}
 
           {extraSections.map((sec: any, i: number) => (
-            <View key={i}>
+            <View key={i} wrap={false}>
               <Text style={s.sectionTitle}>{sec.title}</Text>
               {(sec.items || []).filter((item: string) => clean(item)).map((item: string, j: number) => (
                 <Text key={j} style={s.bullet}>• {item}</Text>
