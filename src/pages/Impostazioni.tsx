@@ -86,7 +86,7 @@ export default function Impostazioni() {
       toast({
         title: "Abbonamento in cancellazione",
         description: data?.cancel_at
-          ? `Hai accesso a Versō Pro fino al ${new Date(data.cancel_at).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}.`
+          ? `Hai accesso a Verso Pro fino al ${new Date(data.cancel_at).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}.`
           : "L'abbonamento non verrà rinnovato.",
       });
     } catch {
