@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { House, Briefcase, SignOut, List, Plus, Flask, Gear } from "@phosphor-icons/react";
+import { House, Briefcase, SignOut, List, Plus, Flask, Gear, Question } from "@phosphor-icons/react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useProGate } from "@/hooks/useProGate";
 import { NavLink } from "@/components/NavLink";

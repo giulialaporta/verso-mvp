@@ -27,6 +27,7 @@ const Impostazioni = lazy(() => import("./pages/Impostazioni"));
 const CVEdit = lazy(() => import("./pages/CVEdit"));
 const CandidaturaDetail = lazy(() => import("./pages/CandidaturaDetail"));
 const DevTest = lazy(() => import("./pages/DevTest"));
+const Faq = lazy(() => import("./pages/Faq"));
 
 const queryClient = new QueryClient();
 
