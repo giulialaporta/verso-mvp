@@ -456,11 +456,11 @@ function adjustScore(r: Record<string, unknown>): void {
   if (finalScore !== aiScore) {
     const parts: string[] = [];
     if (criticalCount > 0) {
-      parts.push(`${criticalCount} gap critico/i`);
+      parts.push(`${criticalCount} gap critic${criticalCount === 1 ? "o" : "i"}`);
     } else if (essentialMissing > 0) {
       parts.push(`${essentialMissing} competenz${essentialMissing === 1 ? "a essenziale mancante" : "e essenziali mancanti"}`);
     }
-    if (moderateCount > 0) parts.push(`${moderateCount} gap moderato/i`);
+    if (moderateCount > 0) parts.push(`${moderateCount} gap moderat${moderateCount === 1 ? "o" : "i"}`);
     if (seniorityPenalty > 0) parts.push("disallineamento seniority");
     if (atsPenalty > 0) parts.push(`${atsFails} check ATS non superat${atsFails === 1 ? "o" : "i"}`);
     r.score_note = `Punteggio adeguato: ${parts.join(", ")}.`;
