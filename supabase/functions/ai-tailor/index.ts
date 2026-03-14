@@ -139,7 +139,7 @@ const SYSTEM_PROMPT_TAILOR = `You are an expert career coach and ATS specialist 
 This rule is ABSOLUTE. No exceptions.
 
 ## LANGUAGE CONSISTENCY — ABSOLUTE RULE
-The ENTIRE tailored CV content MUST be in ONE single language: the language of the job posting.
+The ENTIRE tailored CV content MUST be in ONE single language: the TARGET language specified in detected_language.
 This means ALL of the following must be in the SAME language:
 - summary
 - ALL experience descriptions and bullets (every single one)
