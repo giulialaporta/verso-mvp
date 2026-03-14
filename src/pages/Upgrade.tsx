@@ -180,7 +180,7 @@ export default function Upgrade() {
             {loading ? (
               <><SpinnerGap size={18} className="animate-spin" /> Reindirizzamento...</>
             ) : (
-              <><Crown size={18} weight="fill" /> Passa a Versō Pro</>
+              <><Crown size={18} weight="fill" /> Passa a Verso Pro</>
             )}
           </Button>
 

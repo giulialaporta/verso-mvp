@@ -386,7 +386,7 @@ export default function Impostazioni() {
       <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <AlertDialogContent className="border-border bg-background">
           <AlertDialogHeader>
-            <AlertDialogTitle>Vuoi annullare Versō Pro?</AlertDialogTitle>
+            <AlertDialogTitle>Vuoi annullare Verso Pro?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 text-sm text-muted-foreground">
                 <p>Se annulli l'abbonamento:</p>

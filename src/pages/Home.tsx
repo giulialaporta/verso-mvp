@@ -576,7 +576,7 @@ export default function Home() {
         await refreshSubscription();
         if (attempts >= 3) {
           clearInterval(poll);
-          toast.success("Benvenuto in Versō Pro! 🎉");
+          toast.success("Benvenuto in Verso Pro! 🎉");
           navigate("/app/home", { replace: true });
         }
       }, 2000);
