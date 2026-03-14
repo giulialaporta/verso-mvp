@@ -132,7 +132,8 @@ const SYSTEM_PROMPT_TAILOR = `You are an expert career coach and ATS specialist 
 
 ## CRITICAL RULE — TWO-LEVEL LANGUAGE POLICY
 1. CV CONTENT (tailored_patches values, summary, bullets, skill labels, descriptions) 
-   MUST be in the SAME LANGUAGE as the job posting (provided as detected_language).
+   MUST be in the TARGET LANGUAGE chosen by the user (provided as detected_language in the PRIOR ANALYSIS CONTEXT).
+   This is the user's explicit choice — it may differ from the job posting language. ALWAYS respect it.
 2. ANALYSIS & UI TEXT (diff reasons, structural_changes reason/item) 
    MUST ALWAYS be in ITALIAN, regardless of the job posting language.
 This rule is ABSOLUTE. No exceptions.
