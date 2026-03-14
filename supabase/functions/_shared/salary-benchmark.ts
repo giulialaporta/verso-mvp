@@ -51,15 +51,31 @@ async function firecrawlSearch(
   return results;
 }
 
+function simplifyTitle(title: string): string {
+  // Remove special chars, keep core role words
+  return title
+    .replace(/[—–\-\/\\|:;()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .slice(0, 4) // Keep max 4 words to avoid over-specific queries
+    .join(" ");
+}
+
 function buildQueries(params: BenchmarkParams): string[] {
   const { role_title, company_name, location, industry } = params;
   const loc = location || "Italia";
-  const company = company_name ? ` ${company_name}` : "";
+  const simple = simplifyTitle(role_title);
   const sector = industry ? ` ${industry}` : "";
 
+  // Query 1: Italian, with company (broader title)
+  // Query 2: English, without company (even broader)
+  // Query 3: Very broad fallback
   return [
-    `RAL "${role_title}" ${loc} stipendio${company}${sector}`,
-    `"${role_title}" salary Italy${company}${sector} average`,
+    `RAL ${simple} ${loc} stipendio${company_name ? ` ${company_name}` : ""}${sector}`,
+    `${simple} salary Italy average${sector}`,
+    `stipendio ${simple} Italia 2025`,
+  ];
   ];
 }
 
