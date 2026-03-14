@@ -50,7 +50,7 @@ export default function Upgrade() {
         }
 
         if (isAlreadySubscribed(error) || isAlreadySubscribed(contextBody)) {
-          toast.success("Sei già abbonata a Versō Pro!");
+          toast.success("Sei già abbonata a Verso Pro!");
           navigate("/app/home");
           return;
         }
