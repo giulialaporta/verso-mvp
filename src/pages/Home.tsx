@@ -431,6 +431,31 @@ function CVCard({
   onSaveSalary: (data: { current_ral: number | null; desired_ral: number | null }) => Promise<void>;
 }) {
   const navigate = useNavigate();
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const handleDownloadCV = useCallback(async () => {
+    if (!cv.parsed_data) return;
+    setDownloadingPdf(true);
+    try {
+      const blob = await pdf(<ClassicoTemplate cv={cv.parsed_data} />).toBlob();
+      const name = cv.parsed_data?.personal?.name || "CV";
+      const fileName = `CV-${name.replace(/\s+/g, "-")}.pdf`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("PDF scaricato!");
+    } catch (e) {
+      console.error("PDF generation error:", e);
+      toast.error("Errore durante la generazione del PDF.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }, [cv]);
 
   return (
     <Card className="border-border/50 bg-card/80">
@@ -510,6 +535,22 @@ function CVCard({
           >
             <UploadSimple size={16} /> Carica nuovo CV
           </Button>
+
+          {cv.parsed_data && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadCV}
+              disabled={downloadingPdf}
+              className="gap-2"
+            >
+              {downloadingPdf ? (
+                <><SpinnerGap size={16} className="animate-spin" /> Generazione...</>
+              ) : (
+                <><DownloadSimple size={16} /> Scarica PDF</>
+              )}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
