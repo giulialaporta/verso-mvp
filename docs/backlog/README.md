@@ -9,7 +9,7 @@ Naming coerente con `docs/spec/`: epic = `epic-XX-nome.md`, stories = `stories-p
 
 | File | Descrizione |
 |------|-------------|
-| `epic-07-verso-pro.md` | **F7 — Versō Pro** — Abbonamento €12.99/mese, Stripe Checkout, limite 1 candidatura Free, upgrade CJ, gate template |
+| `epic-07-verso-pro.md` | **F7 — Versō Pro** — Abbonamento €9.90/mese, Stripe Checkout, limite 1 candidatura Free, upgrade CJ, gate template |
 | `epic-10-migrazione-ai.md` | **F10 — Migrazione AI** — Da Lovable Gateway/Gemini a Claude Sonnet 4 + Haiku, multi-provider |
 
 ## Stories per priorita'

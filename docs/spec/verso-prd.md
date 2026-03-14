@@ -18,7 +18,7 @@ Verso non inventa competenze, non cambia date, non aggiunge esperienze inesisten
 
 **Monetizzazione:** Freemium
 - **Free:** 1 candidatura, 2 template (Classico, Minimal), export PDF.
-- **Versō Pro (€12.99/mese):** candidature illimitate, tutti i template, export PDF + DOCX (futuro).
+- **Versō Pro (€9.90/mese):** candidature illimitate, tutti i template, export PDF + DOCX (futuro).
 
 ---
 
@@ -224,7 +224,7 @@ email_threads (
 | F4 | Dettaglio Candidatura | Vista completa: CV, lettera, info azienda, gap analysis, email, note. | [Epic 04](epics/epic-04-dettaglio-candidatura.md) |
 | F5 | Profilo e Master CV | Editor Tiptap per CV master, skill cloud, versioni CV, account collegati. | [Epic 05](epics/epic-05-profilo-master-cv.md) |
 | F6 | AI Engine | 3 edge functions: ricerca azienda, analisi + scoring, tailoring CV + cover letter. | [Epic 06](epics/epic-06-ai-engine.md) |
-| F7 | Versō Pro | 1 candidatura Free, Pro €12.99/mese illimitato, Stripe Checkout, gate template. | [Epic 07](../backlog/epic-07-verso-pro.md) |
+| F7 | Versō Pro | 1 candidatura Free, Pro €9.90/mese illimitato, Stripe Checkout, gate template. | [Epic 07](../backlog/epic-07-verso-pro.md) |
 | F8 | Impostazioni | Account, integrazioni, provider AI, piano, notifiche. | [Epic 08](epics/epic-08-settings.md) |
 
 ---

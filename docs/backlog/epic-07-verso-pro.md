@@ -6,7 +6,7 @@
 
 ## Obiettivo
 
-Introdurre **Versō Pro**, un abbonamento mensile a **€12.99** che sblocca candidature illimitate. Gli utenti Free possono creare **1 sola candidatura**. Questo epic copre l'esperienza di abbonamento e un customer journey di upgrade progettato per convertire nel momento di massimo valore percepito.
+Introdurre **Versō Pro**, un abbonamento mensile a **€9.90** che sblocca candidature illimitate. Gli utenti Free possono creare **1 sola candidatura**. Questo epic copre l'esperienza di abbonamento e un customer journey di upgrade progettato per convertire nel momento di massimo valore percepito.
 
 ---
 
@@ -34,7 +34,7 @@ Prima di sviluppare, serve configurare Stripe. Questi step sono manuali, non li 
 
 - Dashboard Stripe → Prodotti → "+ Aggiungi prodotto"
 - Nome: "Versō Pro"
-- Prezzo: **€12.99/mese**, ricorrente
+- Prezzo: **€9.90/mese**, ricorrente
 - Copia il `price_id` (inizia con `price_...`) — serve nella Edge Function
 
 ### 3. Configurare il webhook
@@ -72,7 +72,7 @@ Prima di sviluppare, serve configurare Stripe. Questi step sono manuali, non li 
 | Candidature (tailored CV) | **1** | Illimitate |
 | Template CV | Classico, Minimal | Tutti (inclusi futuri) |
 | Export | PDF | PDF + DOCX (futuro) |
-| Prezzo | Gratis | €12.99/mese |
+| Prezzo | Gratis | €9.90/mese |
 
 > Il limite Free è **totale**, non mensile. L'utente Free può creare 1 sola candidatura con status diverso da `ko`. Se la candidatura viene rifiutata (`ko`), può crearne un'altra.
 
@@ -119,7 +119,7 @@ Pagina dedicata, non un modal. L'utente deve sentire che sta prendendo una decis
 - "Con il piano Free, puoi creare 1 solo CV adattato."
 
 **Blocco 3 — La soluzione:**
-- **"Versō Pro — €12.99/mese"**
+- **"Versō Pro — €9.90/mese"**
 - Benefit chiari:
   - Candidature illimitate — un CV personalizzato per ogni opportunità
   - Tutti i template CV (inclusi i futuri)
