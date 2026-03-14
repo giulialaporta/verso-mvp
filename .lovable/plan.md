@@ -1,26 +1,34 @@
 
-# Piano di implementazione — Cancellazione abbonamento in-app ✅
 
-Implementazione completata.
+# Fix: Race condition nel pro gate blocca utenti con abbonamento in scadenza
 
-## Cosa è stato costruito
+## Problema
 
-### Edge Functions
-- `cancel-subscription` — Autentica utente, recupera `stripe_subscription_id` dal profilo, chiama `stripe.subscriptions.update(subId, { cancel_at_period_end: true })`. Ritorna `{ canceled: true, cancel_at: "..." }`
-- `check-subscription` — Aggiunto `cancel_at_period_end` alla response
+C'è una race condition in `Nuova.tsx`. Il flusso attuale:
 
-### Frontend
-- `useSubscription` hook — Espone `cancelAtPeriodEnd` nello state + refresh automatico su window focus
-- `Impostazioni.tsx` — Piano card con tre stati:
-  1. **Pro attivo**: badge verde + "Gestisci abbonamento" + link "Annulla abbonamento"
-  2. **In scadenza** (cancelAtPeriodEnd): badge amber + data scadenza + "Riattiva abbonamento"
-  3. **Free**: link a /upgrade
-- AlertDialog di conferma cancellazione con conseguenze chiare
-- Toast di conferma post-cancellazione con data di scadenza
-- Refresh immediato dopo cancellazione
+1. `useSubscription()` parte con `isPro: false, loading: true`
+2. L'`useEffect` del pro gate scatta subito con `isPro = false`
+3. `checkCanCreate(false)` vede `free_apps_used >= 1` → redirect a `/upgrade`
+4. Solo dopo arriva la risposta di `check-subscription` con `subscribed: true`
 
-### Flusso utente
-1. Pro → Impostazioni → "Annulla abbonamento"
-2. Dialog: "Vuoi annullare Versō Pro?" con dettagli su cosa succede
-3. "Conferma annullazione" → edge function → badge diventa "In scadenza il [data]"
-4. Se cambia idea → "Riattiva abbonamento" → Stripe Portal per ri-attivare
+L'utente viene bloccata prima che il sistema sappia che è ancora Pro.
+
+## Soluzione
+
+Aggiungere `loading` dalla destructuring di `useSubscription` e attendere che il caricamento sia completato prima di eseguire il pro gate check.
+
+### File: `src/pages/Nuova.tsx`
+
+- Destructure `loading` da `useSubscription()`: `const { isPro, loading } = useSubscription();`
+- Nel `useEffect` del pro gate (riga 61), aggiungere un early return se `loading` è `true`:
+  ```
+  if (loading) return; // aspetta che lo stato subscription sia noto
+  ```
+- Aggiungere `loading` nelle dipendenze dell'`useEffect`
+- Nel guard finale del render (spinner), aggiungere `loading` alla condizione:
+  ```
+  if (cvCheck === "loading" || !proChecked || loading)
+  ```
+
+Nessun altro file coinvolto. La fix è chirurgica: 3 righe modificate.
+
