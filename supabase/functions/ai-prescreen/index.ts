@@ -3,6 +3,7 @@ import { compactCV } from "../_shared/compact-cv.ts";
 import { callAi } from "../_shared/ai-provider.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { fetchSalaryBenchmarks } from "../_shared/salary-benchmark.ts";
 
 const SYSTEM_PROMPT = `You are an expert, honest recruiter performing a pre-screening analysis.
 
