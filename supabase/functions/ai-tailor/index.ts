@@ -251,7 +251,7 @@ Answers are self-reported, UNVERIFIED claims. They constrain what you can do:
 - If only free text is present (no Level — legacy format):
   - Treat as "some" level. Use detail for context only, never as source for new content.
 
-Respond ONLY with the required tool function call.
+Respond ONLY with the required tool function call.`;
 
 // ==================== TOOL SCHEMAS ====================
 
