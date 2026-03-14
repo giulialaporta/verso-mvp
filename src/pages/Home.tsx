@@ -608,7 +608,10 @@ export default function Home() {
 
       {/* CTA */}
       <Button
-        onClick={() => navigate("/app/nuova")}
+        onClick={async () => {
+          const canCreate = await checkCanCreate(isPro);
+          if (canCreate) navigate("/app/nuova");
+        }}
         className="w-full gap-2 h-12 text-base"
       >
         Nuova candidatura <ArrowRight size={18} />
