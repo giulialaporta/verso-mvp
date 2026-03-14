@@ -17,7 +17,7 @@ function applyPatches(
 
     // Validate path format
     if (!path || typeof path !== "string") {
-      skipped.push(`Invalid path: ${path}`);
+      skipped.push("Invalid path: " + String(path));
       continue;
     }
 
