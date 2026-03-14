@@ -62,11 +62,17 @@ Deno.serve(async (req: Request) => {
       logStep("Active subscription found", { subscriptionId: sub.id, endDate: subscriptionEnd });
 
       // Update profile with Pro status
+      const proSince = sub.start_date
+        ? new Date(sub.start_date * 1000).toISOString()
+        : sub.created
+          ? new Date(sub.created * 1000).toISOString()
+          : new Date().toISOString();
+
       await supabase.from("profiles").update({
         is_pro: true,
         stripe_customer_id: customerId,
         stripe_subscription_id: sub.id,
-        pro_since: new Date(sub.start_date * 1000).toISOString(),
+        pro_since: proSince,
         pro_expires_at: subscriptionEnd,
       }).eq("user_id", user.id);
     } else {
