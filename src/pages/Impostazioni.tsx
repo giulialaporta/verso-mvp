@@ -59,7 +59,7 @@ export default function Impostazioni() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isPro, subscriptionEnd } = useSubscription();
+  const { isPro, subscriptionEnd, cancelAtPeriodEnd, refresh: refreshSubscription } = useSubscription();
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -68,6 +68,8 @@ export default function Impostazioni() {
   const [revoking, setRevoking] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [canceling, setCanceling] = useState(false);
 
   const handleManageBilling = async () => {
     setPortalLoading(true);
