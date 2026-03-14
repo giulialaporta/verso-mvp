@@ -102,7 +102,7 @@ export function ClassicoTemplate({ cv, lang }: { cv: Record<string, any>; lang?:
             <>
               <Text style={s.sidebarSection}>{h("certifications", lang)}</Text>
               {certifications.map((cert: any, i: number) => (
-                <View key={i}>
+                <View key={i} wrap={false}>
                   <Text style={s.certName}>{cert.name}{clean(cert.issuer) ? ` — ${cert.issuer}` : ""}</Text>
                   {clean(cert.year) && <Text style={s.certMeta}>{cert.year}</Text>}
                 </View>
