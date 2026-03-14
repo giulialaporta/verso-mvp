@@ -4,7 +4,6 @@ import { CheckCircle, PaperPlaneTilt, Clock, Plus, Crown } from "@phosphor-icons
 import { useSubscription } from "@/hooks/useSubscription";
 import { useProGate } from "@/hooks/useProGate";
 import type { JobData } from "./wizard-types";
-import type { JobData } from "./wizard-types";
 
 export function StepCompleta({
   jobData,
