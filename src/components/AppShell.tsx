@@ -103,8 +103,15 @@ function DesktopSidebar() {
 function MobileTabBar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isPro } = useSubscription();
+  const checkCanCreate = useProGate();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleNewApp = async () => {
+    const canCreate = await checkCanCreate(isPro);
+    if (canCreate) navigate("/app/nuova");
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
