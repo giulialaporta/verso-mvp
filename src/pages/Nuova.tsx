@@ -42,7 +42,7 @@ export default function Nuova() {
   const [tailoring, setTailoring] = useState(false);
   const [cvCheck, setCvCheck] = useState<"loading" | "ok" | "missing">("loading");
   const [applicationId, setApplicationId] = useState<string | null>(searchParams.get("draft"));
-  const [userAnswers, setUserAnswers] = useState<{ question: string; answer: string }[]>([]);
+  const [userAnswers, setUserAnswers] = useState<{ question: string; answer: string; level?: string; detail?: string }[]>([]);
   const [originalCv, setOriginalCv] = useState<Record<string, unknown> | null>(null);
   const [languageOverride, setLanguageOverride] = useState<string | null>(null);
   const [overriddenSkills, setOverriddenSkills] = useState<Set<string>>(new Set());
@@ -203,7 +203,7 @@ export default function Nuova() {
   };
 
   // Step 1 → Step 2
-  const handleVerificaProceed = async (answers: { question: string; answer: string }[]) => {
+  const handleVerificaProceed = async (answers: { question: string; answer: string; level?: string; detail?: string }[]) => {
     if (!user || !jobData) return;
     setUserAnswers(answers);
     updateStep(2);

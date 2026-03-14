@@ -94,6 +94,14 @@ If the user section contains "CANDIDATE FOLLOW-UP ANSWERS", use those answers to
 - Discover implicit skills or experience not explicit in the CV
 - Adjust the score upward if answers reveal relevant hidden experience
 
+## STRUCTURED FOLLOW-UP ANSWER RULES
+When answers include a "Level" field, apply these constraints:
+- Level "expert": The skill counts as "has" in skills_present. May increase match_score up to +8 points per skill.
+- Level "some": The skill stays in skills_missing but with severity reduced to "minor". May increase match_score up to +3 points.
+- Level "learning": No effect on score. Skill stays in skills_missing. May appear in learning_suggestions as "partially in progress".
+- Level "none": Confirms the gap. No changes.
+- If only free text is present (no Level — legacy format): Treat as "some" level.
+
 ## SKILL GAP SEVERITY
 For each missing skill, assess severity:
 - critical: Mandatory requirement, clearly missing, would take 1+ years to acquire (e.g., "5 years Java experience" when candidate has 0)
@@ -223,7 +231,27 @@ Apply these quality rules to EVERY patch value you generate. The output must be 
 9. **CERTIFICATION VALIDATION**: Must have name + issuer. Remove descriptive sentences posing as certifications.
 10. **ORPHAN TEXT**: Move misplaced text to correct section or remove if duplicate.
 
-Respond ONLY with the required tool function call.`;
+## FOLLOW-UP ANSWER RULES — ABSOLUTE
+Answers are self-reported, UNVERIFIED claims. They constrain what you can do:
+- Level "expert":
+  - You MAY add the skill to skills.technical/soft/tools
+  - You MAY rewrite up to 2 existing bullets to highlight this skill
+  - You MUST NOT create new experiences or new bullet points from scratch
+  - You MUST NOT add years of experience or metrics not in the original CV
+- Level "some":
+  - You MAY add the skill to skills.technical/soft/tools
+  - You MAY mention it in the summary if relevant
+  - You MUST NOT rewrite bullets to emphasize it
+  - You MUST NOT create any new content based on it
+- Level "learning":
+  - You MAY add it to skills.tools with qualifier (e.g. "Kubernetes (in corso)")
+  - Nothing else
+- Level "none":
+  - Do NOT use this answer in any way. It confirms a gap.
+- If only free text is present (no Level — legacy format):
+  - Treat as "some" level. Use detail for context only, never as source for new content.
+
+Respond ONLY with the required tool function call.
 
 // ==================== TOOL SCHEMAS ====================
 
@@ -528,7 +556,11 @@ Deno.serve(async (req) => {
     if (mode === "analyze") {
       const userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}${
         user_answers && Array.isArray(user_answers) && user_answers.length > 0
-          ? `\n\nCANDIDATE FOLLOW-UP ANSWERS:\n${user_answers.map((a: { question: string; answer: string }) => `Q: ${a.question}\nA: ${a.answer}`).join("\n\n")}`
+          ? `\n\nCANDIDATE FOLLOW-UP ANSWERS (STRUCTURED):\n${user_answers.map((a: { question: string; answer: string; level?: string; detail?: string }) =>
+              a.level
+                ? `Q: ${a.question}\nLevel: ${a.level}${a.detail ? `\nDetail: "${a.detail}"` : ""}`
+                : `Q: ${a.question}\nA: ${a.answer}`
+            ).join("\n\n")}`
           : ""
       }`;
 
@@ -561,7 +593,11 @@ Deno.serve(async (req) => {
 
     const userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}${
       user_answers && Array.isArray(user_answers) && user_answers.length > 0
-        ? `\n\nCANDIDATE FOLLOW-UP ANSWERS:\n${user_answers.map((a: { question: string; answer: string }) => `Q: ${a.question}\nA: ${a.answer}`).join("\n\n")}`
+        ? `\n\nCANDIDATE FOLLOW-UP ANSWERS (STRUCTURED):\n${user_answers.map((a: { question: string; answer: string; level?: string; detail?: string }) =>
+            a.level
+              ? `Q: ${a.question}\nLevel: ${a.level}${a.detail ? `\nDetail: "${a.detail}"` : ""}`
+              : `Q: ${a.question}\nA: ${a.answer}`
+          ).join("\n\n")}`
         : ""
     }${contextInfo}`;
 

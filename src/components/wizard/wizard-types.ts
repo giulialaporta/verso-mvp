@@ -30,6 +30,7 @@ export type PrescreenResult = {
     question: string;
     context: string;
     field: string;
+    options?: { value: string; label: string }[];
   }[];
   overall_feasibility: "low" | "medium" | "high";
   feasibility_note: string;
