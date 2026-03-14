@@ -56,7 +56,10 @@ For position_estimate:
 Calculate delta: "positive" if candidate expects less than position offers (good for candidate), "negative" if candidate expects more, "neutral" if overlapping
 - delta_percentage: approximate percentage difference between midpoints (e.g. "+12%", "-8%", "~0%")
 - note: brief Italian explanation of the comparison
-- If NEITHER salary_expectations NOR a salary range in the posting is available, do NOT include salary_analysis
+- If SALARY_BENCHMARKS data is provided, use it as PRIMARY source for position_estimate. Set source = "benchmark".
+- Cross-reference benchmark data with your own knowledge for validation.
+- In "basis", cite the benchmark sources used (e.g. "Da benchmark: Glassdoor, Indeed — ruolo Senior a Milano").
+- If NEITHER salary_expectations NOR a salary range in the posting NOR benchmark data is available, do NOT include salary_analysis
 
 ## HONESTY RULES
 - Be direct and honest. Don't sugarcoat dealbreakers.
