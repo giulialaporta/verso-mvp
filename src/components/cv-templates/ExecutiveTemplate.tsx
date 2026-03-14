@@ -10,6 +10,8 @@ Font.register({
   ],
 });
 
+Font.registerHyphenationCallback((word: string) => [word]);
+
 const ACCENT = "#2563EB";
 const ACCENT_LIGHT = "#DBEAFE";
 const BODY_TEXT = "#111827";

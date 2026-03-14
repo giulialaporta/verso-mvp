@@ -10,6 +10,8 @@ Font.register({
   ],
 });
 
+Font.registerHyphenationCallback((word: string) => [word]);
+
 const SIDEBAR_TEXT = "#1a1a1a";
 const SIDEBAR_MUTED = "#666";
 const LINK_COLOR = "#2563EB";
