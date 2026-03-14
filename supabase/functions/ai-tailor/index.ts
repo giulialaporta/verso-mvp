@@ -456,7 +456,7 @@ function adjustScore(r: Record<string, unknown>): void {
   if (finalScore !== aiScore) {
     const parts: string[] = [];
     if (criticalCount > 0) {
-      parts.push(`${criticalCount} gap critico/i`);
+      parts.push(`${criticalCount} gap critic${criticalCount === 1 ? "o" : "i"}`);
     } else if (essentialMissing > 0) {
       parts.push(`${essentialMissing} competenz${essentialMissing === 1 ? "a essenziale mancante" : "e essenziali mancanti"}`);
     }
