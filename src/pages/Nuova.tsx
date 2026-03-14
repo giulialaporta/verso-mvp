@@ -25,6 +25,9 @@ export default function Nuova() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isPro } = useSubscription();
+  const checkCanCreate = useProGate();
+  const [proChecked, setProChecked] = useState(false);
   const [step, setStep] = useState(() => {
     const s = parseInt(searchParams.get("step") || "0", 10);
     return isNaN(s) ? 0 : s;
