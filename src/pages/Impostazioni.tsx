@@ -375,7 +375,7 @@ export default function Impostazioni() {
                 className="gap-2"
                 onClick={() => navigate("/upgrade")}
               >
-                <Crown size={16} /> Scopri Versō Pro <ArrowRight size={14} />
+                <Crown size={16} /> Scopri Verso Pro <ArrowRight size={14} />
               </Button>
             </>
           )}
