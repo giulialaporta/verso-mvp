@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "npm:stripe@18.5.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 const logStep = (step: string, details?: unknown) => {
@@ -9,7 +8,7 @@ const logStep = (step: string, details?: unknown) => {
 
 const PRICE_ID = "price_1TAxqBHrhFDiG0jqQeXXvMMu";
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
 
   if (req.method === "OPTIONS") {
