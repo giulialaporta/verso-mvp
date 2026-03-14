@@ -51,21 +51,14 @@ export default function Login() {
     saveRegistrationConsents(user.id, user.email ?? "").catch(() => {});
   }, [user]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-
+  // Redirect authenticated users imperatively (avoids Navigate ref warning)
   useEffect(() => {
-    if (user) {
+    if (!loading && user) {
       navigate(fromPath, { replace: true });
     }
-  }, [user, fromPath, navigate]);
+  }, [loading, user, fromPath, navigate]);
 
-  if (user) {
+  if (loading || user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
