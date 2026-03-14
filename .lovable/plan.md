@@ -1,26 +1,16 @@
 
-# Piano di implementazione — Cancellazione abbonamento in-app ✅
+# Riduzione Latenza AI ✅
 
-Implementazione completata.
+## Implementato
 
-## Cosa è stato costruito
+1. **Parallelizzazione prescreen + analyze** — `Promise.all` in `handleAnnuncioConfirm`, risultato analyze cachato in ref e usato istantaneamente allo Step 2 (−8-15s)
+2. **cv-review integrato nel prompt tailor** — Le 10 regole di qualità ora sono nel `SYSTEM_PROMPT_TAILOR`, eliminata la chiamata separata (−5-8s)  
+3. **Downgrade modelli** — `ai-prescreen` e `ai-tailor-analyze` ora usano Claude Haiku 4.5 (−40-60% latenza, −60% costi)
+4. **Progress indicator** — Già presente con animazioni staggered in StepVerifica e StepTailoring
 
-### Edge Functions
-- `cancel-subscription` — Autentica utente, recupera `stripe_subscription_id` dal profilo, chiama `stripe.subscriptions.update(subId, { cancel_at_period_end: true })`. Ritorna `{ canceled: true, cancel_at: "..." }`
-- `check-subscription` — Aggiunto `cancel_at_period_end` alla response
+## Risultato atteso
 
-### Frontend
-- `useSubscription` hook — Espone `cancelAtPeriodEnd` nello state + refresh automatico su window focus
-- `Impostazioni.tsx` — Piano card con tre stati:
-  1. **Pro attivo**: badge verde + "Gestisci abbonamento" + link "Annulla abbonamento"
-  2. **In scadenza** (cancelAtPeriodEnd): badge amber + data scadenza + "Riattiva abbonamento"
-  3. **Free**: link a /upgrade
-- AlertDialog di conferma cancellazione con conseguenze chiare
-- Toast di conferma post-cancellazione con data di scadenza
-- Refresh immediato dopo cancellazione
-
-### Flusso utente
-1. Pro → Impostazioni → "Annulla abbonamento"
-2. Dialog: "Vuoi annullare Versō Pro?" con dettagli su cosa succede
-3. "Conferma annullazione" → edge function → badge diventa "In scadenza il [data]"
-4. Se cambia idea → "Riattiva abbonamento" → Stripe Portal per ri-attivare
+```
+PRIMA:  Step 0→1: 12s | Step 1→2: 12s | Step 2→3: 20s = ~44s
+DOPO:   Step 0→1: 4s  | Step 1→2: 0s  | Step 2→3: 12s = ~16s  (−65%)
+```
