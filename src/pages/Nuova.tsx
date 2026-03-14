@@ -57,6 +57,16 @@ export default function Nuova() {
     }, { replace: true });
   }, [setSearchParams]);
 
+  // Pro gate — only for new applications (not draft resumption)
+  useEffect(() => {
+    const draftId = searchParams.get("draft");
+    if (draftId) { setProChecked(true); return; }
+    if (!user) return;
+    checkCanCreate(isPro).then((ok) => {
+      if (ok) setProChecked(true);
+    });
+  }, [user, isPro, checkCanCreate, searchParams]);
+
   // CV Guard
   useEffect(() => {
     if (!user) return;
