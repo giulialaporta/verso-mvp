@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { CheckCircle, PaperPlaneTilt, Clock, Plus, Crown } from "@phosphor-icons/react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useProGate } from "@/hooks/useProGate";
-import { useApplications } from "@/hooks/useApplications";
+import type { JobData } from "./wizard-types";
 import type { JobData } from "./wizard-types";
 
 export function StepCompleta({
