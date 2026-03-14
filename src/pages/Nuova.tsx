@@ -62,10 +62,11 @@ export default function Nuova() {
     const draftId = searchParams.get("draft");
     if (draftId) { setProChecked(true); return; }
     if (!user) return;
+    if (loading) return;
     checkCanCreate(isPro).then((ok) => {
       if (ok) setProChecked(true);
     });
-  }, [user, isPro, checkCanCreate, searchParams]);
+  }, [user, isPro, loading, checkCanCreate, searchParams]);
 
   // CV Guard
   useEffect(() => {
