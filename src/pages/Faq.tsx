@@ -56,7 +56,7 @@ const sections: FaqSection[] = [
         a: "L'Honest Score è il mio controllo anti-esagerazione. Dopo ogni tailoring, verifico che il CV adattato sia coerente con il CV originale. Se l'AI ha aggiunto competenze che non hai, gonfiato risultati, o inserito esperienze inventate, l'Honest Score lo segnala. Ogni modifica è tracciabile. Il tuo CV adattato è sempre una versione del tuo CV reale, mai una fiction.",
       },
       {
-        q: "Perché Verso fa un pre-screening prima di adattare il CV?",
+        q: "Perché faccio un pre-screening prima di adattare il CV?",
         a: "Perché non tutte le candidature hanno senso. Prima di investire tempo (tuo e dell'AI), analizzo il match tra il tuo profilo e l'annuncio. Identifico dealbreaker, gap di competenze, disallineamenti di seniority. Se il ruolo richiede 10 anni di esperienza in cloud architecture e tu ne hai 2 nel frontend, te lo dico. Non per scoraggiarti — per aiutarti a concentrare le energie dove puoi davvero fare la differenza.",
       },
     ],
