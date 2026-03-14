@@ -598,15 +598,8 @@ Deno.serve(async (req) => {
 
     // ==================== MODE: ANALYZE ====================
     if (mode === "analyze") {
-      const userContent = `CANDIDATE CV:\n${JSON.stringify(compactedCV)}\n\nJOB POSTING:\n${JSON.stringify(job_data)}${
-        user_answers && Array.isArray(user_answers) && user_answers.length > 0
-          ? `\n\nCANDIDATE FOLLOW-UP ANSWERS (STRUCTURED):\n${user_answers.map((a: { question: string; answer: string; level?: string; detail?: string }) =>
-              a.level
-                ? `Q: ${a.question}\nLevel: ${a.level}${a.detail ? `\nDetail: "${a.detail}"` : ""}`
-                : `Q: ${a.question}\nA: ${a.answer}`
-            ).join("\n\n")}`
-          : ""
-      }`;
+      let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data);
+      userContent += formatFollowUpAnswers(user_answers);
 
       const aiResult = await callAi({
         task: "ai-tailor-analyze",
