@@ -1,5 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { pdf } from "@react-pdf/renderer";
+import { ClassicoTemplate } from "@/components/cv-templates";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +37,8 @@ import {
   Check,
   X,
   Crown,
+  DownloadSimple,
+  SpinnerGap,
 } from "@phosphor-icons/react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
@@ -117,6 +121,56 @@ function StatsBar({
         </Card>
       ))}
     </div>
+  );
+}
+
+// ─── Plan Card ───────────────────────────────────────────────
+function PlanCard({ isPro, loading }: { isPro: boolean; loading: boolean }) {
+  const navigate = useNavigate();
+
+  if (loading) {
+    return <Skeleton className="h-16 w-full" />;
+  }
+
+  if (isPro) {
+    return (
+      <Card className="border-primary/30 bg-card/80">
+        <CardContent className="flex items-center gap-3 py-3 px-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15">
+            <Crown size={20} className="text-primary" weight="fill" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">Versō Pro</p>
+            <p className="text-xs text-muted-foreground">Candidature illimitate</p>
+          </div>
+          <Badge variant="outline" className="border-primary/40 text-primary font-mono text-[10px]">
+            ATTIVO
+          </Badge>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-warning/20 bg-card/80">
+      <CardContent className="flex items-center gap-3 py-3 px-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-warning/15">
+          <Crown size={20} className="text-warning" weight="fill" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">Piano Free</p>
+          <p className="text-xs text-muted-foreground">1 candidatura inclusa</p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 text-xs border-warning/40 text-warning hover:bg-warning/10 hover:text-warning shrink-0"
+          onClick={() => navigate("/upgrade")}
+        >
+          <Crown size={14} weight="fill" /> Upgrade
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -377,6 +431,31 @@ function CVCard({
   onSaveSalary: (data: { current_ral: number | null; desired_ral: number | null }) => Promise<void>;
 }) {
   const navigate = useNavigate();
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const handleDownloadCV = useCallback(async () => {
+    if (!cv.parsed_data) return;
+    setDownloadingPdf(true);
+    try {
+      const blob = await pdf(<ClassicoTemplate cv={cv.parsed_data} />).toBlob();
+      const name = cv.parsed_data?.personal?.name || "CV";
+      const fileName = `CV-${name.replace(/\s+/g, "-")}.pdf`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("PDF scaricato!");
+    } catch (e) {
+      console.error("PDF generation error:", e);
+      toast.error("Errore durante la generazione del PDF.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }, [cv]);
 
   return (
     <Card className="border-border/50 bg-card/80">
@@ -456,6 +535,22 @@ function CVCard({
           >
             <UploadSimple size={16} /> Carica nuovo CV
           </Button>
+
+          {cv.parsed_data && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadCV}
+              disabled={downloadingPdf}
+              className="gap-2"
+            >
+              {downloadingPdf ? (
+                <><SpinnerGap size={16} className="animate-spin" /> Generazione...</>
+              ) : (
+                <><DownloadSimple size={16} /> Scarica PDF</>
+              )}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -468,7 +563,7 @@ export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
-  const { isPro, refresh: refreshSubscription } = useSubscription();
+  const { isPro, loading: subLoading, refresh: refreshSubscription } = useSubscription();
   const checkCanCreate = useProGate();
 
   // Handle post-upgrade success
@@ -623,6 +718,15 @@ export default function Home() {
           avgScore={avgScore}
           hasCV={hasCV}
         />
+      </motion.div>
+
+      {/* Plan */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05, duration: 0.25 }}
+      >
+        <PlanCard isPro={isPro} loading={subLoading} />
       </motion.div>
 
       {/* CTA */}
