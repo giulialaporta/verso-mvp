@@ -35,11 +35,15 @@ const SOURCE_LABELS: Record<string, string> = {
 
 function SourceBadge({ source }: { source: string }) {
   const label = SOURCE_LABELS[source] || source;
+  const isBenchmark = source === "benchmark";
   const isEstimated = source === "estimated";
+  const colorClass = isBenchmark
+    ? "bg-primary/15 text-primary"
+    : isEstimated
+      ? "bg-warning/15 text-warning"
+      : "bg-info/15 text-info";
   return (
-    <span className={`font-mono text-[10px] uppercase px-1.5 py-0.5 rounded-full ${
-      isEstimated ? "bg-warning/15 text-warning" : "bg-info/15 text-info"
-    }`}>
+    <span className={`font-mono text-[10px] uppercase px-1.5 py-0.5 rounded-full ${colorClass}`}>
       {label}
     </span>
   );
