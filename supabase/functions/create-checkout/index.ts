@@ -60,8 +60,8 @@ Deno.serve(async (req: Request) => {
     const subs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
     if (subs.data.length > 0) {
       logStep("User already has active subscription");
-      return new Response(JSON.stringify({ error: "Already subscribed" }), {
-        status: 400,
+      return new Response(JSON.stringify({ already_subscribed: true }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
