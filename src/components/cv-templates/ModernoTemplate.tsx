@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
-import { clean, ensureArray, MAX_SIDEBAR_SKILLS, h } from "./template-utils";
+import { clean, ensureArray, MAX_SIDEBAR_SKILLS, h, computeDensity, truncateBullets } from "./template-utils";
 
 Font.register({
   family: "Inter",
@@ -19,16 +19,15 @@ const SIDEBAR_ACCENT = "#38BDF8";
 const SIDEBAR_BORDER = "#334155";
 const BODY_TEXT = "#0F172A";
 const BODY_MUTED = "#64748B";
-const BORDER = "#E2E8F0";
 
-const s = StyleSheet.create({
-  page: { fontFamily: "Inter", fontSize: 10, flexDirection: "row" },
+const baseStyles = StyleSheet.create({
+  page: { fontFamily: "Inter", flexDirection: "row" },
   sidebar: { width: "35%", backgroundColor: SIDEBAR_BG, paddingHorizontal: 22, paddingVertical: 36, color: SIDEBAR_TEXT },
   main: { width: "65%", paddingHorizontal: 32, paddingVertical: 36, paddingBottom: 56, color: BODY_TEXT },
   photo: { width: 80, height: 80, borderRadius: 40, marginBottom: 14, alignSelf: "center", borderWidth: 2, borderColor: SIDEBAR_ACCENT },
-  sidebarName: { fontSize: 16, fontWeight: 700, textAlign: "center", marginBottom: 4, letterSpacing: 0.3 },
-  sidebarTitle: { fontSize: 9, fontWeight: 500, color: SIDEBAR_ACCENT, textAlign: "center", marginBottom: 16 },
-  sidebarSection: { fontSize: 7.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: SIDEBAR_ACCENT, marginBottom: 8, marginTop: 20 },
+  sidebarName: { fontSize: 16, fontWeight: 700, textAlign: "center" as const, marginBottom: 4, letterSpacing: 0.3 },
+  sidebarTitle: { fontSize: 9, fontWeight: 500, color: SIDEBAR_ACCENT, textAlign: "center" as const, marginBottom: 16 },
+  sidebarSection: { fontSize: 7.5, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: 1.5, color: SIDEBAR_ACCENT, marginBottom: 8, marginTop: 20 },
   sidebarDivider: { height: 0.5, backgroundColor: SIDEBAR_BORDER, marginBottom: 10 },
   contactIcon: { fontSize: 8, color: SIDEBAR_MUTED, marginBottom: 5, lineHeight: 1.5 },
   contactLink: { fontSize: 8, color: SIDEBAR_ACCENT, marginBottom: 5, lineHeight: 1.5 },
@@ -41,24 +40,11 @@ const s = StyleSheet.create({
   certMeta: { fontSize: 7, color: SIDEBAR_MUTED, marginBottom: 6 },
   mainName: { fontSize: 22, fontWeight: 700, letterSpacing: -0.2, marginBottom: 2 },
   mainSubtitle: { fontSize: 9, color: BODY_MUTED, marginBottom: 18, letterSpacing: 0.3 },
-  sectionTitle: { fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, color: BODY_TEXT, paddingBottom: 5, marginBottom: 10, marginTop: 20, borderBottomWidth: 1.5, borderBottomColor: SIDEBAR_ACCENT },
-  summary: { fontSize: 10, lineHeight: 1.65, color: BODY_TEXT },
-  expBlock: { marginBottom: 14 },
-  expRole: { fontSize: 11, fontWeight: 700 },
-  expCompany: { fontSize: 10, fontWeight: 500, color: BODY_TEXT, marginBottom: 1 },
-  expMeta: { fontSize: 9, color: BODY_MUTED, marginBottom: 4 },
-  bullet: { fontSize: 9.5, lineHeight: 1.55, paddingLeft: 14, marginBottom: 2.5 },
-  eduBlock: { marginBottom: 10 },
-  eduTitle: { fontSize: 10, fontWeight: 700 },
-  eduInstitution: { fontSize: 9.5, fontWeight: 500, color: BODY_TEXT },
-  eduMeta: { fontSize: 9, color: BODY_MUTED, marginTop: 1 },
-  projBlock: { marginBottom: 10 },
-  projName: { fontSize: 10, fontWeight: 500 },
-  projDesc: { fontSize: 9.5, lineHeight: 1.5, marginTop: 1 },
-  projLink: { fontSize: 9, color: SIDEBAR_ACCENT, marginTop: 1 },
 });
 
 export function ModernoTemplate({ cv, lang }: { cv: Record<string, any>; lang?: string }) {
+  const d = computeDensity(cv);
+
   const personal = cv.personal || {};
   const summary = clean(cv.summary);
   const experience = cv.experience || [];
@@ -79,28 +65,47 @@ export function ModernoTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
 
   const languages = skills?.languages && Array.isArray(skills.languages) ? skills.languages : [];
 
+  const ds = {
+    page: { ...baseStyles.page, fontSize: d.bodyFontSize },
+    sectionTitle: { fontSize: d.sectionTitleFontSize, fontWeight: 700 as const, textTransform: "uppercase" as const, letterSpacing: 1.2, color: BODY_TEXT, paddingBottom: 5, marginBottom: d.sectionMarginBottom, marginTop: d.sectionMarginTop, borderBottomWidth: 1.5, borderBottomColor: SIDEBAR_ACCENT },
+    summary: { fontSize: d.summaryFontSize, lineHeight: d.lineHeight, color: BODY_TEXT },
+    expBlock: { marginBottom: d.expBlockMarginBottom },
+    expRole: { fontSize: d.expRoleFontSize, fontWeight: 700 as const },
+    expCompany: { fontSize: d.bodyFontSize, fontWeight: 500 as const, color: BODY_TEXT, marginBottom: 1 },
+    expMeta: { fontSize: Math.max(9, d.bodyFontSize - 1), color: BODY_MUTED, marginBottom: 4 },
+    bullet: { fontSize: d.bulletFontSize, lineHeight: d.lineHeight - 0.05, paddingLeft: 14, marginBottom: d.bulletMarginBottom },
+    eduBlock: { marginBottom: d.eduBlockMarginBottom },
+    eduTitle: { fontSize: d.bodyFontSize, fontWeight: 700 as const },
+    eduInstitution: { fontSize: d.bulletFontSize, fontWeight: 500 as const, color: BODY_TEXT },
+    eduMeta: { fontSize: Math.max(9, d.bodyFontSize - 1), color: BODY_MUTED, marginTop: 1 },
+    projBlock: { marginBottom: d.eduBlockMarginBottom },
+    projName: { fontSize: d.bodyFontSize, fontWeight: 500 as const },
+    projDesc: { fontSize: d.bulletFontSize, lineHeight: d.lineHeight - 0.1, marginTop: 1 },
+    projLink: { fontSize: Math.max(9, d.bodyFontSize - 1), color: SIDEBAR_ACCENT, marginTop: 1 },
+  };
+
   return (
     <Document>
-      <Page size="A4" style={s.page}>
+      <Page size="A4" style={ds.page}>
         {/* Sidebar */}
-        <View style={s.sidebar}>
-          {photoUrl && <Image src={photoUrl} style={s.photo} />}
-          <Text style={s.sidebarName}>{clean(personal.name) || "Nome Cognome"}</Text>
-          {clean(personal.title) && <Text style={s.sidebarTitle}>{personal.title}</Text>}
+        <View style={baseStyles.sidebar}>
+          {photoUrl && <Image src={photoUrl} style={baseStyles.photo} />}
+          <Text style={baseStyles.sidebarName}>{clean(personal.name) || "Nome Cognome"}</Text>
+          {clean(personal.title) && <Text style={baseStyles.sidebarTitle}>{personal.title}</Text>}
 
-          <Text style={s.sidebarSection}>{h("contacts", lang)}</Text>
-          <View style={s.sidebarDivider} />
-          {contactParts.map((c, i) => <Text key={i} style={s.contactIcon}>{c}</Text>)}
-          {clean(personal.linkedin) && <Text style={s.contactLink}>{personal.linkedin}</Text>}
-          {clean(personal.website) && <Text style={s.contactLink}>{personal.website}</Text>}
+          <Text style={baseStyles.sidebarSection}>{h("contacts", lang)}</Text>
+          <View style={baseStyles.sidebarDivider} />
+          {contactParts.map((c, i) => <Text key={i} style={baseStyles.contactIcon}>{c}</Text>)}
+          {clean(personal.linkedin) && <Text style={baseStyles.contactLink}>{personal.linkedin}</Text>}
+          {clean(personal.website) && <Text style={baseStyles.contactLink}>{personal.website}</Text>}
 
           {allSkills.length > 0 && (
             <>
-              <Text style={s.sidebarSection}>{h("skills", lang)}</Text>
-              <View style={s.sidebarDivider} />
-              <View style={s.skillsWrap}>
+              <Text style={baseStyles.sidebarSection}>{h("skills", lang)}</Text>
+              <View style={baseStyles.sidebarDivider} />
+              <View style={baseStyles.skillsWrap}>
                 {allSkills.map((sk: string, i: number) => (
-                  <Text key={i} style={s.skillChip}>{sk}</Text>
+                  <Text key={i} style={baseStyles.skillChip}>{sk}</Text>
                 ))}
               </View>
             </>
@@ -108,12 +113,12 @@ export function ModernoTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
 
           {languages.length > 0 && (
             <>
-              <Text style={s.sidebarSection}>{h("languages", lang)}</Text>
-              <View style={s.sidebarDivider} />
+              <Text style={baseStyles.sidebarSection}>{h("languages", lang)}</Text>
+              <View style={baseStyles.sidebarDivider} />
               {languages.map((l: any, i: number) => (
-                <View key={i} style={s.langRow}>
-                  <Text style={s.langName}>{l.language}</Text>
-                  {clean(l.level) && <Text style={s.langLevel}>{l.level}</Text>}
+                <View key={i} style={baseStyles.langRow}>
+                  <Text style={baseStyles.langName}>{l.language}</Text>
+                  {clean(l.level) && <Text style={baseStyles.langLevel}>{l.level}</Text>}
                 </View>
               ))}
             </>
@@ -121,13 +126,13 @@ export function ModernoTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
 
           {certifications.length > 0 && (
             <>
-              <Text style={s.sidebarSection}>{h("certifications", lang)}</Text>
-              <View style={s.sidebarDivider} />
+              <Text style={baseStyles.sidebarSection}>{h("certifications", lang)}</Text>
+              <View style={baseStyles.sidebarDivider} />
               {certifications.map((cert: any, i: number) => (
                 <View key={i}>
-                  <Text style={s.certName}>{cert.name}</Text>
-                  <Text style={s.certMeta}>
-                    {clean(cert.issuer) ? `${cert.issuer}` : ""}
+                  <Text style={baseStyles.certName}>{cert.name}</Text>
+                  <Text style={baseStyles.certMeta}>
+                    {clean(cert.issuer) ? cert.issuer : ""}
                     {clean(cert.year) ? ` · ${cert.year}` : ""}
                   </Text>
                 </View>
@@ -137,49 +142,54 @@ export function ModernoTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
         </View>
 
         {/* Main */}
-        <View style={s.main}>
-          <Text style={s.mainName}>{clean(personal.name) || "Nome Cognome"}</Text>
-          {contactParts.length > 0 && <Text style={s.mainSubtitle}>{contactParts.join("  ·  ")}</Text>}
+        <View style={baseStyles.main}>
+          <Text style={baseStyles.mainName}>{clean(personal.name) || "Nome Cognome"}</Text>
+          {contactParts.length > 0 && <Text style={baseStyles.mainSubtitle}>{contactParts.join("  ·  ")}</Text>}
 
           {summary && (
             <>
-              <Text style={s.sectionTitle}>{h("profile", lang)}</Text>
-              <Text style={s.summary}>{summary}</Text>
+              <Text style={ds.sectionTitle}>{h("profile", lang)}</Text>
+              <Text style={ds.summary}>{summary}</Text>
             </>
           )}
 
           {experience.length > 0 && (
             <>
-              <Text style={s.sectionTitle}>{h("experience", lang)}</Text>
-              {experience.map((exp: any, i: number) => (
-                <View key={i} style={s.expBlock} wrap={false}>
-                  <Text style={s.expRole}>{clean(exp.role) || clean(exp.title)}</Text>
-                  <Text style={s.expCompany}>{exp.company}</Text>
-                  <Text style={s.expMeta}>
-                    {exp.start || exp.period}
-                    {exp.end ? ` – ${exp.end}` : exp.current ? " – Attuale" : ""}
-                    {clean(exp.location) ? `  ·  ${exp.location}` : ""}
-                  </Text>
-                  {clean(exp.description) && <Text style={s.summary}>{exp.description}</Text>}
-                  {Array.isArray(exp.bullets) &&
-                    exp.bullets.filter((b: string) => clean(b)).map((b: string, j: number) => (
-                      <Text key={j} style={s.bullet}>• {b}</Text>
+              <Text style={ds.sectionTitle}>{h("experience", lang)}</Text>
+              {experience.map((exp: any, i: number) => {
+                const bullets = truncateBullets(
+                  (Array.isArray(exp.bullets) ? exp.bullets : []).filter((b: string) => clean(b)),
+                  i, d
+                );
+                return (
+                  <View key={i} style={ds.expBlock} wrap={false}>
+                    <Text style={ds.expRole}>{clean(exp.role) || clean(exp.title)}</Text>
+                    <Text style={ds.expCompany}>{exp.company}</Text>
+                    <Text style={ds.expMeta}>
+                      {exp.start || exp.period}
+                      {exp.end ? ` – ${exp.end}` : exp.current ? " – Attuale" : ""}
+                      {clean(exp.location) ? `  ·  ${exp.location}` : ""}
+                    </Text>
+                    {clean(exp.description) && <Text style={ds.summary}>{exp.description}</Text>}
+                    {bullets.map((b: string, j: number) => (
+                      <Text key={j} style={ds.bullet}>• {b}</Text>
                     ))}
-                </View>
-              ))}
+                  </View>
+                );
+              })}
             </>
           )}
 
           {education.length > 0 && (
             <>
-              <Text style={s.sectionTitle}>{h("education", lang)}</Text>
+              <Text style={ds.sectionTitle}>{h("education", lang)}</Text>
               {education.map((ed: any, i: number) => (
-                <View key={i} style={s.eduBlock} wrap={false}>
-                  <Text style={s.eduTitle}>
+                <View key={i} style={ds.eduBlock} wrap={false}>
+                  <Text style={ds.eduTitle}>
                     {ed.degree}{clean(ed.field) ? ` in ${ed.field}` : ""}
                   </Text>
-                  <Text style={s.eduInstitution}>{ed.institution}</Text>
-                  <Text style={s.eduMeta}>
+                  <Text style={ds.eduInstitution}>{ed.institution}</Text>
+                  <Text style={ds.eduMeta}>
                     {ed.start || ed.period}{ed.end ? ` – ${ed.end}` : ""}
                     {clean(ed.grade) ? `  ·  ${ed.grade}` : ""}
                   </Text>
@@ -190,12 +200,12 @@ export function ModernoTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
 
           {projects.length > 0 && (
             <>
-              <Text style={s.sectionTitle}>{h("projects", lang)}</Text>
+              <Text style={ds.sectionTitle}>{h("projects", lang)}</Text>
               {projects.map((proj: any, i: number) => (
-                <View key={i} style={s.projBlock} wrap={false}>
-                  <Text style={s.projName}>{proj.name}</Text>
-                  {clean(proj.description) && <Text style={s.projDesc}>{proj.description}</Text>}
-                  {clean(proj.link) && <Text style={s.projLink}>{proj.link}</Text>}
+                <View key={i} style={ds.projBlock} wrap={false}>
+                  <Text style={ds.projName}>{proj.name}</Text>
+                  {clean(proj.description) && <Text style={ds.projDesc}>{proj.description}</Text>}
+                  {clean(proj.link) && <Text style={ds.projLink}>{proj.link}</Text>}
                 </View>
               ))}
             </>
@@ -203,9 +213,9 @@ export function ModernoTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
 
           {extraSections.map((sec: any, i: number) => (
             <View key={i} wrap={false}>
-              <Text style={s.sectionTitle}>{sec.title}</Text>
+              <Text style={ds.sectionTitle}>{sec.title}</Text>
               {(sec.items || []).filter((item: string) => clean(item)).map((item: string, j: number) => (
-                <Text key={j} style={s.bullet}>• {item}</Text>
+                <Text key={j} style={ds.bullet}>• {item}</Text>
               ))}
             </View>
           ))}
