@@ -231,7 +231,27 @@ Apply these quality rules to EVERY patch value you generate. The output must be 
 9. **CERTIFICATION VALIDATION**: Must have name + issuer. Remove descriptive sentences posing as certifications.
 10. **ORPHAN TEXT**: Move misplaced text to correct section or remove if duplicate.
 
-Respond ONLY with the required tool function call.`;
+## FOLLOW-UP ANSWER RULES — ABSOLUTE
+Answers are self-reported, UNVERIFIED claims. They constrain what you can do:
+- Level "expert":
+  - You MAY add the skill to skills.technical/soft/tools
+  - You MAY rewrite up to 2 existing bullets to highlight this skill
+  - You MUST NOT create new experiences or new bullet points from scratch
+  - You MUST NOT add years of experience or metrics not in the original CV
+- Level "some":
+  - You MAY add the skill to skills.technical/soft/tools
+  - You MAY mention it in the summary if relevant
+  - You MUST NOT rewrite bullets to emphasize it
+  - You MUST NOT create any new content based on it
+- Level "learning":
+  - You MAY add it to skills.tools with qualifier (e.g. "Kubernetes (in corso)")
+  - Nothing else
+- Level "none":
+  - Do NOT use this answer in any way. It confirms a gap.
+- If only free text is present (no Level — legacy format):
+  - Treat as "some" level. Use detail for context only, never as source for new content.
+
+Respond ONLY with the required tool function call.
 
 // ==================== TOOL SCHEMAS ====================
 
