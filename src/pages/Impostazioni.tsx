@@ -86,7 +86,7 @@ export default function Impostazioni() {
       toast({
         title: "Abbonamento in cancellazione",
         description: data?.cancel_at
-          ? `Hai accesso a Versō Pro fino al ${new Date(data.cancel_at).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}.`
+          ? `Hai accesso a Verso Pro fino al ${new Date(data.cancel_at).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}.`
           : "L'abbonamento non verrà rinnovato.",
       });
     } catch {
@@ -291,7 +291,7 @@ export default function Impostazioni() {
                 {cancelAtPeriodEnd ? (
                   <span className="rounded-full bg-warning/15 px-3 py-1 font-mono text-xs text-warning font-bold">In scadenza</span>
                 ) : (
-                  <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary font-bold">Versō Pro</span>
+                  <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary font-bold">Verso Pro</span>
                 )}
                 {!cancelAtPeriodEnd && (
                   <span className="text-xs text-muted-foreground">€9,90/mese</span>
@@ -375,7 +375,7 @@ export default function Impostazioni() {
                 className="gap-2"
                 onClick={() => navigate("/upgrade")}
               >
-                <Crown size={16} /> Scopri Versō Pro <ArrowRight size={14} />
+                <Crown size={16} /> Scopri Verso Pro <ArrowRight size={14} />
               </Button>
             </>
           )}
@@ -386,7 +386,7 @@ export default function Impostazioni() {
       <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <AlertDialogContent className="border-border bg-background">
           <AlertDialogHeader>
-            <AlertDialogTitle>Vuoi annullare Versō Pro?</AlertDialogTitle>
+            <AlertDialogTitle>Vuoi annullare Verso Pro?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 text-sm text-muted-foreground">
                 <p>Se annulli l'abbonamento:</p>

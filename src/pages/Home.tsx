@@ -140,7 +140,7 @@ function PlanCard({ isPro, loading }: { isPro: boolean; loading: boolean }) {
             <Crown size={20} className="text-primary" weight="fill" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">Versō Pro</p>
+            <p className="text-sm font-medium">Verso Pro</p>
             <p className="text-xs text-muted-foreground">Candidature illimitate</p>
           </div>
           <Badge variant="outline" className="border-primary/40 text-primary font-mono text-[10px]">
@@ -576,7 +576,7 @@ export default function Home() {
         await refreshSubscription();
         if (attempts >= 3) {
           clearInterval(poll);
-          toast.success("Benvenuto in Versō Pro! 🎉");
+          toast.success("Benvenuto in Verso Pro! 🎉");
           navigate("/app/home", { replace: true });
         }
       }, 2000);

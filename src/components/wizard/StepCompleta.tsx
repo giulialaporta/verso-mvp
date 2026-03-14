@@ -71,7 +71,7 @@ export function StepCompleta({
           className="flex items-center gap-2 justify-center text-[11px] text-muted-foreground pt-2"
         >
           <Crown size={14} className="text-warning" />
-          <span>Hai usato la tua candidatura gratuita. La prossima volta, Versō Pro.</span>
+          <span>Hai usato la tua candidatura gratuita. La prossima volta, Verso Pro.</span>
         </motion.div>
       )}
     </div>

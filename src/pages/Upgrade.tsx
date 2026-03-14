@@ -50,7 +50,7 @@ export default function Upgrade() {
         }
 
         if (isAlreadySubscribed(error) || isAlreadySubscribed(contextBody)) {
-          toast.success("Sei già abbonata a Versō Pro!");
+          toast.success("Sei già abbonata a Verso Pro!");
           navigate("/app/home");
           return;
         }
@@ -59,7 +59,7 @@ export default function Upgrade() {
       }
 
       if (data?.already_subscribed || data?.error === "Already subscribed") {
-        toast.success("Sei già abbonata a Versō Pro!");
+        toast.success("Sei già abbonata a Verso Pro!");
         navigate("/app/home");
         return;
       }
@@ -72,7 +72,7 @@ export default function Upgrade() {
       throw new Error("Checkout URL not available");
     } catch (e: unknown) {
       if (isAlreadySubscribed(e)) {
-        toast.success("Sei già abbonata a Versō Pro!");
+        toast.success("Sei già abbonata a Verso Pro!");
         navigate("/app/home");
         return;
       }
@@ -111,7 +111,7 @@ export default function Upgrade() {
           <h1 className="font-display text-2xl font-bold">Hai raggiunto il limite</h1>
           <p className="text-muted-foreground text-sm">
             Con il piano Free puoi creare <span className="text-foreground font-medium">1 sola candidatura</span>.
-            Per continuare, passa a Versō Pro.
+            Per continuare, passa a Verso Pro.
           </p>
         </motion.div>
 
@@ -149,7 +149,7 @@ export default function Upgrade() {
             <CardContent className="py-5 px-5 space-y-4">
               <div className="flex items-center gap-2">
                 <Crown size={20} className="text-primary" weight="fill" />
-                <span className="font-display text-lg font-bold">Versō Pro</span>
+                <span className="font-display text-lg font-bold">Verso Pro</span>
                 <span className="ml-auto font-mono text-sm text-primary font-bold">€9,90/mese</span>
               </div>
 
@@ -180,7 +180,7 @@ export default function Upgrade() {
             {loading ? (
               <><SpinnerGap size={18} className="animate-spin" /> Reindirizzamento...</>
             ) : (
-              <><Crown size={18} weight="fill" /> Passa a Versō Pro</>
+              <><Crown size={18} weight="fill" /> Passa a Verso Pro</>
             )}
           </Button>
 
