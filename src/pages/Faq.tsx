@@ -45,7 +45,7 @@ const sections: FaqSection[] = [
     items: [
       {
         q: "Verso scrive il CV al posto mio?",
-        a: "No. Verso non inventa nulla. Parte dal tuo CV reale — le tue esperienze, le tue competenze, i tuoi risultati — e li riorganizza, riformula e ottimizza per una specifica posizione. È la differenza tra mentire e comunicare bene. Un avvocato non cambia i fatti: li presenta nel modo più efficace. Verso fa lo stesso con il tuo profilo professionale.",
+        a: "No. Non invento nulla. Parto dal tuo CV reale — le tue esperienze, le tue competenze, i tuoi risultati — e li riorganizzo, riformulo e ottimizzo per una specifica posizione. È la differenza tra mentire e comunicare bene. Un avvocato non cambia i fatti: li presenta nel modo più efficace. Faccio lo stesso con il tuo profilo professionale.",
       },
       {
         q: "Cos'è il \"tailoring\" e perché è importante?",
@@ -56,8 +56,8 @@ const sections: FaqSection[] = [
         a: "L'Honest Score è il mio controllo anti-esagerazione. Dopo ogni tailoring, verifico che il CV adattato sia coerente con il CV originale. Se l'AI ha aggiunto competenze che non hai, gonfiato risultati, o inserito esperienze inventate, l'Honest Score lo segnala. Ogni modifica è tracciabile. Il tuo CV adattato è sempre una versione del tuo CV reale, mai una fiction.",
       },
       {
-        q: "Perché Verso fa un pre-screening prima di adattare il CV?",
-        a: "Perché non tutte le candidature hanno senso. Prima di investire tempo (tuo e dell'AI), Verso analizza il match tra il tuo profilo e l'annuncio. Identifica dealbreaker, gap di competenze, disallineamenti di seniority. Se il ruolo richiede 10 anni di esperienza in cloud architecture e tu ne hai 2 nel frontend, Verso te lo dice. Non per scoraggiarti — per aiutarti a concentrare le energie dove puoi davvero fare la differenza.",
+        q: "Perché faccio un pre-screening prima di adattare il CV?",
+        a: "Perché non tutte le candidature hanno senso. Prima di investire tempo (tuo e dell'AI), analizzo il match tra il tuo profilo e l'annuncio. Identifico dealbreaker, gap di competenze, disallineamenti di seniority. Se il ruolo richiede 10 anni di esperienza in cloud architecture e tu ne hai 2 nel frontend, te lo dico. Non per scoraggiarti — per aiutarti a concentrare le energie dove puoi davvero fare la differenza.",
       },
     ],
   },
@@ -76,15 +76,15 @@ const sections: FaqSection[] = [
       },
       {
         q: "Come migliorare il Punteggio ATS?",
-        a: "Il Punteggio ATS misura quanto il tuo CV è ottimizzato per i sistemi di screening automatico. Verso ti mostra 7 check specifici: keyword presenti, formato corretto, sezioni standard, lunghezza adeguata, verbi d'azione, risultati misurabili, assenza di elementi problematici. Per ogni check fallito, hai un'indicazione precisa su cosa migliorare. In molti casi, Verso lo corregge automaticamente durante il tailoring.",
+        a: "Il Punteggio ATS misura quanto il tuo CV è ottimizzato per i sistemi di screening automatico. Ti mostro 7 check specifici: keyword presenti, formato corretto, sezioni standard, lunghezza adeguata, verbi d'azione, risultati misurabili, assenza di elementi problematici. Per ogni check fallito, hai un'indicazione precisa su cosa migliorare. In molti casi, lo correggo automaticamente durante il tailoring.",
       },
       {
         q: "Quando usare i suggerimenti AI?",
-        a: "Verso ti segnala le competenze che ti mancano rispetto all'annuncio e suggerisce risorse per colmare i gap: corsi su Coursera, LinkedIn Learning, certificazioni. Non devi necessariamente completarli prima di candidarti — ma sapere cosa ti manca ti aiuta a prepararti per il colloquio e a pianificare la crescita professionale. Se una skill è marcata come \"essenziale\" e non ce l'hai, valuta seriamente se è il caso di candidarti.",
+        a: "Ti segnalo le competenze che ti mancano rispetto all'annuncio e suggerisco risorse per colmare i gap: corsi su Coursera, LinkedIn Learning, certificazioni. Non devi necessariamente completarli prima di candidarti — ma sapere cosa ti manca ti aiuta a prepararti per il colloquio e a pianificare la crescita professionale. Se una skill è marcata come \"essenziale\" e non ce l'hai, valuta seriamente se è il caso di candidarti.",
       },
       {
         q: "Posso spostare una skill da \"mancante\" a \"presente\"?",
-        a: "Sì. Se Verso non ha riconosciuto una competenza che in realtà hai, puoi spostarla manualmente. Questo aggiorna il match score e il CV adattato. Ma sii onesto: se la sposti, assicurati di poterla sostenere in un colloquio.",
+        a: "Sì. Se non ho riconosciuto una competenza che in realtà hai, puoi spostarla manualmente. Questo aggiorna il match score e il CV adattato. Ma sii onesto: se la sposti, assicurati di poterla sostenere in un colloquio.",
       },
     ],
   },
@@ -126,7 +126,7 @@ export default function Faq() {
           Guida & FAQ
         </h1>
         <p className="text-sm text-muted-foreground">
-          Tutto quello che devi sapere su ATS, CV tailoring e come Verso ti aiuta a candidarti meglio.
+          Tutto quello che devi sapere su ATS, CV tailoring e come ti aiuto a candidarti meglio.
         </p>
       </div>
 

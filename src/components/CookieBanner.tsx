@@ -66,7 +66,7 @@ export function CookieBanner() {
           <div className="flex-1 space-y-2">
             <p className="text-[13px] text-muted-foreground leading-relaxed">
               Questo sito usa cookie tecnici necessari al funzionamento.
-              Per saperne di più, consulta la nostra{" "}
+              Per saperne di più, consulta la{" "}
               <Link to="/cookie-policy" target="_blank" className="text-primary underline underline-offset-4 hover:text-primary/80">
                 Cookie Policy
               </Link>.

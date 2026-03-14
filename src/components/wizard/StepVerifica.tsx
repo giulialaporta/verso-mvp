@@ -29,7 +29,7 @@ export function StepVerifica({
       <div className="mx-auto max-w-2xl space-y-6 px-4">
         <div>
           <h2 className="font-display text-2xl font-bold">Pre-screening</h2>
-          <p className="text-muted-foreground mt-1">Verso sta analizzando i requisiti dell'annuncio...</p>
+          <p className="text-muted-foreground mt-1">Sto analizzando i requisiti dell'annuncio...</p>
         </div>
         {["Classificazione requisiti...", "Analisi gap...", "Generazione domande..."].map((msg, i) => (
           <motion.div key={msg} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.8, duration: 0.4 }}>
@@ -92,7 +92,7 @@ export function StepVerifica({
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground italic pt-2 border-t border-border/30">Verso non ti impedisce di candidarti, ma vuole che tu sia consapevole di questi gap.</p>
+              <p className="text-xs text-muted-foreground italic pt-2 border-t border-border/30">Non ti impedisco di candidarti, ma voglio che tu sia consapevole di questi gap.</p>
             </CardContent>
           </Card>
         </motion.div>
