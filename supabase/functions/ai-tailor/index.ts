@@ -671,7 +671,7 @@ Deno.serve(async (req) => {
     const totalFields = Object.keys(originalCV).length;
     const changeRatio = patches.length / Math.max(totalFields, 1);
     if (changeRatio > 0.6) {
-      console.warn(`Change ratio warning: ${(changeRatio * 100).toFixed(0)}% of fields modified (${patches.length}/${totalFields})`);
+      console.warn("Change ratio warning: " + (changeRatio * 100).toFixed(0) + "% of fields modified (" + patches.length + "/" + totalFields + ")");
     }
 
     // Apply patches with validation
