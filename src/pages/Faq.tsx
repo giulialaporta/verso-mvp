@@ -53,7 +53,7 @@ const sections: FaqSection[] = [
       },
       {
         q: "Verso è onesto: cos'è l'Honest Score?",
-        a: "L'Honest Score è il nostro controllo anti-esagerazione. Dopo ogni tailoring, Verso verifica che il CV adattato sia coerente con il CV originale. Se l'AI ha aggiunto competenze che non hai, gonfiato risultati, o inserito esperienze inventate, l'Honest Score lo segnala. Ogni modifica è tracciabile. Il tuo CV adattato è sempre una versione del tuo CV reale, mai una fiction.",
+        a: "L'Honest Score è il mio controllo anti-esagerazione. Dopo ogni tailoring, verifico che il CV adattato sia coerente con il CV originale. Se l'AI ha aggiunto competenze che non hai, gonfiato risultati, o inserito esperienze inventate, l'Honest Score lo segnala. Ogni modifica è tracciabile. Il tuo CV adattato è sempre una versione del tuo CV reale, mai una fiction.",
       },
       {
         q: "Perché Verso fa un pre-screening prima di adattare il CV?",
