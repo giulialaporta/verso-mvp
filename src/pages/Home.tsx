@@ -728,9 +728,11 @@ export default function Home() {
           Ciao, {firstName}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          {hasApplications
+          {activeApps.length > 0
             ? `Hai ${activeApps.length} candidatur${activeApps.length === 1 ? "a attiva" : "e attive"}.`
-            : "Il tuo CV è pronto. Crea la tua prima candidatura."}
+            : (apps ?? []).length > 0
+              ? "Nessuna candidatura attiva. Creane una nuova!"
+              : "Il tuo CV è pronto. Crea la tua prima candidatura."}
         </p>
       </div>
 
