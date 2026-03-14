@@ -747,7 +747,7 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05, duration: 0.25 }}
       >
-        <PlanCard isPro={isPro} loading={subLoading} />
+        <PlanCard isPro={isPro} loading={subLoading} cancelAtPeriodEnd={cancelAtPeriodEnd} subscriptionEnd={subscriptionEnd} />
       </motion.div>
 
       {/* CTA */}
