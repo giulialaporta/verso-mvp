@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Returns a function that checks if the user can create a new application.
- * If user is Free and has ≥1 active application → navigates to /upgrade.
+ * Uses profiles.free_apps_used (lifetime counter, not decremented on delete).
  * Returns true if user can proceed, false if blocked.
  */
 export function useProGate() {
@@ -15,18 +15,18 @@ export function useProGate() {
   const checkCanCreate = useCallback(async (isPro: boolean): Promise<boolean> => {
     if (isPro || !user) return true;
 
-    const { count, error } = await supabase
-      .from("applications")
-      .select("id", { count: "exact", head: true })
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("free_apps_used")
       .eq("user_id", user.id)
-      .not("status", "eq", "ko");
+      .single();
 
     if (error) {
       console.error("Pro gate check failed:", error);
       return true; // fail open
     }
 
-    if ((count ?? 0) >= 1) {
+    if ((data?.free_apps_used ?? 0) >= 1) {
       navigate("/upgrade");
       return false;
     }

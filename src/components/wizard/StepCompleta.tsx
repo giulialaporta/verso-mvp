@@ -20,11 +20,10 @@ export function StepCompleta({
   onNewApplication: () => void;
 }) {
   const { isPro } = useSubscription();
-  const { data: apps } = useApplications();
   const checkCanCreate = useProGate();
 
-  const activeCount = (apps ?? []).filter(a => !["ko", "draft"].includes(a.status.toLowerCase())).length;
-  const showFreeBanner = !isPro && activeCount >= 1;
+  // Banner always shown for free users completing an application (they just used their slot)
+  const showFreeBanner = !isPro;
 
   const handleNewApp = async () => {
     const canCreate = await checkCanCreate(isPro);
