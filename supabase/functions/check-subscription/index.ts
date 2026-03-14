@@ -84,11 +84,17 @@ Deno.serve(async (req: Request) => {
 
     if (hasActiveSub) {
       const sub = subscriptions.data[0];
-      subscriptionEnd = safeTimestamp(sub.current_period_end);
+      subscriptionEnd = safeTimestamp(sub.current_period_end) ?? safeTimestamp(sub.cancel_at) ?? null;
       cancelAtPeriodEnd = sub.cancel_at_period_end === true;
       const proSince = safeTimestamp(sub.start_date) ?? safeTimestamp(sub.created) ?? new Date().toISOString();
 
-      logStep("Active subscription found", { subscriptionId: sub.id, endDate: subscriptionEnd, cancelAtPeriodEnd });
+      logStep("Active subscription found", {
+        subscriptionId: sub.id,
+        currentPeriodEnd: sub.current_period_end,
+        cancelAt: sub.cancel_at,
+        endDate: subscriptionEnd,
+        cancelAtPeriodEnd,
+      });
 
       await supabase.from("profiles").update({
         is_pro: true,

@@ -293,26 +293,48 @@ export default function Impostazioni() {
                 ) : (
                   <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary font-bold">Versō Pro</span>
                 )}
+                {!cancelAtPeriodEnd && (
+                  <span className="text-xs text-muted-foreground">€9,90/mese</span>
+                )}
               </div>
               {cancelAtPeriodEnd ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    {subscriptionEnd ? (
-                      <>Il tuo piano scade il <span className="text-foreground font-medium">{new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}</span>. Dopo questa data tornerai al piano Free.</>
-                    ) : (
-                      <>Il tuo abbonamento è in fase di annullamento. Tornerai al piano Free al termine del periodo corrente.</>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Le candidature e i CV già creati restano accessibili.</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={handleManageBilling}
-                    disabled={portalLoading}
-                  >
-                    {portalLoading ? "Caricamento..." : "Riattiva abbonamento"}
-                  </Button>
+                <div className="rounded-lg border border-warning/20 bg-warning/5 p-4 space-y-3">
+                  {subscriptionEnd ? (() => {
+                    const endDate = new Date(subscriptionEnd);
+                    const now = new Date();
+                    const daysLeft = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-foreground font-medium">
+                            Scade il {endDate.toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}
+                          </p>
+                          <span className="rounded-full bg-warning/15 px-2.5 py-0.5 font-mono text-xs text-warning font-bold">
+                            {daysLeft === 0 ? "Ultimo giorno" : `${daysLeft}g rimasti`}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Dopo questa data tornerai al piano Free (1 candidatura). Le candidature e i CV già creati restano accessibili.
+                        </p>
+                      </>
+                    );
+                  })() : (
+                    <p className="text-sm text-muted-foreground">
+                      L'abbonamento è stato annullato. Tornerai al piano Free al termine del periodo corrente.
+                    </p>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 border-warning/30 hover:border-warning hover:text-warning"
+                      onClick={handleManageBilling}
+                      disabled={portalLoading}
+                    >
+                      {portalLoading ? "Caricamento..." : "Riattiva abbonamento"}
+                    </Button>
+                    <span className="text-xs text-muted-foreground">Hai cambiato idea?</span>
+                  </div>
                 </div>
               ) : (
                 <>
