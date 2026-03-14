@@ -214,8 +214,7 @@ async function callAnthropic(request: AiRequest, model: string): Promise<Provide
     body.tool_choice = toAnthropicToolChoice(request.toolChoice);
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  console.log(`[AI] Calling Anthropic ${model}, body size: ${JSON.stringify(body).length} bytes`);
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -226,10 +225,9 @@ async function callAnthropic(request: AiRequest, model: string): Promise<Provide
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
-      signal: controller.signal,
     });
 
-    clearTimeout(timeout);
+    console.log(`[AI] Anthropic responded: ${res.status}`);
 
     if (!res.ok) {
       const errText = await res.text();
@@ -250,8 +248,9 @@ async function callAnthropic(request: AiRequest, model: string): Promise<Provide
       tokensIn: usage.input_tokens || 0,
       tokensOut: usage.output_tokens || 0,
     };
-  } finally {
-    clearTimeout(timeout);
+  } catch (e) {
+    console.error(`[AI] Anthropic fetch error:`, (e as Error).message);
+    throw e;
   }
 }
 
@@ -298,8 +297,7 @@ async function callGoogleAI(request: AiRequest, model: string): Promise<Provider
     }
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  console.log(`[AI] Calling Google AI ${model}`);
 
   try {
     const res = await fetch(
@@ -308,11 +306,10 @@ async function callGoogleAI(request: AiRequest, model: string): Promise<Provider
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-        signal: controller.signal,
       }
     );
 
-    clearTimeout(timeout);
+    console.log(`[AI] Google AI responded: ${res.status}`);
 
     if (!res.ok) {
       const errText = await res.text();
@@ -331,8 +328,9 @@ async function callGoogleAI(request: AiRequest, model: string): Promise<Provider
       tokensIn: usage.promptTokenCount || 0,
       tokensOut: usage.candidatesTokenCount || 0,
     };
-  } finally {
-    clearTimeout(timeout);
+  } catch (e) {
+    console.error(`[AI] Google AI fetch error:`, (e as Error).message);
+    throw e;
   }
 }
 
