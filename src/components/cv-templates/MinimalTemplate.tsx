@@ -152,7 +152,7 @@ export function MinimalTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
               <View style={s.divider} />
               <Text style={s.sectionTitle}>{h("education", lang)}</Text>
               {education.map((ed: any, i: number) => (
-                <View key={i} style={s.eduBlock}>
+                <View key={i} style={s.eduBlock} wrap={false}>
                   <Text style={s.eduTitle}>
                     {ed.degree}{clean(ed.field) ? ` in ${ed.field}` : ""} — {ed.institution}
                   </Text>
