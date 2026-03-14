@@ -294,7 +294,7 @@ export default function Impostazioni() {
                   <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary font-bold">Versō Pro</span>
                 )}
               </div>
-              {cancelAtPeriodEnd && subscriptionEnd ? (
+              {cancelAtPeriodEnd ? (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
                     Il tuo piano scade il <span className="text-foreground font-medium">{new Date(subscriptionEnd).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" })}</span>. Dopo questa data tornerai al piano Free.
