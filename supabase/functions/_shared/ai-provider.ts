@@ -227,7 +227,7 @@ async function callAnthropic(request: AiRequest, model: string): Promise<Provide
       body: JSON.stringify(body),
     });
 
-    clearTimeout(timeout);
+    console.log(`[AI] Anthropic responded: ${res.status}`);
 
     if (!res.ok) {
       const errText = await res.text();
