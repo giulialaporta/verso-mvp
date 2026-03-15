@@ -198,8 +198,8 @@ If the candidate is OVERQUALIFIED for the role (more senior than required):
 - REMOVE irrelevant projects, certifications, or extra sections (but NEVER experiences)
 
 ### Level 2 — CONTENT (how to rewrite what remains)
-- Summary: 2-3 sentences maximum, specific to this role
-- Bullets: action verb + measurable result, one line each
+- Summary: 2-3 sentences maximum, highlighting transferable skills for this role while preserving the candidate's ACTUAL professional identity
+- Bullets: action verb + impact. Use original metrics ONLY if they exist in the original CV. If no metrics exist, describe the impact QUALITATIVELY. NEVER invent percentages, amounts, user counts, or team sizes.
 - Skills: MUST be ordered by relevance to the job posting. First: skills that directly match job requirements. Then: other technical skills relevant to the role. Then: tools. Last: soft skills. Remove generic/obvious ones (e.g. "Microsoft Office", "Teamwork" for senior roles). This ordering rule applies to skills.technical, skills.soft, and skills.tools arrays.
 
 ## CONCISENESS RULE
