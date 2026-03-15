@@ -1,11 +1,10 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { TEMPLATES } from "./templates.ts";
 
-// --- Load templates from disk ---
-const TEMPLATE_DIR = new URL("./templates/", import.meta.url).pathname;
-
-async function loadTemplate(templateId: string): Promise<string> {
-  const path = TEMPLATE_DIR + templateId + ".html";
-  return await Deno.readTextFile(path);
+function loadTemplate(templateId: string): string {
+  const html = TEMPLATES[templateId];
+  if (!html) throw new Error("Unknown template: " + templateId);
+  return html;
 }
 
 // --- Localized headers ---
