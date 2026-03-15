@@ -120,17 +120,17 @@ export function DetailContent({
       </ScrollArea>
 
       <div className="space-y-2 p-4 pt-2">
-        <Button onClick={onSave} className="w-full gap-2">
+        <Button onClick={onSave} className="w-full gap-2 active:scale-[0.98] transition-transform">
           <FloppyDisk size={16} /> Salva
         </Button>
-        <Button variant="outline" className="w-full gap-2" onClick={onExport}>
+        <Button variant="outline" className="w-full gap-2 active:scale-[0.98] transition-transform" onClick={onExport}>
           <DownloadSimple size={16} /> Scarica PDF
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
               variant="ghost"
-              className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 active:scale-[0.98] transition-transform"
             >
               <Trash size={16} /> Elimina candidatura
             </Button>

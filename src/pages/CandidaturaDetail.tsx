@@ -208,7 +208,7 @@ export default function CandidaturaDetail() {
       </div>
 
       {/* Status Grid — prominente, subito dopo header */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
         {STATUSES.map((s) => {
           const style = STATUS_STYLES[s] ?? STATUS_STYLES.draft;
           const isActive = status === s;
@@ -257,15 +257,15 @@ export default function CandidaturaDetail() {
 
       {/* Score Note */}
       {scoreNote && (
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="py-4">
-            <p className="text-sm text-muted-foreground">{scoreNote}</p>
+         <Card className="border-border/50 bg-card/80 overflow-hidden">
+           <CardContent className="py-4">
+             <p className="text-sm text-muted-foreground break-words">{scoreNote}</p>
           </CardContent>
         </Card>
       )}
 
       {atsChecks && atsChecks.length > 0 && (
-        <Card className="border-border/50 bg-card/80">
+        <Card className="border-border/50 bg-card/80 overflow-hidden">
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center gap-2">
               <ShieldWarning size={16} className="text-info" />
@@ -297,9 +297,9 @@ export default function CandidaturaDetail() {
               <span className="text-sm font-medium">Seniority</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded uppercase">{seniorityMatch.candidate_level}</span>
+              <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded uppercase truncate max-w-[120px]">{seniorityMatch.candidate_level}</span>
               <span className="text-muted-foreground">→</span>
-              <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded uppercase">{seniorityMatch.role_level}</span>
+              <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded uppercase truncate max-w-[120px]">{seniorityMatch.role_level}</span>
               <span className={`ml-auto font-mono text-xs ${seniorityMatch.match ? "text-primary" : "text-warning"}`}>
                 {seniorityMatch.match ? "Match" : "Gap"}
               </span>
@@ -311,7 +311,7 @@ export default function CandidaturaDetail() {
 
       {/* Learning Suggestions */}
       {learningSuggestions && learningSuggestions.length > 0 && (
-        <Card className="border-border/50 bg-card/80">
+        <Card className="border-border/50 bg-card/80 overflow-hidden">
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center gap-2">
               <GraduationCap size={16} className="text-primary" />
@@ -347,11 +347,11 @@ export default function CandidaturaDetail() {
               <CollapsibleContent>
                 <div className="space-y-3 mt-4">
                   {diff.map((ch: any, i: number) => (
-                    <div key={i} className="rounded-lg border border-border/30 p-3 space-y-1.5">
+                    <div key={i} className="rounded-lg border border-border/30 p-3 space-y-1.5 overflow-hidden">
                       <p className="font-mono text-[11px] text-muted-foreground uppercase">{ch.section}</p>
-                      <p className="text-sm line-through text-muted-foreground">{ch.original}</p>
-                      <p className="text-sm text-primary border-l-2 border-primary/40 pl-2">{ch.suggested}</p>
-                      {ch.reason && <p className="text-xs text-muted-foreground italic">{ch.reason}</p>}
+                      <p className="text-sm line-through text-muted-foreground break-words">{ch.original}</p>
+                      <p className="text-sm text-primary border-l-2 border-primary/40 pl-2 break-words">{ch.suggested}</p>
+                      {ch.reason && <p className="text-xs text-muted-foreground italic break-words">{ch.reason}</p>}
                     </div>
                   ))}
                 </div>
@@ -406,13 +406,13 @@ export default function CandidaturaDetail() {
       {/* Actions — sticky on mobile */}
       <div className="space-y-2 pb-6 md:pb-6 sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] md:static bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none pt-3 -mx-4 px-4 border-t border-border/30 md:border-0 md:mx-0 z-10">
         {tailoredData && (
-          <Button variant="outline" className="w-full gap-2" onClick={() => setExportOpen(true)}>
+          <Button variant="outline" className="w-full gap-2 active:scale-[0.98] transition-transform" onClick={() => setExportOpen(true)}>
             <DownloadSimple size={16} /> Scarica PDF
           </Button>
         )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
+            <Button variant="ghost" className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 active:scale-[0.98] transition-transform">
               <Trash size={16} /> Elimina candidatura
             </Button>
           </AlertDialogTrigger>

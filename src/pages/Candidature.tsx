@@ -167,7 +167,7 @@ export default function Candidature() {
 
   const ProntaCard = ({ app }: { app: AppRowWithAts }) => (
     <div
-      className="rounded-lg border border-primary/20 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-colors"
+      className="rounded-lg border border-primary/20 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-all active:scale-[0.98] overflow-hidden"
       onClick={() => navigate(`/app/candidatura/${app.id}`)}
       onMouseEnter={() => prefetch(app.id)}
     >
@@ -194,7 +194,7 @@ export default function Candidature() {
 
   const AppCard = ({ app }: { app: AppRowWithAts }) => (
     <div
-      className="rounded-lg border border-border/30 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-colors"
+      className="rounded-lg border border-border/30 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-all active:scale-[0.98] overflow-hidden"
       onClick={() => navigate(`/app/candidatura/${app.id}`)}
       onMouseEnter={() => prefetch(app.id)}
       onFocus={() => prefetch(app.id)}
@@ -221,7 +221,7 @@ export default function Candidature() {
   );
 
   const DraftCard = ({ draft }: { draft: AppRowWithAts }) => (
-    <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/60 px-3 py-3">
+    <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/60 px-3 py-3 overflow-hidden">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
         {draft.company_name.charAt(0)}
       </div>
@@ -244,7 +244,7 @@ export default function Candidature() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+            className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
             aria-label={`Elimina bozza ${draft.role_title}`}
           >
             <Trash size={14} />
@@ -276,7 +276,7 @@ export default function Candidature() {
     <div className="mx-auto max-w-xl space-y-5 px-4 sm:px-0">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold">Candidature</h1>
-        <Button onClick={() => navigate("/app/nuova")} size="sm" className="gap-2">
+        <Button onClick={() => navigate("/app/nuova")} size="sm" className="gap-2 active:scale-[0.98] transition-transform">
           <Plus size={14} /> Nuova
         </Button>
       </div>

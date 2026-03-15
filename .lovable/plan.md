@@ -1,49 +1,68 @@
+# Riduzione Latenza AI ✅
 
+## Implementato
 
-# Epic 17 — Mobile UX: Sezione Candidature
+1. **Parallelizzazione prescreen + analyze** — `Promise.all` in `handleAnnuncioConfirm`, risultato analyze cachato in ref e usato istantaneamente allo Step 2 (−8-15s)
+2. **cv-review integrato nel prompt tailor** — Le 10 regole di qualità ora sono nel `SYSTEM_PROMPT_TAILOR`, eliminata la chiamata separata (−5-8s)  
+3. **Downgrade modelli** — `ai-prescreen` e `ai-tailor-analyze` ora usano Claude Haiku 4.5 (−40-60% latenza, −60% costi)
+4. **Progress indicator** — Già presente con animazioni staggered in StepVerifica e StepTailoring
 
-Le pagine Candidature e CandidaturaDetail non hanno ancora ricevuto gli adeguamenti mobile dell'Epic 17. Ecco cosa manca:
+## Risultato atteso
 
-## Problemi trovati
+```
+PRIMA:  Step 0→1: 12s | Step 1→2: 12s | Step 2→3: 20s = ~44s
+DOPO:   Step 0→1: 4s  | Step 1→2: 0s  | Step 2→3: 12s = ~16s  (−65%)
+```
 
-### Candidature.tsx (lista)
-1. **Nessun feedback tattile** — card e pulsanti senza `active:scale-[0.98]`
-2. **Pulsante "Riprendi" bozza** — `text-xs` senza `min-h-[44px]`, touch target insufficiente
-3. **Pulsante elimina bozza** — `h-8 w-8`, sotto i 44px minimi
-4. **Card overflow** — nessun `overflow-hidden` sulle card con testo dinamico (ruolo/azienda lunghi)
+# Protezione Esperienze CV ✅
 
-### CandidaturaDetail.tsx (dettaglio)
-1. **Status grid 3 colonne** — 7 stati in `grid-cols-3` su 375px = testo troncato, va portato a `grid-cols-4` con wrap o `flex-wrap`
-2. **Nessun feedback tattile** — pulsanti azione (Scarica PDF, Elimina) senza scale effect
-3. **Card senza overflow protection** — score note, ATS checks, diff, learning suggestions con testo AI che può traboccare
-4. **Seniority badge overflow** — `font-mono text-xs` senza `truncate` può uscire dalla card su livelli lunghi
+## Implementato
 
-### DetailContent.tsx (drawer)
-1. **Status chips** — `min-h-[44px]` già presente, OK
-2. **Pulsanti azione** — nessun `active:scale-[0.98]`
+1. **Prompt EXPERIENCE PROTECTION riscritto** — L'AI non può MAI rimuovere esperienze, solo riordinare e condensare
+2. **Enum structural_changes aggiornato** — Rimossa l'azione "removed", ammesse solo "reordered" e "condensed"
+3. **Seniority overqualified** — Se il candidato è più senior del ruolo, l'esperienza extra viene valorizzata come punto di forza
+4. **Level 1 tailoring aggiornato** — Le esperienze non vengono mai rimosse, solo progetti/certificazioni irrilevanti
 
-## Piano modifiche
+# Agente Revisione Formale CV ✅
 
-### Candidature.tsx
-- Aggiungere `overflow-hidden` alle card (`ProntaCard`, `AppCard`, `DraftCard`)
-- Pulsante elimina bozza: da `h-8 w-8` a `h-9 w-9` (36px, accettabile con padding)
-- Aggiungere `active:scale-[0.98] transition-transform` a card cliccabili e pulsante "Nuova"
+## Implementato
 
-### CandidaturaDetail.tsx
-- Status grid: da `grid-cols-3` a `grid-cols-4 sm:grid-cols-7` (4 colonne su mobile, riga unica su desktop). Con 7 stati, 4 colonne = 2 righe, leggibile
-- Aggiungere `overflow-hidden` a tutte le Card con contenuto dinamico
-- Aggiungere `break-words` ai testi AI (score note, diff, ATS detail)
-- Aggiungere `active:scale-[0.98] transition-transform` ai pulsanti azione
-- Seniority badge: aggiungere `truncate max-w-[120px]`
+1. **Nuova edge function `cv-formal-review`** — Claude Haiku 4.5 via `ai-provider.ts`, controlla coerenza date, maiuscole, separatori, lingua unica, bullet uniformi, punteggiatura, fluidità
+2. **Task routing aggiornato** — Nuovo task `cv-formal-review` in `ai-provider.ts` con Haiku 4.5 + fallback Gemini 2.5 Flash
+3. **Review automatica in background** — Si attiva con `useEffect` all'ingresso nello step Export, senza click dell'utente
+4. **Download non bloccato** — L'utente può scaricare subito; se la review è pronta, il CV revisionato viene usato automaticamente
+5. **UI correzioni** — Badge nel pannello score (reviewing/OK/N correzioni) + pannello collapsible con dettaglio fix (sezione → campo → problema → correzione)
 
-### DetailContent.tsx
-- Aggiungere `active:scale-[0.98] transition-transform` ai 3 pulsanti (Salva, Scarica PDF, Elimina)
+# Anti-Hallucination & Integrity Check ✅
 
-## File coinvolti
+## Implementato
 
-| File | Modifiche |
-|------|-----------|
-| `src/pages/Candidature.tsx` | overflow-hidden su card, touch target bozza, feedback tattile |
-| `src/pages/CandidaturaDetail.tsx` | status grid responsive, overflow protection card, feedback tattile, break-words |
-| `src/components/candidature/DetailContent.tsx` | feedback tattile sui pulsanti |
+### 1. Prompt Hardening (`ai-tailor/index.ts`)
+- Aggiunta sezione **ANTI-HALLUCINATION — ABSOLUTE RULES** con 11 regole esplicite
+- Vietato inventare metriche, percentuali, importi, dimensioni team
+- Vietato modificare ruoli, aziende, location, date — copia carattere-per-carattere
+- Vietato modificare titoli di studio, voti, honors
+- Vietato aggiungere/rimuovere certificazioni
+- Bullet riformulato: "action verb + impact, metriche SOLO se presenti nell'originale"
+- Summary: preservare identità professionale reale
 
+### 2. Integrity Check server-side (`_shared/integrity-check.ts`)
+- Validazione post-patch che confronta CV tailored con originale
+- **Campi immutabili experience**: role, company, location, start, end → revert automatico
+- **Campi immutabili education**: institution, degree, field, grade, honors, program, publication → revert automatico
+- **Certificazioni**: inventate rimosse, rimosse ripristinate (match fuzzy per nome)
+- **Metriche fabbricate**: regex scan per `\d+%`, `€\d+`, `\d+[KMB]+`, `team of \d+` — revert bullet se metrica assente nell'originale
+- **Dati personali**: name, email, phone, location, linkedin protetti
+- **Education inventate**: rimosse; education rimosse: ripristinate
+
+### 3. Honest Score server-computed
+- L'AI non si auto-valuta più — i contatori sono calcolati server-side
+- Nuovi campi: `dates_modified`, `roles_changed`, `companies_changed`, `degrees_changed`, `metrics_fabricated`, `certs_invented`, `certs_removed`
+- Flag `server_validated: true` per distinguere dal vecchio self-report
+- Conteggio `reverts` con dettaglio per categoria
+
+## Root cause risolte
+- ✅ "action verb + measurable result" → non incentiva più l'invenzione di metriche
+- ✅ Nessuna enforcement server-side → integrity-check.ts valida ogni campo
+- ✅ honest_score self-reported → calcolato server-side
+- ✅ validate-output solo tipi → integrity check confronta contenuto
