@@ -111,47 +111,73 @@ function resolveValue(data: Record<string, any>, path: string): any {
   return current;
 }
 
+// Find the matching closing tag for a block, handling nesting
+function findMatchingClose(html: string, tag: string, startPos: number): number {
+  var depth = 1;
+  var pos = startPos;
+  var openTag = "{{#" + tag + " ";
+  var closeTag = "{{/" + tag + "}}";
+  while (depth > 0 && pos < html.length) {
+    var nextOpen = html.indexOf(openTag, pos);
+    var nextClose = html.indexOf(closeTag, pos);
+    if (nextClose === -1) return -1;
+    if (nextOpen !== -1 && nextOpen < nextClose) {
+      depth++;
+      pos = nextOpen + openTag.length;
+    } else {
+      depth--;
+      if (depth === 0) return nextClose;
+      pos = nextClose + closeTag.length;
+    }
+  }
+  return -1;
+}
+
+function processBlock(html: string, tag: string, handler: (key: string, body: string) => string): string {
+  var safety = 0;
+  var openPrefix = "{{#" + tag + " ";
+  while (html.indexOf(openPrefix) !== -1 && safety < 50) {
+    safety++;
+    var openStart = html.indexOf(openPrefix);
+    var openEnd = html.indexOf("}}", openStart);
+    if (openEnd === -1) break;
+    var key = html.substring(openStart + openPrefix.length, openEnd);
+    var bodyStart = openEnd + 2;
+    var closePos = findMatchingClose(html, tag, bodyStart);
+    if (closePos === -1) break;
+    var body = html.substring(bodyStart, closePos);
+    var closeTag = "{{/" + tag + "}}";
+    var replacement = handler(key, body);
+    html = html.substring(0, openStart) + replacement + html.substring(closePos + closeTag.length);
+  }
+  return html;
+}
+
 function compileTemplate(template: string, data: Record<string, any>): string {
-  let html = template;
+  var html = template;
 
-  // Process {{#each array}}...{{/each}}
-  let safety = 0;
-  while (html.includes("{{#each ") && safety < 50) {
-    safety++;
-    html = html.replace(
-      /\{\{#each\s+([\w.]+)\}\}([\s\S]*?)\{\{\/each\}\}/,
-      (_match, key, body) => {
-        const arr = resolveValue(data, key);
-        if (!Array.isArray(arr) || arr.length === 0) return "";
-        return arr.map((item: any) => {
-          const ctx = typeof item === "object" ? { ...data, ...item, ".": item } : { ...data, ".": item };
-          let result = body.replace(/\{\{this\}\}/g, escapeHtml(String(item)));
-          result = result.replace(/\{\{this\.([\w]+)\}\}/g, (_: string, prop: string) => {
-            return escapeHtml(String(item?.[prop] ?? ""));
-          });
-          return compileTemplate(result, ctx);
-        }).join("");
-      }
-    );
-  }
+  // Process {{#each array}}...{{/each}} with proper nesting
+  html = processBlock(html, "each", function(key, body) {
+    var arr = resolveValue(data, key);
+    if (!Array.isArray(arr) || arr.length === 0) return "";
+    return arr.map(function(item: any) {
+      var ctx = typeof item === "object"
+        ? Object.assign({}, data, item, {"this": item, ".": item})
+        : Object.assign({}, data, {"this": String(item), ".": item});
+      return compileTemplate(body, ctx);
+    }).join("");
+  });
 
-  // Process {{#if value}}...{{/if}}
-  safety = 0;
-  while (html.includes("{{#if ") && safety < 50) {
-    safety++;
-    html = html.replace(
-      /\{\{#if\s+([\w.]+)\}\}([\s\S]*?)\{\{\/if\}\}/,
-      (_match, key, body) => {
-        const val = resolveValue(data, key);
-        const truthy = Array.isArray(val) ? val.length > 0 : Boolean(val);
-        return truthy ? compileTemplate(body, data) : "";
-      }
-    );
-  }
+  // Process {{#if value}}...{{/if}} with proper nesting
+  html = processBlock(html, "if", function(key, body) {
+    var val = resolveValue(data, key);
+    var truthy = Array.isArray(val) ? val.length > 0 : Boolean(val);
+    return truthy ? compileTemplate(body, data) : "";
+  });
 
   // Replace {{variable}}
-  html = html.replace(/\{\{([\w.]+)\}\}/g, (_match, key) => {
-    const val = resolveValue(data, key);
+  html = html.replace(/\{\{([\w.]+)\}\}/g, function(_match, key) {
+    var val = resolveValue(data, key);
     if (val === undefined || val === null) return "";
     return escapeHtml(String(val));
   });
