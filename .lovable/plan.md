@@ -1,60 +1,34 @@
+# Riduzione Latenza AI ✅
 
+## Implementato
 
-## Piano rivisto — Agente revisione formale CV
+1. **Parallelizzazione prescreen + analyze** — `Promise.all` in `handleAnnuncioConfirm`, risultato analyze cachato in ref e usato istantaneamente allo Step 2 (−8-15s)
+2. **cv-review integrato nel prompt tailor** — Le 10 regole di qualità ora sono nel `SYSTEM_PROMPT_TAILOR`, eliminata la chiamata separata (−5-8s)  
+3. **Downgrade modelli** — `ai-prescreen` e `ai-tailor-analyze` ora usano Claude Haiku 4.5 (−40-60% latenza, −60% costi)
+4. **Progress indicator** — Già presente con animazioni staggered in StepVerifica e StepTailoring
 
-### Cambio di approccio
+## Risultato atteso
 
-L'agente lavora sul **contenuto strutturato**, non sul render. Quindi il prompt va riscritto per controllare solo ciò che è verificabile dal JSON. I controlli di layout/impaginazione restano responsabilità del codice dei template (react-pdf / docx-generator).
+```
+PRIMA:  Step 0→1: 12s | Step 1→2: 12s | Step 2→3: 20s = ~44s
+DOPO:   Step 0→1: 4s  | Step 1→2: 0s  | Step 2→3: 12s = ~16s  (−65%)
+```
 
-### Cosa cambia rispetto al piano originale
+# Protezione Esperienze CV ✅
 
-1. **Niente distinzione pdf/word** — il campo `format` è inutile perché l'agente non vede nessuno dei due formati. Lavora sul JSON pre-render.
-2. **Prompt riscritto** — solo controlli testuali/formali verificabili dal JSON strutturato
-3. **Modello: Haiku 4.5** invece di Sonnet 4 — è una revisione formale leggera, non serve il modello più potente. Riduce costi e latenza (~2s vs ~8s).
-4. **Review automatica** — si attiva in background appena il CV tailored è pronto, non richiede click dell'utente. Quando l'utente arriva allo step Export, la review è già completata (o quasi).
-5. **Download non bloccato** — se la review è ancora in corso, l'utente può comunque scaricare. Se è pronta, il CV viene aggiornato con le correzioni prima del download.
+## Implementato
 
-### Modifiche tecniche
+1. **Prompt EXPERIENCE PROTECTION riscritto** — L'AI non può MAI rimuovere esperienze, solo riordinare e condensare
+2. **Enum structural_changes aggiornato** — Rimossa l'azione "removed", ammesse solo "reordered" e "condensed"
+3. **Seniority overqualified** — Se il candidato è più senior del ruolo, l'esperienza extra viene valorizzata come punto di forza
+4. **Level 1 tailoring aggiornato** — Le esperienze non vengono mai rimosse, solo progetti/certificazioni irrilevanti
 
-#### 1. Nuova edge function `cv-formal-review/index.ts`
+# Agente Revisione Formale CV ✅
 
-- Riceve: `{ cv: ParsedCV, template_id: string }`
-- Modello: Claude Haiku 4.5 via `ai-provider.ts` (nuovo task `"cv-formal-review"`)
-- System prompt focalizzato su:
-  - Coerenza formato date (es. "Gen 2020" vs "01/2020" vs "2020")
-  - Maiuscole consistenti nei ruoli e aziende
-  - Separatore date uniforme ("–" vs "-" vs "—")
-  - Lingua unica (no mix IT/EN involontario)
-  - Bullet uniformi per lunghezza e struttura
-  - Ripetizioni ravvicinate, punteggiatura inconsistente
-  - Fluidità: frasi meccaniche → ritocco minimo
-- Output via tool calling: `{ fixes: [{ section, field, problem, correction }], revised_cv: { ...same structure } }`
-- Se nessun fix: `fixes: []` e `revised_cv` = input
+## Implementato
 
-#### 2. Aggiornare `ai-provider.ts`
-
-- Aggiungere `"cv-formal-review"` al type `AiTask` e a `TASK_ROUTING` con Haiku 4.5
-
-#### 3. Aggiornare `supabase/config.toml`
-
-- `[functions.cv-formal-review]` con `verify_jwt = false`
-
-#### 4. Modificare `StepExport.tsx`
-
-- Lanciare la review in background con `useEffect` all'ingresso nello step
-- Stato: `reviewStatus: "idle" | "reviewing" | "done"`, `reviewFixes`, `reviewedCv`
-- Se la review è completata prima del download → usa `reviewedCv` per PDF/DOCX
-- Se l'utente scarica prima che la review finisca → usa il CV originale
-- Mostrare i fix in un pannello collapsible sotto i badge (match/ATS/confidence)
-- Se `fixes` vuoto → badge "✓ Revisione OK"
-- Se fix presenti → badge con conteggio + lista espandibile (sezione → problema → correzione)
-
-### File coinvolti
-
-| File | Modifica |
-|------|----------|
-| `supabase/functions/cv-formal-review/index.ts` | Nuova edge function |
-| `supabase/functions/_shared/ai-provider.ts` | Nuovo task type |
-| `supabase/config.toml` | Config funzione |
-| `src/components/wizard/StepExport.tsx` | Review in background + UI fix list |
-
+1. **Nuova edge function `cv-formal-review`** — Claude Haiku 4.5 via `ai-provider.ts`, controlla coerenza date, maiuscole, separatori, lingua unica, bullet uniformi, punteggiatura, fluidità
+2. **Task routing aggiornato** — Nuovo task `cv-formal-review` in `ai-provider.ts` con Haiku 4.5 + fallback Gemini 2.5 Flash
+3. **Review automatica in background** — Si attiva con `useEffect` all'ingresso nello step Export, senza click dell'utente
+4. **Download non bloccato** — L'utente può scaricare subito; se la review è pronta, il CV revisionato viene usato automaticamente
+5. **UI correzioni** — Badge nel pannello score (reviewing/OK/N correzioni) + pannello collapsible con dettaglio fix (sezione → campo → problema → correzione)
