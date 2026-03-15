@@ -52,6 +52,7 @@ export default function Candidature() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const prefetch = usePrefetchApplication();
+  const trackEvent = useTrackEvent();
   const { data: apps, isLoading: appsLoading } = useApplications(100);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedApp, setSelectedApp] = useState<AppRowWithAts | null>(null);
