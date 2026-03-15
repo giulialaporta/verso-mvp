@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unknown template: " + templateId }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const templateHtml = await loadTemplate(templateId);
+    const templateHtml = loadTemplate(templateId);
     const data = prepareData(cv, lang);
     const fitConfig = fitTo2Pages(data, templateId);
 
