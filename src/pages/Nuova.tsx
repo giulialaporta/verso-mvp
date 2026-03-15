@@ -122,8 +122,10 @@ export default function Nuova() {
         supabase.from("master_cvs").select("parsed_data").eq("id", tc.master_cv_id).single()
           .then(({ data: mcv }) => { if (mcv?.parsed_data) setOriginalCv(mcv.parsed_data as Record<string, unknown>); });
 
-        const urlStep = parseInt(searchParams.get("step") || "3", 10);
-        updateStep(urlStep >= 3 ? urlStep : 3);
+        // Infer correct step from status and URL
+        const urlStep = parseInt(searchParams.get("step") || "0", 10);
+        const inferredStep = app.status === "pronta" ? 5 : urlStep >= 3 ? urlStep : 4;
+        updateStep(inferredStep);
       } else if (app.job_description) {
         if ((app as any).prescreen_data) {
           setPrescreenResult((app as any).prescreen_data);
@@ -247,11 +249,12 @@ export default function Nuova() {
     }
   };
 
-  // Step 2 → Step 3
+  // Step 2 → Step 3 (advance immediately, show loading on step 3)
   const handleGenerateCv = async () => {
     if (!user || !jobData || !analyzeResult) return;
     setTailoring(true);
     setTailorResult(null);
+    updateStep(3); // Advance to step 3 immediately — loading shown there
 
     try {
       const { data: result, error } = await supabase.functions.invoke("ai-tailor", {
@@ -265,7 +268,6 @@ export default function Nuova() {
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
 
-      // cv-review rules are now integrated into ai-tailor prompt — no separate call needed
       setTailorResult(result);
 
       if (result.original_cv) {
@@ -308,7 +310,7 @@ export default function Nuova() {
       }
 
       trackEvent("wizard_step_completed", { step: 3, step_name: "tailoring" });
-      updateStep(3);
+      // Stay on step 3 — tailoring loading will disappear and results will show
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Errore durante la generazione del CV";
       if (msg === "UPGRADE_REQUIRED" || (typeof msg === "string" && msg.includes("UPGRADE_REQUIRED"))) {
@@ -316,6 +318,7 @@ export default function Nuova() {
         return;
       }
       toast.error(msg);
+      updateStep(2); // Go back to analysis on error
     } finally {
       setTailoring(false);
     }
@@ -414,13 +417,14 @@ export default function Nuova() {
               })}
             />
           )}
-          {step === 3 && tailorResult && (
+          {step === 3 && (
             <StepRevisione
               tailorResult={tailorResult}
               analyzeResult={analyzeResult}
               originalCv={originalCv}
+              tailoring={tailoring}
               onNext={() => updateStep(4)}
-              onBack={() => updateStep(2)}
+              onBack={() => { if (!tailoring) updateStep(2); }}
               onUpdateSkills={(skills) => {
                 setTailorResult(prev => prev ? {
                   ...prev,

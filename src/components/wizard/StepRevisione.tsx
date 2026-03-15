@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Warning, Eye, CaretDown, ListChecks, Wrench } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, Warning, Eye, CaretDown, ListChecks, Wrench, SpinnerGap } from "@phosphor-icons/react";
 import { AiLabel } from "@/components/AiLabel";
 import { computeConfidence } from "./wizard-utils";
 import { SkillManager, skillsToManaged, managedToSkills, type ManagedSkill } from "./SkillManager";
@@ -16,35 +16,57 @@ export function StepRevisione({
   onNext,
   onBack,
   onUpdateSkills,
+  tailoring,
 }: {
-  tailorResult: TailorResult;
+  tailorResult: TailorResult | null;
   analyzeResult: AnalyzeResult | null;
   originalCv: Record<string, unknown> | null;
   onNext: () => void;
   onBack: () => void;
   onUpdateSkills?: (skills: any) => void;
+  tailoring?: boolean;
 }) {
   const [diffOpen, setDiffOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
 
   const initialManaged = useMemo(
-    () => skillsToManaged((tailorResult.tailored_cv as any)?.skills),
-    [tailorResult.tailored_cv]
+    () => skillsToManaged((tailorResult?.tailored_cv as any)?.skills),
+    [tailorResult?.tailored_cv]
   );
   const [managedSkills, setManagedSkills] = useState<ManagedSkill[]>(initialManaged);
 
   const handleSkillsChange = (updated: ManagedSkill[]) => {
     setManagedSkills(updated);
-    if (onUpdateSkills) {
+    if (onUpdateSkills && tailorResult) {
       const originalSkills = (tailorResult.tailored_cv as any)?.skills;
       onUpdateSkills(managedToSkills(updated, originalSkills));
     }
   };
 
   const stats = useMemo(() =>
-    computeConfidence(originalCv, tailorResult.tailored_cv, tailorResult.diff),
-    [originalCv, tailorResult.tailored_cv, tailorResult.diff]
+    tailorResult ? computeConfidence(originalCv, tailorResult.tailored_cv, tailorResult.diff) : null,
+    [originalCv, tailorResult]
   );
+
+  // Tailoring loading state — shown when user clicked "Genera CV" and we advanced here
+  if (tailoring || !tailorResult || !stats) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 px-4">
+        <div>
+          <h2 className="font-display text-2xl font-bold">Adattamento CV</h2>
+          <p className="text-muted-foreground mt-1">Sto adattando il tuo CV al ruolo...</p>
+        </div>
+        {["Adattamento contenuti...", "Ottimizzazione ATS...", "Verifica onestà..."].map((msg, i) => (
+          <motion.div key={msg} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 1.2, duration: 0.4 }}>
+            <Card className="border-border/30 bg-card/60"><CardContent className="py-6">
+              <div className="flex items-center gap-3"><SpinnerGap size={20} className="text-primary animate-spin" /><span className="text-sm text-muted-foreground">{msg}</span></div>
+              <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden"><motion.div className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary" initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ delay: i * 1.2, duration: 2, ease: "easeOut" }} /></div>
+            </CardContent></Card>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
 
   const matchScore = analyzeResult?.match_score ?? 0;
   const atsScore = analyzeResult?.ats_score ?? 0;
@@ -56,8 +78,8 @@ export function StepRevisione({
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft size={20} /></button>
         <div>
-          <h2 className="font-display text-2xl font-bold">Revisione</h2>
-          <p className="text-muted-foreground mt-1">Riepilogo delle modifiche effettuate dal tailoring.</p>
+          <h2 className="font-display text-2xl font-bold">CV Adattato</h2>
+          <p className="text-muted-foreground mt-1">Riepilogo delle modifiche effettuate.</p>
         </div>
       </div>
       <AiLabel text="Punteggi calcolati con AI — valore indicativo" />
@@ -183,7 +205,7 @@ export function StepRevisione({
       )}
 
       <Button onClick={onNext} className="w-full gap-2">
-        Procedi all'export <ArrowRight size={16} />
+        Procedi al download <ArrowRight size={16} />
       </Button>
     </div>
   );
