@@ -109,6 +109,7 @@ export default function CandidaturaDetail() {
       setStatus(status); // revert
     } else {
       toast.success("Stato aggiornato.");
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
     }
   };
 
