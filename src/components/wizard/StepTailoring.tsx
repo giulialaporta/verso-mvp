@@ -200,17 +200,17 @@ export function StepTailoring({
       {/* Low score warning */}
       {isLowScore && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
-          <Card className="border-warning/40 bg-card/80"><CardContent className="py-6 space-y-4">
+          <Card className="border-warning/40 bg-card/80 overflow-hidden"><CardContent className="py-6 space-y-4">
             <div className="flex items-start gap-3">
               <Target size={24} className="text-warning shrink-0 mt-0.5" />
-              <div>
+              <div className="min-w-0 break-words">
                 <h3 className="font-display text-lg font-bold">Forse non è la posizione giusta</h3>
                 <p className="text-sm text-muted-foreground mt-2">Il match con questo ruolo è basso. Concentra le energie su posizioni dove puoi fare la differenza.</p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <Button onClick={onAbandon} className="flex-1 gap-2"><ArrowClockwise size={16} /> Cerca un'altra posizione</Button>
-              <Button variant="outline" onClick={onGenerateCv} className="gap-2"><ArrowRight size={16} /> Procedi comunque</Button>
+            <div className="flex gap-3 flex-wrap">
+              <Button onClick={onAbandon} className="flex-1 gap-2 active:scale-[0.98] transition-transform"><ArrowClockwise size={16} /> Cerca un'altra posizione</Button>
+              <Button variant="outline" onClick={onGenerateCv} className="gap-2 active:scale-[0.98] transition-transform"><ArrowRight size={16} /> Procedi comunque</Button>
             </div>
           </CardContent></Card>
         </motion.div>
