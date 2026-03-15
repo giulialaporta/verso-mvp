@@ -68,9 +68,9 @@ function HeroSection({
   name,
   headline,
   avatarUrl,
-  photoUrl,
-  photoBase64,
   avgMatchScore,
+  activeCount,
+  totalCount,
   isPro,
   cancelAtPeriodEnd,
   onAvatarClick,
@@ -79,9 +79,9 @@ function HeroSection({
   name: string;
   headline: string;
   avatarUrl: string | null;
-  photoUrl: string | null;
-  photoBase64: string | null;
   avgMatchScore: number | null;
+  activeCount: number;
+  totalCount: number;
   isPro: boolean;
   cancelAtPeriodEnd: boolean;
   onAvatarClick: () => void;
@@ -94,7 +94,7 @@ function HeroSection({
     .slice(0, 2)
     .toUpperCase();
 
-  const imgSrc = avatarUrl || photoUrl || (photoBase64 ? `data:image/jpeg;base64,${photoBase64}` : null);
+  const imgSrc = avatarUrl || null;
 
   return (
     <div className="relative rounded-2xl bg-gradient-to-br from-card via-card to-secondary/30 p-6 sm:p-8 overflow-hidden">
@@ -124,7 +124,7 @@ function HeroSection({
         {/* Info */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight truncate">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight line-clamp-1">
               {name.split(" ")[0] || "Ciao"}
             </h1>
             {/* Plan badge */}
@@ -142,17 +142,26 @@ function HeroSection({
             </span>
           </div>
           {headline && (
-            <p className="text-sm text-muted-foreground mt-0.5 truncate">{headline}</p>
+            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{headline}</p>
           )}
 
-          {/* Match score */}
-          {avgMatchScore !== null && (
-            <div className="flex items-center gap-2 mt-3">
-              <ChartLineUp size={16} className="text-primary" />
-              <span className="font-mono text-2xl font-bold text-foreground">{avgMatchScore}</span>
-              <span className="text-xs text-muted-foreground">match medio</span>
-            </div>
-          )}
+          {/* Stats row */}
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
+            {avgMatchScore !== null && (
+              <div className="flex items-center gap-1.5">
+                <ChartLineUp size={14} className="text-primary" />
+                <span className="font-mono text-lg font-bold text-foreground">{avgMatchScore}%</span>
+                <span className="text-[11px] text-muted-foreground">match</span>
+              </div>
+            )}
+            {totalCount > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Briefcase size={14} className="text-muted-foreground" />
+                <span className="font-mono text-sm font-medium text-foreground">{activeCount}</span>
+                <span className="text-[11px] text-muted-foreground">attive · {totalCount} totali</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -571,9 +580,9 @@ export default function Home() {
           name={profileName || parsedData?.personal?.name || ""}
           headline={headline}
           avatarUrl={avatarUrl}
-          photoUrl={cv?.photo_url || null}
-          photoBase64={parsedData?.personal?.photo_base64 || parsedData?.photo_base64 || null}
           avgMatchScore={avgMatchScore}
+          activeCount={activeApps.length}
+          totalCount={(apps ?? []).length}
           isPro={isPro}
           cancelAtPeriodEnd={cancelAtPeriodEnd}
           onAvatarClick={() => fileInputRef.current?.click()}

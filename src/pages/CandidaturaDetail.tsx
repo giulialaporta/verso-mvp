@@ -39,6 +39,15 @@ import type { ParsedCV } from "@/types/cv";
 
 const STATUSES = ["pronta", "inviata", "visualizzata", "contattato", "follow-up", "ko"] as const;
 
+const STATUS_ICONS: Record<string, { icon: typeof Target; label: string }> = {
+  pronta: { icon: Target, label: "Pronta" },
+  inviata: { icon: ArrowLeft, label: "Inviata" },
+  visualizzata: { icon: Eye, label: "Vista" },
+  contattato: { icon: ChartLineUp, label: "Contattato" },
+  "follow-up": { icon: ArrowLeft, label: "Follow-up" },
+  ko: { icon: ShieldWarning, label: "KO" },
+};
+
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("it-IT", {
     day: "numeric",
@@ -57,7 +66,6 @@ export default function CandidaturaDetail() {
   const [tailored, setTailored] = useState<any>(null);
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
@@ -86,18 +94,29 @@ export default function CandidaturaDetail() {
     });
   }, [user, id]);
 
-  const handleSave = async () => {
-    if (!app) return;
-    setSaving(true);
+  const handleStatusChange = async (newStatus: string) => {
+    if (!app || newStatus === status) return;
+    setStatus(newStatus);
     const { error } = await supabase
       .from("applications")
-      .update({ status, notes: notes || null } as any)
+      .update({ status: newStatus } as any)
       .eq("id", app.id);
-    setSaving(false);
     if (error) {
       toast.error("Errore durante il salvataggio.");
+      setStatus(status); // revert
     } else {
-      toast.success("Candidatura aggiornata.");
+      toast.success("Stato aggiornato.");
+    }
+  };
+
+  const handleNotesBlur = async () => {
+    if (!app) return;
+    const { error } = await supabase
+      .from("applications")
+      .update({ notes: notes || null } as any)
+      .eq("id", app.id);
+    if (error) {
+      toast.error("Errore nel salvataggio note.");
     }
   };
 
@@ -181,7 +200,27 @@ export default function CandidaturaDetail() {
         </div>
       </div>
 
-      {/* Scores */}
+      {/* Status Grid — prominente, subito dopo header */}
+      <div className="grid grid-cols-3 gap-2">
+        {STATUSES.map((s) => {
+          const style = STATUS_STYLES[s] ?? STATUS_STYLES.draft;
+          const isActive = status === s;
+          return (
+            <button
+              key={s}
+              onClick={() => handleStatusChange(s)}
+              className={`rounded-xl py-3 px-2 font-mono text-[11px] uppercase tracking-wider transition-all min-h-[48px] flex items-center justify-center gap-1.5 ${
+                isActive
+                  ? `${style.bg} ${style.text} ring-2 ring-current font-bold`
+                  : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
+              }`}
+            >
+              {s}
+            </button>
+          );
+        })}
+      </div>
+
       {(matchScore !== null || atsScore !== null) && (
         <div className="grid grid-cols-2 gap-3">
           {matchScore !== null && (
@@ -325,39 +364,14 @@ export default function CandidaturaDetail() {
         </Card>
       )}
 
-      {/* Status */}
-      <Card className="border-border/50 bg-card/80">
-        <CardContent className="py-4 space-y-3">
-          <label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Stato</label>
-          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
-            {STATUSES.map((s) => {
-              const style = STATUS_STYLES[s] ?? STATUS_STYLES.draft;
-              const isActive = status === s;
-              return (
-                <button
-                  key={s}
-                  onClick={() => setStatus(s)}
-                  className={`rounded-full px-4 py-2.5 font-mono text-[11px] uppercase tracking-wider transition-all min-h-[44px] ${
-                    isActive
-                      ? `${style.bg} ${style.text} ring-2 ring-current`
-                      : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                  }`}
-                >
-                  {s}
-                </button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notes */}
+      {/* Notes — auto-save on blur */}
       <Card className="border-border/50 bg-card/80">
         <CardContent className="py-4 space-y-2">
           <label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Note</label>
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+            onBlur={handleNotesBlur}
             placeholder="Aggiungi note..."
             rows={3}
             className="resize-none bg-surface border-border"
@@ -384,9 +398,6 @@ export default function CandidaturaDetail() {
 
       {/* Actions — sticky on mobile */}
       <div className="space-y-2 pb-6 md:pb-6 sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] md:static bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none pt-3 -mx-4 px-4 border-t border-border/30 md:border-0 md:mx-0 z-10">
-        <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
-          <FloppyDisk size={16} /> {saving ? "Salvataggio..." : "Salva modifiche"}
-        </Button>
         {tailoredData && (
           <Button variant="outline" className="w-full gap-2" onClick={() => setExportOpen(true)}>
             <DownloadSimple size={16} /> Scarica PDF

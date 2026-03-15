@@ -1,47 +1,68 @@
+# Riduzione Latenza AI ✅
 
+## Implementato
 
-## Fix: Home mobile, foto, gestione stato
+1. **Parallelizzazione prescreen + analyze** — `Promise.all` in `handleAnnuncioConfirm`, risultato analyze cachato in ref e usato istantaneamente allo Step 2 (−8-15s)
+2. **cv-review integrato nel prompt tailor** — Le 10 regole di qualità ora sono nel `SYSTEM_PROMPT_TAILOR`, eliminata la chiamata separata (−5-8s)  
+3. **Downgrade modelli** — `ai-prescreen` e `ai-tailor-analyze` ora usano Claude Haiku 4.5 (−40-60% latenza, −60% costi)
+4. **Progress indicator** — Già presente con animazioni staggered in StepVerifica e StepTailoring
 
-### Problemi identificati
+## Risultato atteso
 
-1. **Home mobile — headline troncata**: `truncate` su riga 145 taglia il job title. Su 390px, con avatar 64px + gap + plan badge, resta pochissimo spazio.
-2. **Home mobile — nessun contatore candidature**: Non si vede quante candidature sono attive/totali. Il match medio da solo non basta.
-3. **Foto — rischio foto estranee**: L'Hero usa `photo_url` (estratta dal parsing PDF) e `photo_base64` come fallback. Se il PDF ha un logo o la foto di qualcun altro, appare nell'avatar. Pericoloso.
-4. **CandidaturaDetail — stato sepolto e tagliato**: Il selettore stato è una riga di 6 pill in `overflow-x-auto` — su mobile si vedono solo 2-3, il resto è nascosto. Lo stato è la sezione più importante ma è persa tra ATS checks, seniority, diff, CV preview, note. L'utente deve scrollare tantissimo per arrivarci.
+```
+PRIMA:  Step 0→1: 12s | Step 1→2: 12s | Step 2→3: 20s = ~44s
+DOPO:   Step 0→1: 4s  | Step 1→2: 0s  | Step 2→3: 12s = ~16s  (−65%)
+```
 
----
+# Protezione Esperienze CV ✅
 
-### Soluzioni
+## Implementato
 
-#### 1. Home Hero — headline su più righe + contatore
+1. **Prompt EXPERIENCE PROTECTION riscritto** — L'AI non può MAI rimuovere esperienze, solo riordinare e condensare
+2. **Enum structural_changes aggiornato** — Rimossa l'azione "removed", ammesse solo "reordered" e "condensed"
+3. **Seniority overqualified** — Se il candidato è più senior del ruolo, l'esperienza extra viene valorizzata come punto di forza
+4. **Level 1 tailoring aggiornato** — Le esperienze non vengono mai rimosse, solo progetti/certificazioni irrilevanti
 
-- Rimuovere `truncate` dalla headline, usare `line-clamp-2` per massimo 2 righe
-- Aggiungere sotto il match medio una riga con contatore: "3 candidature attive · 5 totali"
-- Il contatore usa i dati già disponibili da `useApplications`
+# Agente Revisione Formale CV ✅
 
-#### 2. Foto — solo avatar caricato manualmente
+## Implementato
 
-- **Rimuovere** `photoUrl` e `photoBase64` dalla catena di fallback nell'Hero
-- L'avatar mostra SOLO: `profiles.avatar_url` (upload manuale) → iniziali nome
-- La foto estratta dal CV è inaffidabile (potrebbe essere un logo, una foto sbagliata, o di qualcun altro)
-- L'utente carica la propria foto cliccando sull'avatar — flusso già implementato
+1. **Nuova edge function `cv-formal-review`** — Claude Haiku 4.5 via `ai-provider.ts`, controlla coerenza date, maiuscole, separatori, lingua unica, bullet uniformi, punteggiatura, fluidità
+2. **Task routing aggiornato** — Nuovo task `cv-formal-review` in `ai-provider.ts` con Haiku 4.5 + fallback Gemini 2.5 Flash
+3. **Review automatica in background** — Si attiva con `useEffect` all'ingresso nello step Export, senza click dell'utente
+4. **Download non bloccato** — L'utente può scaricare subito; se la review è pronta, il CV revisionato viene usato automaticamente
+5. **UI correzioni** — Badge nel pannello score (reviewing/OK/N correzioni) + pannello collapsible con dettaglio fix (sezione → campo → problema → correzione)
 
-#### 3. Stato candidatura — in cima, prominente, grid 2x3
+# Anti-Hallucination & Integrity Check ✅
 
-Ripensare completamente la posizione e il layout dello stato in `CandidaturaDetail.tsx`:
+## Implementato
 
-- **Spostare lo stato SUBITO DOPO l'header** (prima degli score cards) — è l'azione primaria
-- **Layout grid 2 colonne × 3 righe** invece di scroll orizzontale — tutti i 6 stati visibili senza scroll
-- Ogni bottone più grande (48px altezza), con icona + label
-- Lo stato attivo ha sfondo pieno + ring, gli altri sono ghost
-- Il salvataggio dello stato è **automatico** (no bottone "Salva modifiche" separato) — click su uno stato → update immediato + toast
-- **Note**: textarea rimane sotto, ma con auto-save on blur (non bottone dedicato)
-- **Rimuovere il bottone "Salva modifiche"** — stato e note si salvano automaticamente
+### 1. Prompt Hardening (`ai-tailor/index.ts`)
+- Aggiunta sezione **ANTI-HALLUCINATION — ABSOLUTE RULES** con 11 regole esplicite
+- Vietato inventare metriche, percentuali, importi, dimensioni team
+- Vietato modificare ruoli, aziende, location, date — copia carattere-per-carattere
+- Vietato modificare titoli di studio, voti, honors
+- Vietato aggiungere/rimuovere certificazioni
+- Bullet riformulato: "action verb + impact, metriche SOLO se presenti nell'originale"
+- Summary: preservare identità professionale reale
 
-#### File coinvolti
+### 2. Integrity Check server-side (`_shared/integrity-check.ts`)
+- Validazione post-patch che confronta CV tailored con originale
+- **Campi immutabili experience**: role, company, location, start, end → revert automatico
+- **Campi immutabili education**: institution, degree, field, grade, honors, program, publication → revert automatico
+- **Certificazioni**: inventate rimosse, rimosse ripristinate (match fuzzy per nome)
+- **Metriche fabbricate**: regex scan per `\d+%`, `€\d+`, `\d+[KMB]+`, `team of \d+` — revert bullet se metrica assente nell'originale
+- **Dati personali**: name, email, phone, location, linkedin protetti
+- **Education inventate**: rimosse; education rimosse: ripristinate
 
-| File | Modifica |
-|------|----------|
-| `src/pages/Home.tsx` | HeroSection: rimuovere `truncate` headline → `line-clamp-2`, rimuovere `photoUrl`/`photoBase64` dal fallback, aggiungere contatore candidature |
-| `src/pages/CandidaturaDetail.tsx` | Spostare stato dopo header, grid 2x3, auto-save su click stato, auto-save note on blur, rimuovere bottone "Salva modifiche" |
+### 3. Honest Score server-computed
+- L'AI non si auto-valuta più — i contatori sono calcolati server-side
+- Nuovi campi: `dates_modified`, `roles_changed`, `companies_changed`, `degrees_changed`, `metrics_fabricated`, `certs_invented`, `certs_removed`
+- Flag `server_validated: true` per distinguere dal vecchio self-report
+- Conteggio `reverts` con dettaglio per categoria
 
+## Root cause risolte
+- ✅ "action verb + measurable result" → non incentiva più l'invenzione di metriche
+- ✅ Nessuna enforcement server-side → integrity-check.ts valida ogni campo
+- ✅ honest_score self-reported → calcolato server-side
+- ✅ validate-output solo tipi → integrity check confronta contenuto
