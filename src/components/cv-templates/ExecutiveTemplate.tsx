@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
-import { clean, ensureArray, MAX_SIDEBAR_SKILLS, h, computeDensity, truncateBullets } from "./template-utils";
+import { clean, ensureArray, MAX_SIDEBAR_SKILLS, h, computeDensity, truncateBullets, truncateSummary, limitExperiences } from "./template-utils";
 
 Font.register({
   family: "DM Sans",
