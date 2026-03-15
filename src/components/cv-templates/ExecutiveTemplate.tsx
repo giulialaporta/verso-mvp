@@ -41,8 +41,8 @@ export function ExecutiveTemplate({ cv, lang }: { cv: Record<string, any>; lang?
   const d = computeDensity(cv);
 
   const personal = cv.personal || {};
-  const summary = clean(cv.summary);
-  const experience = cv.experience || [];
+  const summary = truncateSummary(clean(cv.summary), d);
+  const [experience, omittedExp] = limitExperiences(cv.experience || [], d);
   const education = cv.education || [];
   const skills = cv.skills;
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
