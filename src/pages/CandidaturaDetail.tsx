@@ -200,7 +200,27 @@ export default function CandidaturaDetail() {
         </div>
       </div>
 
-      {/* Scores */}
+      {/* Status Grid — prominente, subito dopo header */}
+      <div className="grid grid-cols-3 gap-2">
+        {STATUSES.map((s) => {
+          const style = STATUS_STYLES[s] ?? STATUS_STYLES.draft;
+          const isActive = status === s;
+          return (
+            <button
+              key={s}
+              onClick={() => handleStatusChange(s)}
+              className={`rounded-xl py-3 px-2 font-mono text-[11px] uppercase tracking-wider transition-all min-h-[48px] flex items-center justify-center gap-1.5 ${
+                isActive
+                  ? `${style.bg} ${style.text} ring-2 ring-current font-bold`
+                  : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
+              }`}
+            >
+              {s}
+            </button>
+          );
+        })}
+      </div>
+
       {(matchScore !== null || atsScore !== null) && (
         <div className="grid grid-cols-2 gap-3">
           {matchScore !== null && (
