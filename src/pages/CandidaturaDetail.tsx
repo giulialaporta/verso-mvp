@@ -66,7 +66,6 @@ export default function CandidaturaDetail() {
   const [tailored, setTailored] = useState<any>(null);
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
