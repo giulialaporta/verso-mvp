@@ -62,6 +62,40 @@ type MasterCV = {
   is_active: boolean;
   photo_url?: string | null;
 };
+// ─── Compact Headline ────────────────────────────────────────
+const ABBREVIATIONS: [RegExp, string][] = [
+  [/\bArtificial Intelligence\b/gi, "AI"],
+  [/\bMachine Learning\b/gi, "ML"],
+  [/\bInformation Technology\b/gi, "IT"],
+  [/\bResearch and Development\b/gi, "R&D"],
+  [/\bHuman Resources\b/gi, "HR"],
+  [/\bBusiness Development\b/gi, "BD"],
+  [/\bCustomer Experience\b/gi, "CX"],
+  [/\bUser Experience\b/gi, "UX"],
+  [/\bUser Interface\b/gi, "UI"],
+  [/\bSoftware Engineering\b/gi, "SWE"],
+  [/\bData Science\b/gi, "DS"],
+];
+
+function compactHeadline(role: string, company: string): string {
+  if (!role && !company) return "";
+  let r = role.trim();
+  // Apply known abbreviations
+  for (const [pattern, short] of ABBREVIATIONS) {
+    r = r.replace(pattern, short);
+  }
+  // If still long, drop trailing "and/e ..." clauses
+  if (r.length > 40) {
+    r = r.replace(/\s+(and|e|&)\s+[^,]+$/i, "").trim();
+  }
+  // Hard truncate if still too long
+  if (r.length > 45) {
+    r = r.slice(0, 42).trimEnd() + "…";
+  }
+  if (!company) return r;
+  if (!r) return company;
+  return `${r} @${company}`;
+}
 
 // ─── Hero Section ────────────────────────────────────────────
 function HeroSection({
