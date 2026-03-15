@@ -1,11 +1,13 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTrackEvent } from "@/hooks/useTrackEvent";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap, Lock, Crown } from "@phosphor-icons/react";
 import { ClassicoTemplate, MinimalTemplate, ExecutiveTemplate, ModernoTemplate, TEMPLATES } from "@/components/cv-templates";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
