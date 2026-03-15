@@ -72,11 +72,11 @@ import { VersoScoreCompact, calcVersoScore } from "@/components/VersoScore";
 // ─── Stats Bar ───────────────────────────────────────────────
 function StatsBar({
   activeCount,
-  avgScore,
+  avgVersoScore,
   hasCV,
 }: {
   activeCount: number;
-  avgScore: number | null;
+  avgVersoScore: number | null;
   hasCV: boolean;
 }) {
   return (
