@@ -61,8 +61,9 @@ Checklist per verificare il wizard a 6 step: Job Input, Pre-screening, Tailoring
 - [ ] **D13** — Le skill overriddate vengono escluse da `skills_missing` nel tailoring
 - [ ] **D14** — Click su una skill overriddata la rimuove (torna in "Ti mancano")
 - [ ] **D15** — Hint visibile: "Clicca su una skill per dire che ce l'hai"
-- [ ] **D16** — Dopo il tailoring, il CV viene passato a `cv-review` per revisione qualita'
-- [ ] **D17** — Se `cv-review` fallisce: il CV tailored originale viene usato (nessun blocco)
+- [ ] **D16** — Le regole cv-review (lingua uniforme, bullet con verbi d'azione, dedup skill) sono integrate nel tailoring (no chiamata separata)
+- [ ] **D17** — Il pre-screening e l'analisi (`ai-tailor` mode analyze) partono in parallelo
+- [ ] **D18** — Se l'utente non risponde alle domande, il risultato analyze cachato viene usato senza nuova chiamata
 
 ---
 
@@ -70,7 +71,7 @@ Checklist per verificare il wizard a 6 step: Job Input, Pre-screening, Tailoring
 
 - [ ] **E1** — Match Score (0-100) visibile con barra compatta
 - [ ] **E2** — ATS Score (0-100) visibile con barra compatta
-- [ ] **E3** — Blocco "Cosa abbiamo cambiato" con contatori (bullet riscritti, esperienze riordinate/rimosse, summary riscritto, skill rimosse)
+- [ ] **E3** — Blocco "Cosa ho cambiato" con contatori (bullet riscritti, esperienze riordinate/rimosse, summary riscritto, skill rimosse)
 - [ ] **E4** — Confidence calcolato dal frontend (non dall'AI)
 - [ ] **E5** — Label "Verificato" sempre visibile
 - [ ] **E6** — Diff collassata di default, espandibile con toggle "Mostra modifiche"

@@ -1,12 +1,12 @@
-# Epic 04 — AI Engine (6 Edge Functions) (Implementato)
+# Epic 04 — AI Engine (6 Edge Functions AI + 4 Stripe) (Implementato)
 
 ---
 
 ## Cosa è stato costruito
 
-Sei Supabase Edge Functions (Deno) che alimentano Verso. Tutte usano il gateway Lovable API → Google Gemini 2.5 Flash. Tutte condividono il modulo `_shared/cors.ts` per CORS dinamico.
+Dieci Supabase Edge Functions (Deno): 6 AI + 4 Stripe/account. Le funzioni AI usano il modulo multi-provider `_shared/ai-provider.ts` con routing per task: Anthropic (Claude Sonnet 4 / Haiku 4.5) come primario, Google AI (Gemini 2.5 Flash) come fallback, Lovable Gateway come fallback secondario. Tutte condividono il modulo `_shared/cors.ts` per CORS dinamico.
 
-> **Differenza dal piano MVP:** il piano prevedeva 3 funzioni con Claude API. Implementate 6 funzioni (aggiunte `ai-prescreen`, `cv-review`, `delete-account`) con Lovable Gateway → Gemini.
+> **Differenza dal piano MVP:** il piano prevedeva 3 funzioni con Claude API. Implementate 6 funzioni AI (aggiunte `ai-prescreen`, `cv-review`, `delete-account`). Migrazione da Lovable Gateway/Gemini a Anthropic Claude completata (epic-10). Aggiunte 4 funzioni Stripe per epic 07 Versō Pro.
 
 ---
 
@@ -198,6 +198,11 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 }
 ```
 
+**Pro gate (server-side):**
+- Prima del tailoring, verifica `profiles.is_pro` e `profiles.free_apps_used`
+- Se `is_pro = false` AND `free_apps_used >= 1` → risponde 403 `{ error: "UPGRADE_REQUIRED" }`
+- Il frontend intercetta il 403 e fa redirect a `/upgrade`
+
 **Protezioni (implementate):**
 - Mai inventare esperienze, certificazioni o competenze
 - Mai modificare date, nomi aziende, titoli di ruolo
@@ -275,20 +280,83 @@ Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` e lo 
 
 ---
 
+## Edge Functions Stripe (4 — vedi epic-07 per dettagli)
+
+| Funzione | Scopo |
+|----------|-------|
+| `create-checkout` | Crea Stripe Checkout Session per upgrade a Pro |
+| `check-subscription` | Polling: verifica stato subscription su Stripe, sync con profiles |
+| `cancel-subscription` | Cancellazione soft (cancel_at_period_end) |
+| `customer-portal` | Crea sessione Stripe Billing Portal |
+
+> Dettagli completi in `epic-07-verso-pro.md`.
+
+---
+
 ## Moduli condivisi
 
 | Modulo | Scopo |
 |--------|-------|
-| `_shared/ai-fetch.ts` | Wrapper per chiamate AI con retry e parsing |
+| `_shared/ai-provider.ts` | Multi-provider routing con retry, fallback e cost logging (sostituisce `ai-fetch.ts`) |
 | `_shared/compact-cv.ts` | Compattazione CV per ridurre token |
 | `_shared/validate-output.ts` | Validazione output AI |
 | `_shared/cors.ts` | CORS dinamico con whitelist origini |
+
+### `ai-provider.ts` — Dettaglio
+
+**Routing per task:**
+
+| Task | Provider primario | Modello | Fallback |
+|------|-------------------|---------|----------|
+| `parse-cv` | Anthropic | Claude Sonnet 4 | Gemini 2.5 Flash |
+| `scrape-job` | Google AI | Gemini 2.5 Flash | Lovable Gateway / Gemini 2.0 Flash |
+| `ai-prescreen` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
+| `ai-tailor` | Anthropic | Claude Sonnet 4 | Gemini 2.5 Flash |
+| `ai-tailor-analyze` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
+| `cv-review` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
+
+**Behavior:**
+1. Chiama il provider primario (fino a 2 tentativi, pausa 2s tra i tentativi)
+2. Se fallisce → chiama il fallback
+3. Status non-retryable: 401, 402, 403, 429 → propagati direttamente
+4. Ogni chiamata logga in `ai_usage_logs`: task, provider, model, tokens, costo, durata, is_fallback
+
+**Providers supportati:**
+- **Anthropic** — API diretta (`api.anthropic.com/v1/messages`), supporto tool_use e document (PDF multimodale)
+- **Google AI** — API diretta (`generativelanguage.googleapis.com`), supporto function_calling e inline_data
+- **Lovable Gateway** — OpenAI-compatible (`ai.gateway.lovable.dev`), fallback secondario
+
+---
+
+## Tabella `ai_usage_logs`
+
+Tabella per monitorare consumo e costi AI:
+
+```sql
+CREATE TABLE ai_usage_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid,
+  task text NOT NULL,
+  provider text NOT NULL,
+  model text NOT NULL,
+  tokens_in int NOT NULL,
+  tokens_out int NOT NULL,
+  cost_usd numeric(6,4),
+  duration_ms int,
+  is_fallback boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+**RLS:** nessun accesso utente (`USING (false)`) — solo service role scrive. Tabella di monitoraggio interno.
+
+**Calcolo costo:** basato su rate per 1M token (Sonnet: $3/$15, Haiku: $1/$5, Gemini Flash: $0.075/$0.3).
 
 ---
 
 ## Sicurezza (implementata)
 
-- API key gestita tramite Lovable Gateway (non esposta al client)
+- API key Anthropic e Google AI gestite come secret Supabase (non esposte al client)
 - Tutte le chiamate AI passano solo attraverso edge functions
 - Edge functions verificano autenticazione (`Authorization: Bearer <token>`)
 - **CORS dinamico:** tutte le edge functions usano `getCorsHeaders(req)` da `_shared/cors.ts` con whitelist (verso-cv.lovable.app, localhost:5173, localhost:8080). No più `Access-Control-Allow-Origin: *`
@@ -299,10 +367,11 @@ Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` e lo 
 
 | Parametro | Valore |
 |-----------|--------|
-| Provider | Lovable API Gateway → Google Gemini |
-| Modello (parse-cv, scrape-job, cv-review) | Gemini 2.5 Flash |
-| Modello (ai-prescreen, ai-tailor) | Gemini 2.5 Pro |
-| Fallback (tutti) | Gemini 2.0 Flash |
+| Provider primario (parse-cv, ai-tailor) | Anthropic → Claude Sonnet 4 |
+| Provider primario (ai-prescreen, ai-tailor-analyze, cv-review) | Anthropic → Claude Haiku 4.5 |
+| Provider primario (scrape-job) | Google AI → Gemini 2.5 Flash |
+| Fallback (tutte le funzioni Anthropic) | Google AI → Gemini 2.5 Flash |
+| Fallback (scrape-job) | Lovable Gateway → Gemini 2.0 Flash |
 | Runtime | Deno (Supabase Edge Functions) |
 
 ---
@@ -311,8 +380,8 @@ Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` e lo 
 
 | Area | Piano | Implementato |
 |------|-------|-------------|
-| Provider AI | Claude API (Anthropic) | Lovable Gateway → Google Gemini 2.5 Flash |
-| Numero funzioni | 3 | 6 (+ ai-prescreen, cv-review, delete-account) |
+| Provider AI | Claude API (Anthropic) | Multi-provider: Anthropic Claude (primario) + Google AI Gemini (fallback) |
+| Numero funzioni | 3 | 10 (6 AI + 4 Stripe: create-checkout, check-subscription, cancel-subscription, customer-portal) |
 | parse-cv | Estrazione testo + prompt Claude | Input multimodale diretto (PDF → Gemini) |
 | ai-tailor | Output = CV completo | Output = patch JSON (solo modifiche) |
 | scrape-job | Senza cache | Con cache SHA-256, 7 giorni |

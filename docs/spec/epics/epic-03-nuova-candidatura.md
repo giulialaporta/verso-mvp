@@ -44,6 +44,8 @@ Pagina `/app/nuova` — wizard a 6 step che guida l'utente dall'inserimento dell
 
 Chiama Edge Function `ai-prescreen` con CV master + job posting.
 
+**Parallelismo:** al confirm dell'annuncio (step 0→1), il frontend lancia in parallelo sia `ai-prescreen` che `ai-tailor` (mode: `analyze`). Il risultato dell'analisi viene cachato in un ref e riusato allo step 3 se l'utente non risponde alle domande di follow-up.
+
 **Cosa analizza:**
 - **Dealbreaker** — gap critici non colmabili (critical/significant)
 - **Requirements matrix** — requisiti classificati come mandatory/preferred/nice_to_have
@@ -69,7 +71,11 @@ Chiama Edge Function `ai-prescreen` con CV master + job posting.
 
 ## Step 3: CV Tailoring
 
-Chiama Edge Function `ai-tailor` con CV master + job posting + analisi pre-screening + risposte utente.
+`ai-tailor` opera in due modalità separate:
+- **`mode: "analyze"`** (task `ai-tailor-analyze`, Haiku 4.5) — scoring, ATS check, skills analysis. Chiamata in parallelo con il pre-screening.
+- **`mode: "tailor"`** (task `ai-tailor`, Sonnet 4) — generazione patch CV effettiva. Chiamata solo quando l'utente procede allo step 3.
+
+Se l'utente non risponde alle domande di follow-up, il risultato `analyze` cachato viene usato immediatamente (nessuna seconda chiamata).
 
 **Controlli utente prima del tailoring:**
 
@@ -102,8 +108,8 @@ Chiama Edge Function `ai-tailor` con CV master + job posting + analisi pre-scree
 
 **Output:** array di patch + reason per ogni modifica + structural changes + honest_score
 
-**Post-tailoring — CV Review:**
-Dopo l'applicazione delle patch, il CV adattato viene passato automaticamente alla Edge Function `cv-review` per una revisione qualita' HR (uniformita' lingua, bullet con verbi d'azione, deduplicazione skill, formato date, ecc.). Se la review fallisce, il CV originale tailored viene usato senza bloccare il flusso.
+**CV Review integrata nel prompt:**
+Le 10 regole di revisione qualita' HR (uniformita' lingua, bullet con verbi d'azione, deduplicazione skill, formato date, ecc.) sono ora integrate direttamente nel system prompt di `ai-tailor` (sezione "CV QUALITY RULES"). Non c'e' piu' una chiamata separata a `cv-review` nel flusso wizard. L'endpoint `cv-review` resta disponibile ma non e' usato dal wizard.
 
 ---
 
@@ -115,7 +121,7 @@ Riepilogo di cosa e' cambiato nel CV, con confronto originale vs adattato.
 - Match Score (0-100) — barra compatta
 - ATS Score (0-100) — barra compatta
 
-**Blocco "Cosa abbiamo cambiato":**
+**Blocco "Cosa ho cambiato":**
 - Contatori calcolati dal frontend (confronto CV originale vs tailored):
   - Bullet riscritti (su totale)
   - Esperienze riordinate
