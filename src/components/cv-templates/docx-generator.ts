@@ -121,7 +121,7 @@ export async function generateDocx(cv: Record<string, any>, lang?: string, templ
 
   const personal = cv.personal || {};
   const summary = truncateSummary(clean(cv.summary), d);
-  const [experience, omittedExp] = limitExperiences(cv.experience || [], d);
+  const [experience] = limitExperiences(cv.experience || [], d) as [any[], number];
   const education = cv.education || [];
   const skills = cv.skills;
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
