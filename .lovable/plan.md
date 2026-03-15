@@ -1,94 +1,68 @@
+# Riduzione Latenza AI ✅
 
+## Implementato
 
-## Gestione stati candidatura — Analisi e piano
+1. **Parallelizzazione prescreen + analyze** — `Promise.all` in `handleAnnuncioConfirm`, risultato analyze cachato in ref e usato istantaneamente allo Step 2 (−8-15s)
+2. **cv-review integrato nel prompt tailor** — Le 10 regole di qualità ora sono nel `SYSTEM_PROMPT_TAILOR`, eliminata la chiamata separata (−5-8s)  
+3. **Downgrade modelli** — `ai-prescreen` e `ai-tailor-analyze` ora usano Claude Haiku 4.5 (−40-60% latenza, −60% costi)
+4. **Progress indicator** — Già presente con animazioni staggered in StepVerifica e StepTailoring
 
-### Il problema
+## Risultato atteso
 
-Oggi lo stato resta `draft` per sempre a meno che l'utente non clicchi esplicitamente "Ho inviato la candidatura" nell'ultimo step del wizard. La maggior parte degli utenti completa il wizard, scarica il PDF, e poi naviga via senza cliccare nulla → la candidatura resta bozza per sempre.
-
-### Flusso attuale (rotto)
-
-```text
-Annuncio → Verifica → Tailoring → Revisione → Export → Completa
-                                                         │
-                                              "Ho inviato" → inviata
-                                              "La invierò dopo" → draft (!)
-                                              Naviga via → draft (!)
+```
+PRIMA:  Step 0→1: 12s | Step 1→2: 12s | Step 2→3: 20s = ~44s
+DOPO:   Step 0→1: 4s  | Step 1→2: 0s  | Step 2→3: 12s = ~16s  (−65%)
 ```
 
-Dopo `Completa`, l'utente può solo cambiare stato manualmente dal dettaglio candidatura. Nessuna transizione automatica.
+# Protezione Esperienze CV ✅
 
-### Nuovo flusso proposto
+## Implementato
 
-**Principio**: quando il wizard è completato (step 5 raggiunto), la candidatura NON è più una bozza. È un CV pronto. Lo stato deve riflettere questo.
+1. **Prompt EXPERIENCE PROTECTION riscritto** — L'AI non può MAI rimuovere esperienze, solo riordinare e condensare
+2. **Enum structural_changes aggiornato** — Rimossa l'azione "removed", ammesse solo "reordered" e "condensed"
+3. **Seniority overqualified** — Se il candidato è più senior del ruolo, l'esperienza extra viene valorizzata come punto di forza
+4. **Level 1 tailoring aggiornato** — Le esperienze non vengono mai rimosse, solo progetti/certificazioni irrilevanti
 
-```text
-draft ──[wizard completato]──→ pronta
-pronta ──[utente conferma]──→ inviata
-pronta/inviata ──→ visualizzata ──→ contattato ──→ follow-up
-                                                        │
-qualsiasi ──→ ko                                        │
-                                                   (fine positiva)
-```
+# Agente Revisione Formale CV ✅
 
-#### Transizioni automatiche
+## Implementato
 
-| Evento | Da | A |
-|--------|----|----|
-| Wizard raggiunge step 5 (Completa) | `draft` | `pronta` |
-| Click "Ho inviato la candidatura" | `pronta` | `inviata` |
-| Click "La invierò dopo" | `pronta` | `pronta` (naviga via, resta pronta) |
+1. **Nuova edge function `cv-formal-review`** — Claude Haiku 4.5 via `ai-provider.ts`, controlla coerenza date, maiuscole, separatori, lingua unica, bullet uniformi, punteggiatura, fluidità
+2. **Task routing aggiornato** — Nuovo task `cv-formal-review` in `ai-provider.ts` con Haiku 4.5 + fallback Gemini 2.5 Flash
+3. **Review automatica in background** — Si attiva con `useEffect` all'ingresso nello step Export, senza click dell'utente
+4. **Download non bloccato** — L'utente può scaricare subito; se la review è pronta, il CV revisionato viene usato automaticamente
+5. **UI correzioni** — Badge nel pannello score (reviewing/OK/N correzioni) + pannello collapsible con dettaglio fix (sezione → campo → problema → correzione)
 
-#### Transizioni manuali (dal dettaglio)
+# Anti-Hallucination & Integrity Check ✅
 
-L'utente può cambiare stato liberamente tra: `pronta`, `inviata`, `visualizzata`, `contattato`, `follow-up`, `ko`.
+## Implementato
 
-### Modifiche
+### 1. Prompt Hardening (`ai-tailor/index.ts`)
+- Aggiunta sezione **ANTI-HALLUCINATION — ABSOLUTE RULES** con 11 regole esplicite
+- Vietato inventare metriche, percentuali, importi, dimensioni team
+- Vietato modificare ruoli, aziende, location, date — copia carattere-per-carattere
+- Vietato modificare titoli di studio, voti, honors
+- Vietato aggiungere/rimuovere certificazioni
+- Bullet riformulato: "action verb + impact, metriche SOLO se presenti nell'originale"
+- Summary: preservare identità professionale reale
 
-#### 1. Nuovo stato `pronta`
+### 2. Integrity Check server-side (`_shared/integrity-check.ts`)
+- Validazione post-patch che confronta CV tailored con originale
+- **Campi immutabili experience**: role, company, location, start, end → revert automatico
+- **Campi immutabili education**: institution, degree, field, grade, honors, program, publication → revert automatico
+- **Certificazioni**: inventate rimosse, rimosse ripristinate (match fuzzy per nome)
+- **Metriche fabbricate**: regex scan per `\d+%`, `€\d+`, `\d+[KMB]+`, `team of \d+` — revert bullet se metrica assente nell'originale
+- **Dati personali**: name, email, phone, location, linkedin protetti
+- **Education inventate**: rimosse; education rimosse: ripristinate
 
-Aggiungere a `StatusChip`:
-- `pronta`: colore accent/success — "CV pronto, da inviare"
+### 3. Honest Score server-computed
+- L'AI non si auto-valuta più — i contatori sono calcolati server-side
+- Nuovi campi: `dates_modified`, `roles_changed`, `companies_changed`, `degrees_changed`, `metrics_fabricated`, `certs_invented`, `certs_removed`
+- Flag `server_validated: true` per distinguere dal vecchio self-report
+- Conteggio `reverts` con dettaglio per categoria
 
-#### 2. `Nuova.tsx` — Auto-transizione a `pronta`
-
-Quando il wizard arriva a step 5, aggiornare automaticamente lo status:
-```typescript
-// Quando si passa a step 5
-await supabase.from("applications")
-  .update({ status: "pronta" })
-  .eq("id", applicationId);
-```
-
-#### 3. `StepCompleta.tsx` — Nuova copy
-
-- "Ho inviato la candidatura" → cambia da `pronta` a `inviata`, naviga a candidature
-- "La invierò dopo" → resta `pronta`, naviga a home (non più "bozza salvata" ma "trovi il CV nelle candidature")
-
-#### 4. Selettori stato nel dettaglio
-
-Aggiungere `pronta` alla lista degli stati selezionabili in `CandidaturaDetail.tsx` e `DetailContent.tsx`.
-
-#### 5. Raggruppamento candidature
-
-In `Candidature.tsx`, aggiungere il gruppo `pronta` tra `draft` e `inviata`:
-```text
-Bozze → Pronte → Inviate → Visualizzate → Contattato → Follow-up → KO
-```
-
-#### 6. Home — Sezione bozze vs pronte
-
-Le card nella Home mostrano sia bozze (con "Riprendi") che pronte (con "Vedi" / "Invia").
-
-### File coinvolti
-
-| File | Modifica |
-|------|----------|
-| `src/components/StatusChip.tsx` | Aggiungere stile `pronta` |
-| `src/pages/Nuova.tsx` | Auto-update a `pronta` quando step → 5 |
-| `src/components/wizard/StepCompleta.tsx` | Nuova copy per i bottoni |
-| `src/pages/Candidature.tsx` | Aggiungere gruppo `pronta` |
-| `src/pages/CandidaturaDetail.tsx` | Aggiungere `pronta` ai selettori |
-| `src/components/candidature/DetailContent.tsx` | Aggiungere `pronta` ai selettori |
-| `src/pages/Home.tsx` | Distinguere bozze da pronte nelle card recenti |
-
+## Root cause risolte
+- ✅ "action verb + measurable result" → non incentiva più l'invenzione di metriche
+- ✅ Nessuna enforcement server-side → integrity-check.ts valida ogni campo
+- ✅ honest_score self-reported → calcolato server-side
+- ✅ validate-output solo tipi → integrity check confronta contenuto

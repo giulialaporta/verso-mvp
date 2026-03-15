@@ -324,7 +324,7 @@ export default function Nuova() {
   const handleMarkSent = async () => {
     if (applicationId) {
       await supabase.from("applications").update({ status: "inviata" } as any).eq("id", applicationId);
-      trackEvent("application_status_changed", { from: "draft", to: "inviata" });
+      trackEvent("application_status_changed", { from: "pronta", to: "inviata" });
     }
     queryClient.invalidateQueries({ queryKey: ["applications"] });
     toast.success("Candidatura segnata come inviata!");
@@ -333,7 +333,7 @@ export default function Nuova() {
 
   const handleKeepDraft = () => {
     queryClient.invalidateQueries({ queryKey: ["applications"] });
-    toast.success("Bozza salvata.");
+    toast.success("CV pronto! Lo trovi nelle candidature.");
     navigate("/app/home");
   };
 
@@ -438,7 +438,12 @@ export default function Nuova() {
               applicationId={applicationId}
               cvLang={languageOverride || analyzeResult?.detected_language}
               onBack={() => updateStep(3)}
-              onNext={() => updateStep(5)}
+              onNext={async () => {
+                // Auto-transition draft → pronta when reaching step 5
+                await supabase.from("applications").update({ status: "pronta" } as any).eq("id", applicationId);
+                queryClient.invalidateQueries({ queryKey: ["applications"] });
+                updateStep(5);
+              }}
             />
           )}
           {step === 5 && jobData && applicationId && (
@@ -453,6 +458,7 @@ export default function Nuova() {
               onNewApplication={handleNewApplication}
             />
           )}
+
         </motion.div>
       </AnimatePresence>
     </div>

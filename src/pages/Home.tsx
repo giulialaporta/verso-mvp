@@ -517,7 +517,7 @@ export default function Home() {
     if (scores.length === 0) return null;
     return Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);
   }, [apps]);
-  const recentApps = useMemo(() => (apps ?? []).filter((a) => a.status.toLowerCase() !== "draft").slice(0, 5), [apps]);
+  const recentApps = useMemo(() => (apps ?? []).filter((a) => !["draft"].includes(a.status.toLowerCase())).slice(0, 5), [apps]);
 
   // Build headline from CV data
   const parsedData = cv?.parsed_data as any;

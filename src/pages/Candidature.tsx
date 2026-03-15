@@ -48,9 +48,10 @@ function formatDate(dateStr: string) {
 }
 
 // Status order for grouping
-const STATUS_ORDER = ["draft", "inviata", "visualizzata", "contattato", "follow-up", "ko"];
+const STATUS_ORDER = ["draft", "pronta", "inviata", "visualizzata", "contattato", "follow-up", "ko"];
 const STATUS_LABELS: Record<string, string> = {
   draft: "Bozze",
+  pronta: "Pronte",
   inviata: "Inviate",
   visualizzata: "Visualizzate",
   contattato: "Contattato",
@@ -162,6 +163,33 @@ export default function Candidature() {
       </div>
     );
   }
+
+  const ProntaCard = ({ app }: { app: AppRowWithAts }) => (
+    <div
+      className="rounded-lg border border-primary/20 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-colors"
+      onClick={() => navigate(`/app/candidatura/${app.id}`)}
+      onMouseEnter={() => prefetch(app.id)}
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 font-mono text-xs font-bold text-primary uppercase">
+          {app.company_name.charAt(0)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium truncate">{app.role_title}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {app.company_name} · {formatDate(app.created_at)}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 mt-2 ml-12">
+        <MatchScoreCompact
+          matchScore={app.match_score}
+          isHonest={(app.honest_score ?? 0) >= 85}
+        />
+        <StatusChip status={app.status} />
+      </div>
+    </div>
+  );
 
   const AppCard = ({ app }: { app: AppRowWithAts }) => (
     <div
@@ -281,6 +309,8 @@ export default function Candidature() {
                   >
                     {status === "draft" ? (
                       <DraftCard draft={app} />
+                    ) : status === "pronta" ? (
+                      <ProntaCard app={app} />
                     ) : (
                       <AppCard app={app} />
                     )}
