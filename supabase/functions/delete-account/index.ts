@@ -79,14 +79,28 @@ Deno.serve(async (req) => {
       .update({ user_id: ANON_UUID })
       .eq("user_id", userId);
 
-    // 3. Delete storage files
+    // 3. Delete storage files (recursive — handles nested subfolders)
     for (const bucket of ["cv-uploads", "cv-exports"]) {
-      const { data: files } = await supabaseAdmin.storage
-        .from(bucket)
-        .list(userId + "/");
-      if (files && files.length > 0) {
-        const paths = files.map((f: any) => `${userId}/${f.name}`);
-        await supabaseAdmin.storage.from(bucket).remove(paths);
+      const allPaths: string[] = [];
+      const listRecursive = async (prefix: string) => {
+        const { data: files } = await supabaseAdmin.storage.from(bucket).list(prefix);
+        if (!files) return;
+        for (const f of files) {
+          const path = prefix ? `${prefix}/${f.name}` : f.name;
+          if (f.id) {
+            allPaths.push(path);
+          } else {
+            // It's a folder — recurse
+            await listRecursive(path);
+          }
+        }
+      };
+      await listRecursive(userId);
+      if (allPaths.length > 0) {
+        // Storage API max 1000 paths per call
+        for (let i = 0; i < allPaths.length; i += 1000) {
+          await supabaseAdmin.storage.from(bucket).remove(allPaths.slice(i, i + 1000));
+        }
       }
     }
 
@@ -94,6 +108,8 @@ Deno.serve(async (req) => {
     await supabaseAdmin.from("tailored_cvs").delete().eq("user_id", userId);
     await supabaseAdmin.from("applications").delete().eq("user_id", userId);
     await supabaseAdmin.from("master_cvs").delete().eq("user_id", userId);
+    await supabaseAdmin.from("ai_usage_logs").delete().eq("user_id", userId);
+    await supabaseAdmin.from("user_events").delete().eq("user_id", userId);
     await supabaseAdmin.from("profiles").delete().eq("user_id", userId);
 
     // 5. Delete auth user
