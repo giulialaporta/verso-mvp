@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -37,14 +38,15 @@ import { ExportDrawer } from "@/components/ExportDrawer";
 import { toast } from "sonner";
 import type { ParsedCV } from "@/types/cv";
 
-const STATUSES = ["pronta", "inviata", "visualizzata", "contattato", "follow-up", "ko"] as const;
+const STATUSES = ["pronta", "inviata", "visualizzata", "contattato", "colloquio", "offerta", "ko"] as const;
 
 const STATUS_ICONS: Record<string, { icon: typeof Target; label: string }> = {
   pronta: { icon: Target, label: "Pronta" },
   inviata: { icon: ArrowLeft, label: "Inviata" },
   visualizzata: { icon: Eye, label: "Vista" },
   contattato: { icon: ChartLineUp, label: "Contattato" },
-  "follow-up": { icon: ArrowLeft, label: "Follow-up" },
+  colloquio: { icon: ArrowLeft, label: "Colloquio" },
+  offerta: { icon: ChartLineUp, label: "Offerta" },
   ko: { icon: ShieldWarning, label: "KO" },
 };
 
@@ -60,6 +62,7 @@ export default function CandidaturaDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(true);
   const [app, setApp] = useState<any>(null);
@@ -106,6 +109,7 @@ export default function CandidaturaDetail() {
       setStatus(status); // revert
     } else {
       toast.success("Stato aggiornato.");
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
     }
   };
 
@@ -117,6 +121,8 @@ export default function CandidaturaDetail() {
       .eq("id", app.id);
     if (error) {
       toast.error("Errore nel salvataggio note.");
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
     }
   };
 
@@ -130,6 +136,7 @@ export default function CandidaturaDetail() {
       await supabase.from("tailored_cvs").delete().eq("application_id", app.id);
       await supabase.from("applications").delete().eq("id", app.id);
       toast.success("Candidatura eliminata.");
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
       navigate("/app/candidature", { replace: true });
     } catch {
       toast.error("Errore durante l'eliminazione.");
