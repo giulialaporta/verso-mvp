@@ -29,13 +29,13 @@ const PricingSection = () => {
             <p className="text-muted-foreground text-sm mb-6 sm:mb-8">Per provare Verso e ottimizzare il tuo primo CV</p>
 
             <ul className="space-y-3 mb-8 flex-1">
-              {["1 candidatura completa", "2 template CV (Classico, Minimal)", "Score di compatibilità"].map((f) => (
+              {["1 candidatura completa", "2 template CV (Classico, Minimal)", "Score di compatibilità", "Pre-screening di fattibilità", "Analisi stipendio"].map((f) => (
                 <li key={f} className="flex items-start gap-3 text-sm">
                   <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   <span>{f}</span>
                 </li>
               ))}
-              {["Template premium (Executive, Moderno)", "Candidature illimitate", "Analisi stipendio"].map((f) => (
+              {["Template premium (Executive, Moderno)", "Candidature illimitate", "Export DOCX"].map((f) => (
                 <li key={f} className="flex items-start gap-3 text-sm text-muted-foreground">
                   <X className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{f}</span>
