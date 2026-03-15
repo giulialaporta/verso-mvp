@@ -581,7 +581,7 @@ Deno.serve(async (req) => {
 
     // ==================== MODE: ANALYZE ====================
     if (mode === "analyze") {
-      let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data);
+      let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV, null, 2) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data, null, 2);
       userContent += formatFollowUpAnswers(user_answers);
 
       const aiResult = await callAi({
