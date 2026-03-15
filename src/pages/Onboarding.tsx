@@ -282,7 +282,23 @@ export default function Onboarding() {
                     </motion.div>
                   )}
 
-                  <Button onClick={handleUploadAndParse} disabled={!file} className="w-full gap-2">
+                  {/* Art. 9 GDPR inline consent */}
+                  <div className="flex items-start gap-3 min-h-[44px]">
+                    <Checkbox
+                      id="sensitive-consent-inline"
+                      checked={sensitiveConsent}
+                      onCheckedChange={(v) => setSensitiveConsent(v === true)}
+                      className="mt-1"
+                    />
+                    <Label htmlFor="sensitive-consent-inline" className="text-xs font-normal leading-relaxed text-muted-foreground cursor-pointer">
+                      Il mio CV potrebbe contenere dati sensibili (salute, convinzioni, origine). Acconsento al trattamento per adattare il CV.{" "}
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4 hover:text-primary/80">
+                        Dettagli nell'Informativa Privacy
+                      </a>.
+                    </Label>
+                  </div>
+
+                  <Button onClick={handleUploadAndParse} disabled={!file || !sensitiveConsent} className="w-full gap-2 active:scale-[0.98] transition-transform">
                     Analizza CV <ArrowRight size={16} />
                   </Button>
                 </CardContent>
