@@ -142,17 +142,26 @@ function HeroSection({
             </span>
           </div>
           {headline && (
-            <p className="text-sm text-muted-foreground mt-0.5 truncate">{headline}</p>
+            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{headline}</p>
           )}
 
-          {/* Match score */}
-          {avgMatchScore !== null && (
-            <div className="flex items-center gap-2 mt-3">
-              <ChartLineUp size={16} className="text-primary" />
-              <span className="font-mono text-2xl font-bold text-foreground">{avgMatchScore}</span>
-              <span className="text-xs text-muted-foreground">match medio</span>
-            </div>
-          )}
+          {/* Stats row */}
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
+            {avgMatchScore !== null && (
+              <div className="flex items-center gap-1.5">
+                <ChartLineUp size={14} className="text-primary" />
+                <span className="font-mono text-lg font-bold text-foreground">{avgMatchScore}%</span>
+                <span className="text-[11px] text-muted-foreground">match</span>
+              </div>
+            )}
+            {totalCount > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Briefcase size={14} className="text-muted-foreground" />
+                <span className="font-mono text-sm font-medium text-foreground">{activeCount}</span>
+                <span className="text-[11px] text-muted-foreground">attive · {totalCount} totali</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
