@@ -367,7 +367,7 @@ const TOOL_SCHEMA_TAILOR = {
           items: {
             type: "object",
             properties: {
-              action: { type: "string", enum: ["removed", "reordered", "condensed"] },
+              action: { type: "string", enum: ["reordered", "condensed"] },
               section: { type: "string" },
               item: { type: "string", description: "ALWAYS in Italian" },
               reason: { type: "string", description: "ALWAYS in Italian" },
