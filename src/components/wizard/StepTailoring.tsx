@@ -237,7 +237,7 @@ export function StepTailoring({
             <div className="flex items-center gap-2">
               <Globe size={18} className="text-info" />
               <span className="text-sm font-medium">Lingua del CV</span>
-              <span className="font-mono text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              <span className="font-mono text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                 Rilevata: {analyzeResult.detected_language === "en" ? "English" : "Italiano"}
               </span>
             </div>

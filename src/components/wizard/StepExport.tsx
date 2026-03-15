@@ -130,7 +130,7 @@ export function StepExport({
                     <div className="absolute inset-0 rounded-xl backdrop-blur-[2px] bg-background/40 z-10 flex items-center justify-center">
                       <Lock size={24} className="text-muted-foreground" weight="fill" />
                     </div>
-                    <span className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] text-primary font-bold">
+                    <span className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[11px] text-primary font-bold">
                       <Crown size={10} weight="fill" /> Pro
                     </span>
                   </>

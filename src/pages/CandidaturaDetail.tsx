@@ -302,7 +302,7 @@ export default function CandidaturaDetail() {
                 <div className="space-y-3 mt-4">
                   {diff.map((ch: any, i: number) => (
                     <div key={i} className="rounded-lg border border-border/30 p-3 space-y-1.5">
-                      <p className="font-mono text-[10px] text-muted-foreground uppercase">{ch.section}</p>
+                      <p className="font-mono text-[11px] text-muted-foreground uppercase">{ch.section}</p>
                       <p className="text-sm line-through text-muted-foreground">{ch.original}</p>
                       <p className="text-sm text-primary border-l-2 border-primary/40 pl-2">{ch.suggested}</p>
                       {ch.reason && <p className="text-xs text-muted-foreground italic">{ch.reason}</p>}

@@ -69,7 +69,7 @@ export function StepCompleta({
           <Button variant="outline" onClick={onKeepDraft} className="w-full gap-2">
             <Clock size={16} /> La invierò dopo
           </Button>
-          <p className="text-[10px] text-muted-foreground mt-1">Resta come bozza, torna alla home</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Resta come bozza, torna alla home</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>

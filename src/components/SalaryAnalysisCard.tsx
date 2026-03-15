@@ -145,7 +145,7 @@ export function SalaryAnalysisCard({ data, delay = 0.5 }: { data: SalaryAnalysis
                   href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[10px] text-info/70 hover:text-info underline truncate max-w-[180px]"
+                  className="text-[11px] text-info/70 hover:text-info underline truncate max-w-[180px]"
                 >
                   {s.title}
                 </a>
