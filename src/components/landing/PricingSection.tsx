@@ -47,7 +47,7 @@ const PricingSection = () => {
               variant="outline"
               size="lg"
               className="w-full font-bold rounded-full h-12"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/login?plan=free")}
             >
               Inizia gratis
             </Button>
@@ -85,7 +85,7 @@ const PricingSection = () => {
             <Button
               size="lg"
               className="w-full font-bold rounded-full h-12 glow-accent hover:glow-accent-hover transition-shadow active:scale-[0.98]"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/login?plan=pro")}
             >
               Inizia con Pro
               <ArrowRight className="w-4 h-4 ml-1" />

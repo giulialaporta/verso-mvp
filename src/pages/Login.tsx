@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label as CheckLabel } from "@/components/ui/label";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { AppleLogo } from "@phosphor-icons/react";
@@ -31,8 +31,13 @@ export default function Login() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const trackEvent = useTrackEvent();
-  const [isSignUp, setIsSignUp] = useState(false);
+
+  const planParam = searchParams.get("plan"); // "free" | "pro" | null
+  const isPro = planParam === "pro";
+
+  const [isSignUp, setIsSignUp] = useState(!!planParam);
   const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,7 +48,8 @@ export default function Login() {
 
   // US-S10: Sanitize redirect — only allow internal /app/ paths
   const rawPath = (location.state as any)?.from?.pathname;
-  const fromPath = rawPath && typeof rawPath === "string" && rawPath.startsWith("/app/") ? rawPath : "/app/home";
+  const defaultRedirect = isPro ? "/upgrade" : "/app/home";
+  const fromPath = rawPath && typeof rawPath === "string" && rawPath.startsWith("/app/") ? rawPath : defaultRedirect;
 
   // Show toast if logged out due to inactivity
   useEffect(() => {
@@ -62,10 +68,16 @@ export default function Login() {
     saveRegistrationConsents(user.id, user.email ?? "", "oauth_by_action").catch(() => {});
   }, [user]);
 
-  // Redirect authenticated users imperatively (avoids Navigate ref warning)
+  // Redirect authenticated users — check pending plan from OAuth
   useEffect(() => {
     if (!loading && user) {
-      navigate(fromPath, { replace: true });
+      const pendingPlan = localStorage.getItem("verso_pending_plan");
+      if (pendingPlan) {
+        localStorage.removeItem("verso_pending_plan");
+        navigate(pendingPlan === "pro" ? "/upgrade" : "/app/home", { replace: true });
+      } else {
+        navigate(fromPath, { replace: true });
+      }
     }
   }, [loading, user, fromPath, navigate]);
 
@@ -136,9 +148,12 @@ export default function Login() {
     if (oauthLoading) return;
     setOauthLoading(true);
     try {
-      // Save pending consent flag before redirect
+      // Save pending consent flag + plan before redirect
       if (isSignUp) {
         localStorage.setItem("verso_pending_oauth_consents", "true");
+      }
+      if (isPro) {
+        localStorage.setItem("verso_pending_plan", "pro");
       }
       // Redirect back to /login so the session can be picked up
       // before ProtectedRoute kicks in (avoids race condition)
@@ -147,10 +162,12 @@ export default function Login() {
       });
       if (error) {
         localStorage.removeItem("verso_pending_oauth_consents");
+        localStorage.removeItem("verso_pending_plan");
         toast.error(mapAuthError((error as any).message || ""));
       }
     } catch {
       localStorage.removeItem("verso_pending_oauth_consents");
+      localStorage.removeItem("verso_pending_plan");
       toast.error("Errore durante l'autenticazione. Riprova.");
     } finally {
       setOauthLoading(false);
@@ -218,6 +235,20 @@ export default function Login() {
           <p className="mt-2 text-sm text-muted-foreground">
             Il tuo CV, su misura
           </p>
+          {isPro && isSignUp && (
+            <div className="mt-3 inline-flex items-center gap-2">
+              <span className="font-mono text-[11px] uppercase tracking-widest bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full">
+                Piano Pro · €9,90/mese
+              </span>
+              <button
+                type="button"
+                className="text-[11px] text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+                onClick={() => navigate("/login?plan=free", { replace: true })}
+              >
+                Oppure inizia gratis
+              </button>
+            </div>
+          )}
         </div>
 
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">

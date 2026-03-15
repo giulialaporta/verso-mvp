@@ -46,7 +46,7 @@ const LandingNavbar = () => {
           <Button
             size="sm"
             className="font-bold rounded-full"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/login?plan=free")}
           >
             Inizia gratis
           </Button>
@@ -57,9 +57,9 @@ const LandingNavbar = () => {
           <Button
             size="sm"
             className="font-bold rounded-full text-sm px-5"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/login?plan=free")}
           >
-            Accedi
+            Inizia gratis
           </Button>
           <button
             className="text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -78,7 +78,7 @@ const LandingNavbar = () => {
           <a href="#prezzi" className="block text-sm text-muted-foreground hover:text-foreground" onClick={() => setOpen(false)}>Prezzi</a>
           <div className="flex gap-3 pt-2">
             <Button variant="ghost" size="sm" className="font-semibold" onClick={() => navigate("/login")}>Accedi</Button>
-            <Button size="sm" className="font-bold rounded-full" onClick={() => navigate("/login")}>Inizia gratis</Button>
+            <Button size="sm" className="font-bold rounded-full" onClick={() => navigate("/login?plan=free")}>Inizia gratis</Button>
           </div>
         </div>
       )}

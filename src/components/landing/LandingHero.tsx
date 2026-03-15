@@ -45,7 +45,7 @@ const LandingHero = () => {
               <Button
                 size="lg"
                 className="font-bold text-sm sm:text-base px-6 sm:px-8 h-12 sm:h-13 rounded-full glow-accent hover:glow-accent-hover transition-shadow active:scale-[0.98]"
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/login?plan=free")}
               >
                 Inizia gratis
                 <ArrowRight className="w-4 h-4 ml-1" />
@@ -61,7 +61,7 @@ const LandingHero = () => {
             </div>
 
             <p className="text-[11px] sm:text-xs text-muted-foreground animate-fade-up delay-400">
-              Nessuna carta di credito · 3 tailoring gratuiti al mese
+              Nessuna carta di credito · 1 candidatura gratuita
             </p>
           </div>
 
