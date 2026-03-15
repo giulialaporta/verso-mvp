@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap,
@@ -25,6 +26,67 @@ type ReviewFix = {
 };
 
 type ReviewStatus = "idle" | "reviewing" | "done" | "error";
+
+// --- CV Preview component ---
+function CVPreview({ cv, templateId, lang }: { cv: Record<string, unknown>; templateId: string; lang: string }) {
+  const [html, setHtml] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(false);
+    supabase.functions
+      .invoke("render-cv", {
+        body: { cv, template_id: templateId, format: "html", lang },
+      })
+      .then(({ data, error: err }) => {
+        if (err || !data) {
+          console.error("render-cv error:", err);
+          setError(true);
+          setLoading(false);
+          return;
+        }
+        // data is the HTML string
+        const htmlStr = typeof data === "string" ? data : "";
+        setHtml(htmlStr);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
+  }, [cv, templateId, lang]);
+
+  if (loading) {
+    return <Skeleton className="w-full aspect-[1/1.414] rounded-xl" />;
+  }
+
+  if (error || !html) {
+    return (
+      <div className="w-full aspect-[1/1.414] rounded-xl border border-border/30 bg-card/50 flex items-center justify-center text-sm text-muted-foreground">
+        Preview non disponibile
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full rounded-xl border border-border/30 overflow-hidden shadow-lg bg-white" style={{ aspectRatio: "1/1.414" }}>
+      <iframe
+        srcDoc={html}
+        className="w-full h-full border-0"
+        sandbox="allow-same-origin"
+        title="CV Preview"
+        style={{
+          transform: "scale(1)",
+          transformOrigin: "top left",
+          width: "100%",
+          height: "100%",
+        }}
+      />
+    </div>
+  );
+}
 
 export function StepExport({
   tailoredCv,
@@ -194,8 +256,10 @@ export function StepExport({
     }
   };
 
+  const effectiveLang = cvLang || "it";
+
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4">
+    <div className="mx-auto max-w-3xl space-y-6 px-4">
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft size={20} /></button>
         <div>
@@ -207,7 +271,7 @@ export function StepExport({
       {/* Template selector */}
       <div className="space-y-3">
         <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Template</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           {TEMPLATES.map((t) => {
             const isSelected = selectedTemplate === t.id;
             const isLocked = !t.free && !isPro;
@@ -216,56 +280,26 @@ export function StepExport({
                 key={t.id}
                 onClick={() => handleTemplateSelect(t.id)}
                 className={[
-                  "relative rounded-xl border-2 p-6 text-center transition-all",
+                  "relative rounded-lg border-2 p-3 text-center transition-all",
                   isLocked ? "border-border/30 opacity-70"
                   : isSelected ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
                   : "border-border/50 hover:border-primary/40"
                 ].join(" ")}
               >
                 {isLocked && (
-                  <>
-                    <div className="absolute inset-0 rounded-xl backdrop-blur-[2px] bg-background/40 z-10 flex items-center justify-center">
-                      <Lock size={24} className="text-muted-foreground" weight="fill" />
-                    </div>
-                    <span className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[11px] text-primary font-bold">
-                      <Crown size={10} weight="fill" /> Pro
-                    </span>
-                  </>
+                  <div className="absolute top-1 right-1 z-20">
+                    <Lock size={12} className="text-muted-foreground" weight="fill" />
+                  </div>
                 )}
-                <div className="h-16 flex items-center justify-center mb-3">
-                  {t.id === "classico" && (
-                    <div className="w-12 h-16 rounded border border-primary/30 flex flex-row overflow-hidden">
-                      <div className="w-[30%] bg-[hsl(var(--surface))]" />
-                      <div className="w-[70%] bg-card" />
-                    </div>
-                  )}
-                  {t.id === "minimal" && (
-                    <div className="w-12 h-16 rounded border border-border flex flex-row overflow-hidden">
-                      <div className="w-[26%] bg-background border-r border-border/50" />
-                      <div className="w-[74%] bg-background" />
-                    </div>
-                  )}
-                  {t.id === "executive" && (
-                    <div className="w-12 h-16 rounded border border-border bg-background overflow-hidden p-1">
-                      <div className="w-full h-1 bg-info rounded-full mb-1" />
-                      <div className="w-3/4 h-0.5 bg-muted-foreground/30 rounded mb-1" />
-                      <div className="w-full h-0.5 bg-muted-foreground/20 rounded mb-0.5" />
-                      <div className="w-full h-0.5 bg-muted-foreground/20 rounded" />
-                    </div>
-                  )}
-                  {t.id === "moderno" && (
-                    <div className="w-12 h-16 rounded border border-info/30 flex flex-row overflow-hidden">
-                      <div className="w-[35%] bg-info/20" />
-                      <div className="w-[65%] bg-card" />
-                    </div>
-                  )}
-                </div>
-                <p className="text-sm font-medium">{t.name}</p>
+                <p className="text-xs font-medium">{t.name}</p>
               </button>
             );
           })}
         </div>
       </div>
+
+      {/* Live CV Preview */}
+      <CVPreview cv={activeCv} templateId={selectedTemplate} lang={effectiveLang} />
 
       {/* Compact badges */}
       <div className="flex gap-2 flex-wrap">
@@ -278,7 +312,6 @@ export function StepExport({
           Confidence {stats.confidence}%
         </span>
 
-        {/* Formal review badge */}
         {reviewStatus === "reviewing" && (
           <span className="rounded-full bg-info/15 px-3 py-1 font-mono text-xs text-info flex items-center gap-1.5">
             <SpinnerGap size={12} className="animate-spin" /> Revisione...
