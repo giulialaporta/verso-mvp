@@ -123,13 +123,16 @@ export default function Login() {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     if (oauthLoading) return;
+    setOauthLoading(true);
     try {
       // Save pending consent flag before redirect
       if (isSignUp) {
         localStorage.setItem("verso_pending_oauth_consents", "true");
       }
+      // Redirect back to /login so the session can be picked up
+      // before ProtectedRoute kicks in (avoids race condition)
       const { error } = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/login`,
       });
       if (error) {
         localStorage.removeItem("verso_pending_oauth_consents");
