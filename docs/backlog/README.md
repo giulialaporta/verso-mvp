@@ -9,26 +9,20 @@ Naming coerente con `docs/spec/`: epic = `epic-XX-nome.md`, stories = `stories-p
 
 | File | Priorita' | Descrizione |
 |------|-----------|-------------|
-| `epic-11-stripe-webhook.md` | **P0 — Critica** | Webhook Stripe per aggiornamento real-time abbonamento |
-| `epic-12-event-tracking.md` | **P1 — Alta** | Tracciamento eventi funnel (tabella `user_events`) |
-| `epic-13-template-pro.md` | **P1 — Alta** | Template Executive/Moderno Pro-only con lucchetto |
-| `epic-14-email-transazionali.md` | **P1 — Alta** | Email automatiche (benvenuto, draft, follow-up) via Resend |
-| `epic-15-verso-score.md` | **P2 — Media** | Punteggio composito Verso Score + badge CV Onesto |
-| `epic-16-snellimento-consensi.md` | **P0 — Critica** | Ridurre friction legali da 4 a 1 nel signup + onboarding |
-| `epic-17-mobile-ux.md` | **P1 — Alta** | Mobile UX: padding, touch target, leggibilità, feedback tattile |
-| `epic-18-cv-export-quality.md` | **P0 — Critica** | Fix foto PDF, impaginazione multi-page, skill ordering, export DOCX |
+| `epic-20-ai-quality.md` | **P0 — Critica** | Qualita' AI: CV onesti, coerenti, ben scritti (9 stories) |
+| `epic-21-export-engine.md` | **P1 — Alta** | Nuovo motore export: HTML/CSS → PDF + template DOCX + preview (6 stories) |
+| `epic-14-email-transazionali.md` | **P2 — Media** | Email automatiche (benvenuto, draft, follow-up) via Resend |
+| `epic-16-snellimento-consensi.md` | **P0 — Critica** | Ridurre friction legali (parziale: ConsentGate fatto, cookie/art.9 da fare) |
 
-> **Archivio:** F7 (Verso Pro) e F10 (Migrazione AI) implementati e spostati in `docs/spec/epics/`.
+> **Archivio:** F7 (Verso Pro), F10 (Migrazione AI), F11 (Stripe Webhook), F12 (Event Tracking), F13 (Template Pro), F15 (Verso Score), F17 (Mobile UX), F18 (CV Export Quality), F19 (Home Redesign) — implementati o cancellati.
 
 ## Stories per priorita'
 
 | File | Priorita' | Descrizione |
 |------|-----------|-------------|
-| `stories-p3-pulizia.md` | **P3 — Bassa** | 4 stories pulizia tecnica |
+| `stories-p3-pulizia.md` | **P0 + P3** | 1 story sicurezza (CORS + auth) + 4 pulizia tecnica |
 
-**Totale: 8 epic + 4 stories P3**
-
-> **P0 (sicurezza)** e **P2 (UX)** completati e rimossi. Epic F8 (Impostazioni) e F9 (Legal/Privacy) implementati e spostati in `docs/spec/epics/`.
+**Totale: 4 epic + 5 stories isolate**
 
 ## Utility
 

@@ -50,9 +50,9 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/spec/verso-prd.md` | PRD principale (v1.1) — visione di prodotto |
 | `docs/spec/verso-prd-app.md` | PRD dell'app sviluppata |
 | `docs/spec/epics/` | 9 epic implementate (F1–F7, F8–F9) |
-| `docs/backlog/` | Cose da costruire — 5 epic (F11–F15) + 4 stories P3 |
-| `docs/backlog/stories-p3-pulizia.md` | P3 — 4 stories pulizia tecnica |
-| `docs/backlog/PROMPT-LOVABLE-epic-11-15.md` | Prompt sequenziale per Lovable (epic 11→15) |
+| `docs/backlog/` | Cose da costruire — 4 epic + 5 stories (vedi README) |
+| `docs/backlog/epic-20-ai-quality.md` | **P0** — Qualita' AI: 9 stories per CV onesti, coerenti, ben scritti |
+| `docs/backlog/stories-p3-pulizia.md` | P0 + P3 — 5 stories (1 sicurezza + 4 pulizia tecnica) |
 | `docs/backlog/CLAUDE_epic-template.md` | Template per scrivere nuovi epic |
 | `docs/test/` | Checklist di acceptance criteria per test manuale (8 file, comando `/test`) |
 | `docs/landing-page/` | Prompt per la landing page |

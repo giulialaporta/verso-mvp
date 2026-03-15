@@ -20,17 +20,23 @@ Route `/app/candidature` — accessibile dalla sidebar (desktop) e tab bar (mobi
 
 ## Sezioni
 
-### 1. Bozze
+### Raggruppamento per status
 
-- Sezione separata in alto, visivamente distinta (warning color)
-- Mostra candidature con status `draft`
-- Ogni bozza ha un pulsante "Riprendi" per tornare al wizard e completare
-- Le bozze possono essere eliminate
+Le candidature sono raggruppate per status in sezioni collassabili (`Collapsible`):
 
-### 2. Candidature attive
+**Ordine status:** draft → pronta → inviata → visualizzata → contattato → colloquio → offerta → ko
 
-- Ordinate per data di creazione (più recenti in alto)
-- Card per ogni candidatura
+| Status | Label | Card type |
+|--------|-------|-----------|
+| `draft` | Bozze | `DraftCard` con pulsante "Riprendi" + elimina |
+| `pronta` | Pronte | `ProntaCard` con bordo accent, MatchScore + StatusChip |
+| `inviata`...`offerta` | Varie | `AppCard` standard |
+| `ko` | KO | `AppCard` standard |
+
+Ogni sezione ha: toggle caret (apri/chiudi), conteggio candidature, card animate (`AnimatePresence`).
+
+**Nota:** lo status `pronta` e' stato aggiunto per le candidature con CV tailored pronto ma non ancora inviato (distinto da `draft` che e' ancora nel wizard).
+
 - Hover su una card → prefetch dei dati candidatura (`usePrefetchApplication`)
 
 ---

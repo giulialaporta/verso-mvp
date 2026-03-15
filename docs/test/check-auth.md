@@ -88,6 +88,14 @@ Ogni criterio va testato manualmente e marcato come Pass / Fail.
 - [x] **F3** — Durante il caricamento dell'auth state, appare un loading (nessun flash della pagina login) (verificato da code review)
 - [ ] **F4** — Sessione scaduta o invalidata: al prossimo refresh, redirect a `/login`
 - [ ] **F5** — Dopo login, l'utente viene rediretto alla pagina che stava cercando di visitare (deep link), non sempre a `/app/home`
+- [ ] **F6** — ConsentGate: utente senza consensi in `consent_logs` → mostra gate prima dell'app
+- [ ] **F7** — ConsentGate: singola checkbox "T&C + Privacy" → click "Accetta e continua" → salva consensi → mostra app
+- [ ] **F8** — ConsentGate: utente con consensi gia' presenti → bypass diretto (nessun gate)
+- [ ] **F9** — Inactivity timeout: dopo 30min senza interazione → logout automatico
+- [ ] **F10** — Inactivity timeout: toast "Sessione scaduta per inattivita'" al ritorno su /login
+- [ ] **F11** — Landing page: `/` mostra landing pubblica per utenti non autenticati
+- [ ] **F12** — Landing page: utente autenticato su `/` → redirect a `/app/home`
+- [ ] **F13** — Login con `?plan=pro`: dopo login → redirect a `/upgrade`
 
 ---
 
@@ -145,6 +153,6 @@ Ogni criterio va testato manualmente e marcato come Pass / Fail.
 
 | ID | Severita' | Descrizione |
 |----|-----------|-------------|
-| BUG-AUTH-01 | **CRITICO** | I consensi Google OAuth (terms + privacy) non vengono salvati in `consent_logs`. La funzione `saveRegistrationConsents` viene chiamata solo per signup email, non dopo redirect OAuth. Violazione GDPR. |
+| ~~BUG-AUTH-01~~ | ~~CRITICO~~ | ~~I consensi Google OAuth non vengono salvati in `consent_logs`.~~ **RISOLTO:** `ConsentGate` post-login intercetta utenti senza consensi e li fa accettare prima di accedere all'app. |
 | BUG-AUTH-02 | **BASSO** | Warning React in console: "Function components cannot be given refs" in `CVCard` → `AlertDialog`. Non blocca l'UI ma inquina i log. |
 | NOTE-CORS | **MEDIO** | La CORS whitelist non include `lovableproject.com` (URL preview iframe). Le edge functions funzionano comunque perche' il preview usa il proxy. |

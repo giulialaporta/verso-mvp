@@ -120,6 +120,29 @@
 
 ---
 
+## G-bis. cv-formal-review
+
+- [ ] **G-bis.1** — Endpoint `POST /functions/v1/cv-formal-review` risponde correttamente
+- [ ] **G-bis.2** — Input: `{ cv, template_id }` — restituisce `{ fixes, revised_cv }`
+- [ ] **G-bis.3** — Se nessuna correzione: `fixes` vuoto, `revised_cv` identico all'input
+- [ ] **G-bis.4** — Uniforma formato date in tutto il CV
+- [ ] **G-bis.5** — Rileva e corregge mix lingue involontario
+- [ ] **G-bis.6** — Bullet point uniformi per struttura
+- [ ] **G-bis.7** — Se errore: restituisce 500 con messaggio (nessun blocco del flusso)
+
+---
+
+## G-ter. integrity-check (modulo condiviso)
+
+- [ ] **G-ter.1** — Reverte campi immutabili (date, nomi azienda, ruoli, titoli di studio) se modificati
+- [ ] **G-ter.2** — Rileva metriche fabbricate nei bullet point
+- [ ] **G-ter.3** — Rimuove certificazioni inventate (non presenti nell'originale)
+- [ ] **G-ter.4** — Ripristina certificazioni eliminate
+- [ ] **G-ter.5** — Restituisce `IntegrityResult` con warnings e conteggi revert
+- [ ] **G-ter.6** — Integrato in `ai-tailor` dopo l'applicazione delle patch
+
+---
+
 ## H. Configurazione modelli (aggiornata — migrazione AI)
 
 - [ ] **H1** — `parse-cv` usa Anthropic Claude Sonnet 4 come primario
@@ -128,6 +151,7 @@
 - [ ] **H4** — `ai-tailor` (mode tailor) usa Anthropic Claude Sonnet 4 come primario
 - [ ] **H4b** — `ai-tailor` (mode analyze, task `ai-tailor-analyze`) usa Anthropic Claude Haiku 4.5
 - [ ] **H5** — `cv-review` usa Anthropic Claude Haiku 4.5 come primario
+- [ ] **H5b** — `cv-formal-review` usa Anthropic Claude Haiku 4.5 come primario
 - [ ] **H6** — Fallback: Gemini 2.5 Flash per funzioni Anthropic, Lovable Gateway per scrape-job
 - [ ] **H7** — Il summary riscritto da ai-tailor e' specifico per il ruolo (non generico)
 - [ ] **H8** — I bullet point contengono verbi d'azione e metriche
@@ -140,6 +164,7 @@
 ## I. Moduli condivisi
 
 - [ ] **I1** — `_shared/ai-provider.ts`: multi-provider routing con retry, fallback e cost logging (sostituisce ai-fetch.ts)
+- [ ] **I1b** — `_shared/integrity-check.ts`: validazione post-patch CV tailored vs originale
 - [x] **I2** — `_shared/compact-cv.ts`: compattazione CV riduce token senza perdere dati (verificato da code review)
 - [x] **I3** — `_shared/validate-output.ts`: validazione output AI rileva JSON malformati (verificato da code review)
 - [x] **I4** — `_shared/cors.ts`: CORS dinamico con whitelist origini funziona (verificato da code review)

@@ -4,9 +4,9 @@
 
 ## Cosa è stato costruito
 
-Sistema di abbonamento premium con Stripe: limite 1 candidatura per utenti Free, upgrade flow, gestione piano, cancellazione in-app. Approccio polling-based (no webhook).
+Sistema di abbonamento premium con Stripe: limite 1 candidatura per utenti Free, upgrade flow, gestione piano, cancellazione in-app. Webhook real-time + polling come fallback.
 
-> **Differenza dal piano backlog:** il piano prevedeva un webhook Stripe per aggiornare lo stato. Implementato un approccio polling con `check-subscription` che interroga Stripe direttamente. Aggiunta edge function `cancel-subscription` per cancellazione in-app (non solo via Stripe Portal). Aggiunta pagina FAQ. Counter `free_apps_used` con trigger DB invece di count dinamico.
+> **Aggiornamento:** implementato webhook Stripe (`stripe-webhook` edge function) per aggiornamento real-time dello stato abbonamento. Il polling (`check-subscription`) resta come fallback ogni 5 minuti.
 
 ---
 
@@ -47,7 +47,7 @@ Due trigger sulla tabella `applications`:
 
 ---
 
-## Edge Functions (4 nuove)
+## Edge Functions (5 nuove)
 
 ### 1. `create-checkout`
 
@@ -83,11 +83,32 @@ Due trigger sulla tabella `applications`:
 7. Se non trovata → aggiorna `profiles` (`is_pro: false`, clear subscription fields)
 8. Risponde `{ subscribed, subscription_end, cancel_at_period_end }`
 
-**Nota:** questa funzione è il sostituto del webhook. Viene chiamata dal frontend via polling.
+**Nota:** polling ogni 5 minuti come fallback. Il webhook `stripe-webhook` e' il meccanismo primario.
 
 ---
 
-### 3. `cancel-subscription`
+### 3. `stripe-webhook` (NUOVO — real-time)
+
+**Endpoint:** `POST /functions/v1/stripe-webhook`
+
+**Processo:**
+1. Verifica la firma Stripe con `STRIPE_WEBHOOK_SECRET` via `Stripe.webhooks.constructEventAsync()`
+2. Se firma invalida → 400
+
+**Eventi gestiti:**
+- **`checkout.session.completed`** → aggiorna `profiles`: `is_pro: true`, `stripe_customer_id`, `stripe_subscription_id`, `pro_since`, `pro_expires_at`
+- **`customer.subscription.updated`** → aggiorna `is_pro` (active/trialing = true), `pro_expires_at`, `cancel_at_period_end`
+- **`customer.subscription.deleted`** → `is_pro: false`, clear subscription fields
+- **`invoice.payment_failed`** → log per monitoring
+
+**Note:**
+- Risponde 200 per utenti non trovati (evita retry Stripe)
+- Risponde 200 per eventi non gestiti (silent ignore)
+- Richiede env var `STRIPE_WEBHOOK_SECRET`
+
+---
+
+### 4. `cancel-subscription` (rinumerato da 3)
 
 **Endpoint:** `POST /functions/v1/cancel-subscription`
 

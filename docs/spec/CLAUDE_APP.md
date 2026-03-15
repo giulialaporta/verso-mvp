@@ -26,6 +26,7 @@ Questa cartella e' la **fonte di verita' dell'app Verso**: documenta cio' che e'
 | AI | Multi-provider: Anthropic Claude (Sonnet 4 + Haiku 4.5) + Google AI Gemini 2.5 Flash |
 | Pagamenti | Stripe (Checkout, Billing Portal, API) |
 | PDF Export | @react-pdf/renderer |
+| DOCX Export | docx (npm) |
 | State | React Context + React Query |
 
 > **Nota:** Il piano MVP prevedeva Claude API. Dopo la migrazione AI (epic-10), le funzioni critiche usano Claude (Anthropic), con Gemini Flash come fallback.
@@ -41,11 +42,11 @@ Questa cartella e' la **fonte di verita' dell'app Verso**: documenta cio' che e'
 | `CLAUDE_APP.md` | Questo file — istruzioni e indice |
 | `verso-prd.md` | PRD principale (v1.1) — visione di prodotto |
 | `verso-prd-app.md` | PRD dell'app sviluppata |
-| `epics/epic-01-setup.md` | F1 — Auth + Supabase + App Shell + Brand System + CORS + Consent |
+| `epics/epic-01-setup.md` | F1 — Auth + Supabase + App Shell + Brand System + CORS + Consent + ConsentGate |
 | `epics/epic-02-onboarding.md` | F2 — Onboarding 4 step (upload → parse → preview → salary) |
 | `epics/epic-03-nuova-candidatura.md` | F3 — Wizard 6 step (annuncio → verifica → tailoring → revisione → export → completa) |
-| `epics/epic-04-ai-engine.md` | F4 — 10 Edge Functions (6 AI + 4 Stripe) |
-| `epics/epic-05-export-dashboard.md` | F5 — Export PDF + Dashboard Home + CV Edit |
+| `epics/epic-04-ai-engine.md` | F4 — 13 Edge Functions (8 AI + 5 Stripe) |
+| `epics/epic-05-export-dashboard.md` | F5 — Export PDF/DOCX + Dashboard Home + CV Edit |
 | `epics/epic-06-candidature.md` | F6 — Pagina Candidature + Dettaglio candidatura |
 | `epics/epic-07-verso-pro.md` | F7 — Versō Pro (Stripe, limite candidature, upgrade flow, FAQ) |
 | `epics/epic-08-impostazioni.md` | F8 — Impostazioni (account, piano, privacy, data portability, elimina account) |
@@ -57,7 +58,7 @@ Questa cartella e' la **fonte di verita' dell'app Verso**: documenta cio' che e'
 ## Flusso reale dell'app
 
 ```
-Signup (con consensi T&C + Privacy) → Login
+Landing page (/) → Signup (con consensi T&C + Privacy) → Login
     ↓
 Upload CV (con consenso art. 9) → Parsing AI → Preview + Edit → RAL (opzionale)
     ↓
@@ -79,10 +80,10 @@ FAQ (/app/faq)
 | AI Provider | Claude API | Multi-provider: Anthropic Claude + Google AI Gemini (fallback) |
 | Onboarding | 1 step (upload) | 4 step (upload → parse → preview → salary) |
 | Wizard candidatura | 3 step | 6 step (pre-screening, cv-review, export, prossimi passi) |
-| Edge Functions | 3 (parse-cv, ai-tailor, scrape-job) | 10 (6 AI + 4 Stripe: create-checkout, check-subscription, cancel-subscription, customer-portal) |
+| Edge Functions | 3 (parse-cv, ai-tailor, scrape-job) | 13 (8 AI + 5 Stripe) |
 | Tailoring | CV completo sostituito | Patch-based (solo campi modificati) |
-| Template PDF | 4 (2 free + 2 pro) | 2 (Classico + Minimal, entrambi free) |
-| Export DOCX | Previsto | Non implementato |
+| Template PDF | 4 (2 free + 2 pro) | 4 (2 free: Classico, Minimal + 2 Pro: Executive, Moderno) |
+| Export DOCX | Previsto | Implementato (Pro-only, libreria `docx`) |
 | Candidature page | Non prevista | Implementata (lista + dettaglio + stati + note) |
 | Password reset | Non previsto | Implementato |
 | Schema CV | Base (7 sezioni) | Esteso (12+ sezioni: CEFR lingue, honors, extra, foto) |

@@ -72,10 +72,24 @@ Fondamenta dell'app: design system dark mode, autenticazione Supabase con 3 meto
 3. Link apre `/reset-password` con `type=recovery` nell'hash
 4. Utente imposta nuova password → redirect a `/app/home`
 
+**ConsentGate (post-login):**
+- Componente `ConsentGate` wrappato dentro `ProtectedRoute`
+- Se l'utente non ha consensi `terms` + `privacy` in `consent_logs` → mostra gate
+- Il gate presenta una singola checkbox "Ho letto e accetto T&C e Privacy"
+- Al click "Accetta e continua" → salva i consensi e mostra l'app
+- Risolve il bug BUG-AUTH-01: utenti Google OAuth senza consensi vengono intercettati
+- Il source del consenso e' `post_login_gate` (distinto da `registration`)
+
+**Inactivity timeout:**
+- `useInactivityTimeout(30)` attivato in `ProtectedRoute`
+- Dopo 30 minuti senza interazione (mouse, keyboard, click, scroll, touch) → logout automatico
+- Salva flag `inactivity_logout` in sessionStorage → toast informativo al ritorno su `/login`
+
 **Protezione route:**
 - Componente `ProtectedRoute` guarda `/app/*` e `/onboarding`
 - Non autenticato → redirect a `/login`
-- Autenticato su `/login` → redirect a `/app/home`
+- Autenticato → `useInactivityTimeout` + `ConsentGate` → mostra contenuto
+- Autenticato su `/login` → redirect a `/app/home` (o `/upgrade` se `?plan=pro`)
 
 **State management:** `AuthContext` con React Context + persistenza sessione Supabase.
 
@@ -105,11 +119,13 @@ Route `/app` — layout wrapper per tutte le pagine autenticate.
 
 | Route | Tipo | Descrizione |
 |-------|------|-------------|
-| `/login` | pubblica | Login / signup |
+| `/` | pubblica | Landing page (redirect a `/app/home` se autenticato) |
+| `/login` | pubblica | Login / signup (supporta `?plan=pro` per redirect a `/upgrade`) |
 | `/reset-password` | pubblica | Reset password |
 | `/termini` | pubblica | Termini e condizioni |
 | `/privacy` | pubblica | Privacy policy |
 | `/cookie-policy` | pubblica | Cookie policy |
+| `/linkedin-card` | pubblica | Card statica 1200×627 per OG/social preview (LinkedIn, Twitter) |
 | `/app/home` | protetta | Dashboard |
 | `/app/candidature` | protetta | Lista candidature |
 | `/app/impostazioni` | protetta | Impostazioni utente |
@@ -126,7 +142,11 @@ Route `/app` — layout wrapper per tutte le pagine autenticate.
 | Componente | Scopo |
 |------------|-------|
 | `AppShell` | Layout responsive (sidebar/tab bar) |
-| `ProtectedRoute` | Auth guard per route protette |
+| `ProtectedRoute` | Auth guard per route protette (wrappa ConsentGate) |
+| `ConsentGate` | Gate post-login per consensi mancanti (T&C + Privacy) |
+| `Landing` | Landing page pubblica con 8 sezioni (hero, problem, how it works, features, social proof, pricing, CTA, footer) |
+| `useInactivityTimeout` | Hook: logout automatico dopo 30 min inattività |
+| `useAvatarUpload` | Hook: upload foto profilo con resize (200px JPEG) su bucket `avatars` |
 | `ErrorBoundary` | Gestione errori globale |
 | Logo "VERSO" | Syne 800, "O" in accent |
 | `ConsentCheckboxes` | Checkbox T&C + Privacy per form signup |

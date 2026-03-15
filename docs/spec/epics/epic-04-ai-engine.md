@@ -1,10 +1,10 @@
-# Epic 04 — AI Engine (6 Edge Functions AI + 4 Stripe) (Implementato)
+# Epic 04 — AI Engine (8 Edge Functions AI + 5 Stripe) (Implementato)
 
 ---
 
 ## Cosa è stato costruito
 
-Dieci Supabase Edge Functions (Deno): 6 AI + 4 Stripe/account. Le funzioni AI usano il modulo multi-provider `_shared/ai-provider.ts` con routing per task: Anthropic (Claude Sonnet 4 / Haiku 4.5) come primario, Google AI (Gemini 2.5 Flash) come fallback, Lovable Gateway come fallback secondario. Tutte condividono il modulo `_shared/cors.ts` per CORS dinamico.
+Tredici Supabase Edge Functions (Deno): 8 AI + 5 Stripe/account. Le funzioni AI usano il modulo multi-provider `_shared/ai-provider.ts` con routing per task: Anthropic (Claude Sonnet 4 / Haiku 4.5) come primario, Google AI (Gemini 2.5 Flash) come fallback, Lovable Gateway come fallback secondario. Tutte condividono il modulo `_shared/cors.ts` per CORS dinamico.
 
 > **Differenza dal piano MVP:** il piano prevedeva 3 funzioni con Claude API. Implementate 6 funzioni AI (aggiunte `ai-prescreen`, `cv-review`, `delete-account`). Migrazione da Lovable Gateway/Gemini a Anthropic Claude completata (epic-10). Aggiunte 4 funzioni Stripe per epic 07 Versō Pro.
 
@@ -280,12 +280,92 @@ Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` e lo 
 
 ---
 
-## Edge Functions Stripe (4 — vedi epic-07 per dettagli)
+## Edge Function 7: `cv-formal-review` (NUOVA)
+
+**Endpoint:** `POST /functions/v1/cv-formal-review`
+
+**Input:**
+```json
+{
+  "cv": { "...CV tailored JSON..." },
+  "template_id": "classico"
+}
+```
+
+**Processo:**
+Revisore finale della forma del CV prima del download. Non valuta contenuti ne' riscrive testi — interviene solo sulla forma:
+
+1. **Coerenza formato date** — tutte le date con formato unico (es. "Gen 2020")
+2. **Separatore date** — stesso separatore (en dash, hyphen, em dash) ovunque
+3. **Maiuscole consistenti** — titoli di ruolo e nomi aziendali uniformi
+4. **Lingua unica** — nessun mix involontario italiano/inglese
+5. **Bullet point uniformi** — struttura coerente, verbo d'azione, lunghezza adeguata
+6. **Punteggiatura e ripetizioni** — consistenza, no ripetizioni ravvicinate
+7. **Fluidita' lettura** — ritocchi minimi per suono naturale
+
+**Output (via tool_use `formal_review_result`):**
+```json
+{
+  "fixes": [
+    { "section": "experience[0]", "field": "start", "problem": "...", "correction": "..." }
+  ],
+  "revised_cv": { "...CV corretto..." }
+}
+```
+
+**Integrazione:** chiamata automaticamente in `StepExport.tsx` al mount dello step. Il CV revisionato viene usato per il PDF/DOCX finale. Se la review fallisce, viene usato il CV originale.
+
+**Nota sicurezza:** usa `Access-Control-Allow-Origin: *` (non CORS dinamico) — da correggere.
+
+---
+
+## Edge Function 8: `compact-headline` (NUOVA)
+
+**Endpoint:** `POST /functions/v1/compact-headline`
+
+**Input:**
+```json
+{ "role": "Senior Growth Marketing Manager", "company": "Spotify" }
+```
+
+**Processo:**
+- Abbrevia un job title lungo per fit su card mobile (max ~40 caratteri)
+- Usa abbreviazioni standard (AI, ML, HR, CTO, etc.)
+- Risultato cachato in `localStorage` per evitare chiamate ripetute
+
+**Provider:** Lovable Gateway → Gemini 2.5 Flash Lite (max 60 token, temperature 0)
+
+**Fallback:** troncamento semplice se AI non disponibile.
+
+**Output:** `{ "headline": "Sr Growth Mktg @Spotify" }`
+
+**Nota sicurezza:** usa `Access-Control-Allow-Origin: *` e nessuna auth — da correggere.
+
+---
+
+## Modulo `integrity-check.ts` (NUOVO)
+
+**Scopo:** Validazione post-patch che confronta il CV tailored con l'originale.
+
+**Controlli:**
+- Campi immutabili (date, nomi azienda, ruoli, titoli di studio) — reverte se modificati
+- Metriche fabbricate nei bullet point — rileva numeri/percentuali inventati
+- Certificazioni inventate — rimuove certificazioni non presenti nell'originale
+- Certificazioni rimosse — ripristina certificazioni eliminate
+
+**Output:** `IntegrityResult` con warnings, conteggio revert, e computed honesty score server-side.
+
+**Integrazione:** chiamato da `ai-tailor` dopo l'applicazione delle patch, prima di restituire il risultato al frontend.
+
+---
+
+## Edge Functions Stripe (5 — vedi epic-07 per dettagli)
 
 | Funzione | Scopo |
 |----------|-------|
 | `create-checkout` | Crea Stripe Checkout Session per upgrade a Pro |
-| `check-subscription` | Polling: verifica stato subscription su Stripe, sync con profiles |
+| `check-subscription` | Polling fallback: verifica stato subscription su Stripe, sync con profiles |
+| `stripe-webhook` | Webhook real-time: aggiorna stato abbonamento su eventi Stripe |
 | `cancel-subscription` | Cancellazione soft (cancel_at_period_end) |
 | `customer-portal` | Crea sessione Stripe Billing Portal |
 
@@ -301,6 +381,7 @@ Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` e lo 
 | `_shared/compact-cv.ts` | Compattazione CV per ridurre token |
 | `_shared/validate-output.ts` | Validazione output AI |
 | `_shared/cors.ts` | CORS dinamico con whitelist origini |
+| `_shared/integrity-check.ts` | Validazione post-patch: confronta CV tailored vs originale, reverte campi immutabili, rileva metriche fabbricate |
 
 ### `ai-provider.ts` — Dettaglio
 
@@ -314,6 +395,7 @@ Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` e lo 
 | `ai-tailor` | Anthropic | Claude Sonnet 4 | Gemini 2.5 Flash |
 | `ai-tailor-analyze` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
 | `cv-review` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
+| `cv-formal-review` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
 
 **Behavior:**
 1. Chiama il provider primario (fino a 2 tentativi, pausa 2s tra i tentativi)
@@ -368,7 +450,7 @@ CREATE TABLE ai_usage_logs (
 | Parametro | Valore |
 |-----------|--------|
 | Provider primario (parse-cv, ai-tailor) | Anthropic → Claude Sonnet 4 |
-| Provider primario (ai-prescreen, ai-tailor-analyze, cv-review) | Anthropic → Claude Haiku 4.5 |
+| Provider primario (ai-prescreen, ai-tailor-analyze, cv-review, cv-formal-review) | Anthropic → Claude Haiku 4.5 |
 | Provider primario (scrape-job) | Google AI → Gemini 2.5 Flash |
 | Fallback (tutte le funzioni Anthropic) | Google AI → Gemini 2.5 Flash |
 | Fallback (scrape-job) | Lovable Gateway → Gemini 2.0 Flash |
@@ -381,7 +463,7 @@ CREATE TABLE ai_usage_logs (
 | Area | Piano | Implementato |
 |------|-------|-------------|
 | Provider AI | Claude API (Anthropic) | Multi-provider: Anthropic Claude (primario) + Google AI Gemini (fallback) |
-| Numero funzioni | 3 | 10 (6 AI + 4 Stripe: create-checkout, check-subscription, cancel-subscription, customer-portal) |
+| Numero funzioni | 3 | 13 (8 AI + 5 Stripe: create-checkout, check-subscription, stripe-webhook, cancel-subscription, customer-portal) |
 | parse-cv | Estrazione testo + prompt Claude | Input multimodale diretto (PDF → Gemini) |
 | ai-tailor | Output = CV completo | Output = patch JSON (solo modifiche) |
 | scrape-job | Senza cache | Con cache SHA-256, 7 giorni |

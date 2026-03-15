@@ -49,7 +49,7 @@ Chiama Edge Function `ai-prescreen` con CV master + job posting.
 **Cosa analizza:**
 - **Dealbreaker** — gap critici non colmabili (critical/significant)
 - **Requirements matrix** — requisiti classificati come mandatory/preferred/nice_to_have
-- **Follow-up questions** — max 5 domande per gap colmabili
+- **Follow-up questions** — max 5 domande per gap colmabili, ciascuna con 3-4 **answer chips** contestuali (opzioni specifiche alla domanda, da match forte a negativo)
 - **Feasibility** — valutazione low/medium/high
 - **Salary analysis** (opzionale) — confronto retributivo candidato vs posizione
 
@@ -117,8 +117,15 @@ Le 10 regole di revisione qualita' HR (uniformita' lingua, bullet con verbi d'az
 
 Riepilogo di cosa e' cambiato nel CV, con confronto originale vs adattato.
 
+**SkillManager (riordinamento e visibilita' skill):**
+- Componente `SkillManager` integrato nello step di revisione
+- Ogni skill e' un chip con frecce su/giu' per riordinare e icona occhio per nascondere/mostrare
+- Le skill nascoste non appaiono nel PDF/DOCX ma restano nel JSON
+- Conversione da skills categorizzate (technical/soft/tools) a lista piatta gestita (ManagedSkill[])
+- Al salvataggio: le skill visibili vengono riassegnate nella struttura originale
+
 **Score compatti (in alto):**
-- Match Score (0-100) — barra compatta
+- Match Score (0-100) — barra compatta (componente `MatchScore`, rinominato da `VersoScore`)
 - ATS Score (0-100) — barra compatta
 
 **Blocco "Cosa ho cambiato":**
@@ -138,22 +145,34 @@ Riepilogo di cosa e' cambiato nel CV, con confronto originale vs adattato.
 
 ---
 
-## Step 5: Export PDF
+## Step 5: Export PDF + DOCX
 
 Step a pagina intera del wizard (non drawer separato come nel piano MVP).
 
+**Revisione formale automatica:**
+- Al mount dello step, viene chiamata `cv-formal-review` in background
+- Il revisore AI controlla coerenza date, maiuscole, lingua, bullet, punteggiatura
+- Status visibile: "Revisione in corso..." → "N correzioni applicate" (con lista espandibile)
+- Se la review fallisce, viene usato il CV originale (nessun blocco)
+- Il CV revisionato viene usato per tutti gli export (PDF e DOCX)
+
 **Template disponibili:**
-- **Classico** — header scuro, body bianco, DM Sans
-- **Minimal** — tutto bianco, Inter, massima pulizia
+- **Classico** — header scuro, body bianco, DM Sans (free)
+- **Minimal** — tutto bianco, Inter, massima pulizia (free)
+- **Executive** — layout professionale con sidebar (Pro-only)
+- **Moderno** — design contemporaneo con colori accent (Pro-only)
+
+**Template Pro-only:** i template Executive e Moderno mostrano icona lucchetto per utenti Free. Click → redirect a `/upgrade`.
 
 **Azioni:**
 - Selezione template (card con bordo accent sulla selezionata)
 - Preview PDF live che si aggiorna al cambio template
 - Badge ATS Score e Confidence in basso
-- Download PDF locale
+- **Download PDF** locale + upload automatico su Supabase Storage
+- **Download DOCX** (Pro-only) — genera file .docx con libreria `docx`, stile adattato al template selezionato. Icona lucchetto + Crown per utenti Free.
 - Upload automatico su Supabase Storage (`cv-exports/{userId}/{applicationId}/`)
 
-**Nome file:** `CV-{Nome}-{Azienda}.pdf`
+**Nome file:** `CV-{Nome}-{Azienda}.pdf` / `CV-{Nome}-{Azienda}.docx`
 
 **Al completamento:**
 - Crea record in `applications` (company_name, role_title, job_url, job_description, match_score, ats_score, status='draft')
@@ -182,15 +201,16 @@ Il wizard è stato refactored da monolitico (Nuova.tsx ~1450 righe) a componenti
 
 | Componente | Step | File |
 |------------|------|------|
-| `StepAnnuncio` | 0 | `src/components/wizard/StepAnnuncio.tsx` |
-| `StepVerifica` | 1 | `src/components/wizard/StepVerifica.tsx` |
-| `StepTailoring` | 2 | `src/components/wizard/StepTailoring.tsx` |
-| `StepRevisione` | 3 | `src/components/wizard/StepRevisione.tsx` |
-| `StepExport` | 4 | `src/components/wizard/StepExport.tsx` |
-| `StepCompleta` | 5 | `src/components/wizard/StepCompleta.tsx` |
+| `StepAnnuncio` | 0 (Annuncio) | `src/components/wizard/StepAnnuncio.tsx` |
+| `StepVerifica` | 1 (Verifica) | `src/components/wizard/StepVerifica.tsx` |
+| `StepTailoring` | 2 (Analisi) | `src/components/wizard/StepTailoring.tsx` |
+| `StepRevisione` | 3 (CV Adattato) | `src/components/wizard/StepRevisione.tsx` — include loading animato del tailoring |
+| `StepExport` | 4 (Download) | `src/components/wizard/StepExport.tsx` |
+| `StepCompleta` | 5 (Fatto) | `src/components/wizard/StepCompleta.tsx` |
 | `StepIndicator` | — | `src/components/wizard/StepIndicator.tsx` |
 | `wizard-types.ts` | — | Type definitions (JobData, PrescreenResult, AnalyzeResult, TailorResult) |
 | `wizard-utils.ts` | — | Utilities (applyPatchesFrontend, computeConfidence, useAnimatedCounter, getDomainHint) |
+| `SkillManager.tsx` | 3 | Riordinamento skill (frecce su/giu') + toggle visibilita' (occhio) |
 
 **State management:** step corrente via URL query param `?step=N`. Draft resumption via `?draft=ID`.
 
@@ -223,7 +243,9 @@ Il wizard è stato refactored da monolitico (Nuova.tsx ~1450 righe) a componenti
 | Tailoring | CV completo sostituito | Patch-based (solo modifiche) |
 | Diff view | 2 colonne originale/adattato | Non implementata come diff visuale |
 | Export | Drawer separato | Integrato come step 5 |
-| Template | 4 (2 free + 2 pro) | 2 (entrambi free) |
-| DOCX | Previsto | Non implementato |
+| Template | 4 (2 free + 2 pro) | 4 (2 free: Classico, Minimal + 2 Pro: Executive, Moderno) |
+| DOCX | Previsto | Implementato (libreria `docx`, Pro-only, 4 stili template) |
+| Formal review | Non prevista | Implementata (cv-formal-review, automatica allo step export) |
+| Skill management | Non previsto | Implementato (SkillManager: riordinamento + visibilita') |
 | Bozze | Non previste | Implementate con ripresa |
 | Lingua CV | Non specificata | Adattata alla lingua dell'annuncio |

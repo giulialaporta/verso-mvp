@@ -4,12 +4,13 @@
 
 ## Cosa è stato costruito
 
-1. Sistema template PDF con 2 layout (entrambi free)
-2. Generazione PDF nel browser con download + upload automatico
-3. Dashboard home con 3 stati, statistiche, CV card collapsible e gestione CV
-4. Pagina CVEdit per modificare il CV master senza ri-upload
+1. Sistema template PDF con 4 layout (2 free + 2 Pro-only)
+2. Generazione PDF e DOCX nel browser con download + upload automatico
+3. Revisione formale automatica del CV prima dell'export
+4. Dashboard home con 3 stati, statistiche, CV card collapsible e gestione CV
+5. Pagina CVEdit per modificare il CV master senza ri-upload
 
-> **Differenza dal piano MVP:** il piano prevedeva 4 template (2 free + 2 pro), export DOCX, e drawer ATS separato. Implementati 2 template free, export solo PDF, e pannelli ATS/Honest Score integrati nel wizard.
+> **Differenza dal piano MVP:** il piano prevedeva 4 template (2 free + 2 pro), export DOCX, e drawer ATS separato. Implementati 4 template (2 free + 2 Pro), export PDF + DOCX (Pro-only), revisione formale automatica, e pannelli ATS/Honest Score integrati nel wizard.
 
 ---
 
@@ -36,7 +37,23 @@ Ogni template è un componente `@react-pdf/renderer` che riceve il JSON del CV a
 - Massima pulizia e leggibilità
 - Formato A4, margini 22mm
 
-### Best practice ATS (entrambi i template)
+### Template 3: Executive (Pro-only)
+
+- Layout a 2 colonne con sidebar scura
+- Design professionale per ruoli senior/executive
+- Font serif o sans-serif elegante
+- Sidebar con skill, lingue, certificazioni
+- Main body con esperienza e formazione
+- Lucchetto per utenti Free
+
+### Template 4: Moderno (Pro-only)
+
+- Design contemporaneo con colori accent
+- Layout pulito con elementi grafici moderni
+- Icone e badge per skill
+- Lucchetto per utenti Free
+
+### Best practice ATS (tutti i template)
 
 - Layout single-column
 - Heading standard
@@ -47,10 +64,17 @@ Ogni template è un componente `@react-pdf/renderer` che riceve il JSON del CV a
 
 ---
 
-## 2. Generazione e Download PDF
+## 2. Generazione e Download PDF + DOCX
 
-**Flusso:**
-1. Utente seleziona template (Classico o Minimal) nello step 5 del wizard
+**Revisione formale automatica:**
+- Al mount dello step export, viene chiamata `cv-formal-review` in background
+- Controlla coerenza date, maiuscole, lingua, bullet, punteggiatura
+- Il CV revisionato viene usato per tutti gli export
+- Se fallisce, viene usato il CV originale (nessun blocco)
+- Status visibile all'utente con lista correzioni espandibile
+
+**Flusso PDF:**
+1. Utente seleziona template (4 disponibili: 2 free + 2 Pro) nello step 5 del wizard
 2. Preview dei pannelli ATS Score e Honest Score
 3. Click "Scarica PDF"
 4. Generazione nel browser con `@react-pdf/renderer`
@@ -59,7 +83,21 @@ Ogni template è un componente `@react-pdf/renderer` che riceve il JSON del CV a
 7. URL pubblico salvato in `tailored_cvs.pdf_url`
 8. Template scelto salvato in `tailored_cvs.template_id`
 
-**Nome file:** `CV-{Nome}-{Azienda}.pdf` (es. `CV-Marco-Rossi-Acme-Corp.pdf`)
+**Flusso DOCX (Pro-only):**
+1. Click "Scarica DOCX" (icona FileDoc)
+2. Se utente Free → redirect a `/upgrade` (icona Lock + Crown)
+3. Generazione nel browser con libreria `docx` (`docx-generator.ts`)
+4. Stile DOCX adattato al template selezionato (4 stili: classico, minimal, executive, moderno)
+5. Download diretto
+6. Upload automatico su Supabase Storage
+
+**Sistema densita' adattiva (template-utils.ts):**
+- 5 livelli: NORMAL → COMPACT → DENSE → ULTRA → EXTREME
+- `computeDensity()` calcola il tier in base alla lunghezza del CV
+- Ogni livello riduce font size, margini, line-height, max bullet, max esperienze
+- `truncateSummary()`, `limitExperiences()`, `truncateBullets()` per tier estremi
+
+**Nome file:** `CV-{Nome}-{Azienda}.pdf` / `CV-{Nome}-{Azienda}.docx`
 
 ---
 
@@ -81,42 +119,30 @@ Route `/app/home` — pagina principale dopo il login.
 - CV Card collapsible (vedi sotto)
 - CTA "Nuova candidatura" → redirect a `/app/nuova`
 
-### Stato 3: CV + candidature presenti
+### Stato 3: CV + candidature presenti (Home redesign)
 
-**PlanCard:**
-- Componente che mostra lo stato del piano (Free/Pro/Pro in scadenza)
-- **Free:** "Piano Free" con info limite candidature
-- **Pro:** "Versō Pro" con badge accent e data rinnovo
-- **Pro in scadenza** (`cancel_at_period_end`): mostra data scadenza
+**HeroSection:**
+- Avatar grande (64-80px) con click per upload nuova foto profilo (`useAvatarUpload`)
+- Nome (solo primo nome) in `text-2xl/3xl font-bold`
+- **Headline AI-compattata** — job title abbreviato via `compact-headline` edge function (cachato in localStorage)
+- Badge piano: "Pro" (accent) o "Free" (muted) con "In scadenza" se `cancel_at_period_end`
+- Stats inline: candidature attive/totali + match score medio
+- CTA "Nuova candidatura" con gradient accent (`Plus` icon)
 
-**StatsBar:**
-- 3 card con icone Phosphor:
-  - **Briefcase** — numero candidature attive
-  - **ChartLineUp** — score medio di match
-  - **FileText** — stato CV (caricato/aggiornato)
+**Candidature recenti:**
+- Mostra le ultime 3 candidature con card specifiche per status (`pronta` ha bordo accent)
+- Card con: iniziale azienda, ruolo, azienda, data, MatchScoreCompact, StatusChip
+- Hover su una card → prefetch dei dati candidatura (`usePrefetchApplication`)
+- Link "Vedi tutte" a pagina candidature
 
-**CTA "Nuova candidatura":**
-- Se utente Free con `free_apps_used >= 1` → redirect a `/upgrade` (pro gate via `useProGate`)
-- Se utente Pro o Free con 0 candidature → redirect a `/app/nuova`
+**CV Card (collapsible):**
+- Collassabile con toggle
+- Azioni: Modifica CV, Carica nuovo, Scarica PDF, Soft/Hard delete, Riattivazione
 
 **Post-upgrade polling:**
 - Se query param `upgrade=success` → polling `check-subscription` fino a `is_pro = true` → toast di benvenuto
 
-**CV Card (collapsible):**
-- Espandibile/collassabile con toggle
-- Mostra `CVSections` editabile inline (esperienze, formazione, competenze)
-- `SalaryDisplay` integrato: mostra RAL attuale e RAL desiderata con toggle per edit inline
-- Azioni CV:
-  - **Modifica CV** → redirect a `/app/cv-edit`
-  - **Soft delete** → imposta `is_active = false`, il CV non è più visibile ma resta in DB
-  - **Riattivazione** → possibilità di riattivare un CV precedente (ripristina `is_active = true`)
-  - **Hard delete** → elimina file da Supabase Storage + record dal DB (con conferma)
-
-**Candidature recenti:**
-- Mostra le ultime 3 candidature
-- Card con: ruolo, azienda, match score, ATS score, data
-- Hover su una card → prefetch dei dati candidatura (`usePrefetchApplication`)
-- Link a pagina completa candidature
+**Nota:** `SalaryDisplay` e' stato spostato dalla Home a Impostazioni (card "Aspettative RAL").
 
 ---
 
@@ -135,14 +161,19 @@ Route `/app/cv-edit` — pagina dedicata alla modifica del CV master.
 
 | Componente | Scopo |
 |------------|-------|
-| `ClassicoTemplate` | Template PDF tradizionale |
-| `MinimalTemplate` | Template PDF moderno/pulito |
+| `ClassicoTemplate` | Template PDF tradizionale (free) |
+| `MinimalTemplate` | Template PDF moderno/pulito (free) |
+| `ExecutiveTemplate` | Template PDF executive con sidebar (Pro-only) |
+| `ModernoTemplate` | Template PDF contemporaneo con accent (Pro-only) |
+| `docx-generator.ts` | Generatore DOCX con 4 stili template (Pro-only) |
+| `template-utils.ts` | Utility condivise: clean, ensureArray, densita' adattiva (5 tier) |
+| `MatchScore` | Score con anello animato + badge (rinominato da VersoScore) |
 | `ExportDrawer` | Pannello export con template picker + score |
-| `StatsBar` | 3 card statistiche con icone Phosphor (interno a Home.tsx) |
+| `HeroSection` | Hero con avatar, nome, headline AI, badge piano, stats, CTA (interno a Home.tsx) |
 | `RecentApplications` | Lista ultime 3 candidature con hover prefetch (interno a Home.tsx) |
-| `CVCard` | Card collapsible con CVSections editabile e azioni CV (interno a Home.tsx) |
-| `SalaryDisplay` | Mostra RAL attuale/desiderata con inline edit (interno a Home.tsx) |
-| `PlanCard` | Card stato piano Free/Pro/Expiring (interno a Home.tsx) |
+| `CVCard` | Card collapsible con azioni CV (interno a Home.tsx) |
+| `useCompactHeadline` | Hook: chiama `compact-headline` con cache localStorage (interno a Home.tsx) |
+| `useAvatarUpload` | Hook: upload avatar con resize 200px su bucket `avatars` |
 
 ---
 
@@ -150,10 +181,10 @@ Route `/app/cv-edit` — pagina dedicata alla modifica del CV master.
 
 | Feature | Stato |
 |---------|-------|
-| Template Executive (Pro) | Non implementato |
-| Template Moderno (Pro) | Non implementato |
-| Sistema Free/Pro template | Non implementato (entrambi free) |
-| Export DOCX | Non implementato |
+| Template Executive (Pro) | Implementato (Pro-only con lucchetto) |
+| Template Moderno (Pro) | Implementato (Pro-only con lucchetto) |
+| Sistema Free/Pro template | Implementato (2 free + 2 Pro) |
+| Export DOCX | Implementato (Pro-only, libreria `docx`, 4 stili) |
 | Preview PDF live nel drawer | Parziale |
 | Badge "ATS-Ready ✓" | Non implementato come badge |
 | Seniority warning sulle card | Non implementato come tooltip |

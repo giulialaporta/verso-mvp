@@ -142,12 +142,20 @@ Checkbox inline nello **Step 1 (Upload)**, sotto l'area di drag & drop:
 
 ---
 
+## Stato implementazione (parziale)
+
+Lovable ha implementato un approccio diverso dal proposto:
+- **Signup:** 2 checkbox ridotte a 1 (T&C + Privacy combinate), non eliminate del tutto
+- **OAuth:** `ConsentGate` post-login intercetta utenti senza consensi (safety net)
+- **Cookie banner:** invariato (ancora con pulsante)
+- **Art. 9 modal:** invariato (ancora modal separato in Step 3)
+
 ## Stories
 
-| ID | Story | Priorita' |
-|----|-------|----------|
-| 16.1 | Rimuovere checkbox T&C/Privacy dal signup, aggiungere testo informativo, aggiornare `saveRegistrationConsents` | Must |
-| 16.2 | Sbloccare OAuth senza checkbox, salvare consensi al ritorno | Must |
-| 16.3 | Cookie banner → notifica auto-dismiss (5s / scroll), rimuovere pulsanti | Must |
-| 16.4 | Checkbox art. 9 inline in Step 1 onboarding, rimuovere modal da Step 3 | Must |
-| 16.5 | Verificare che `hasSensitiveDataConsent` pre-spunti la checkbox per utenti esistenti | Should |
+| ID | Story | Priorita' | Stato |
+|----|-------|----------|-------|
+| 16.1 | Rimuovere checkbox T&C/Privacy dal signup, aggiungere testo informativo, aggiornare `saveRegistrationConsents` | Must | **Parziale** — 2→1 checkbox, non eliminate |
+| 16.2 | Sbloccare OAuth senza checkbox, salvare consensi al ritorno | Must | **Fatto** — ConsentGate post-login |
+| 16.3 | Cookie banner → notifica auto-dismiss (5s / scroll), rimuovere pulsanti | Must | Da fare |
+| 16.4 | Checkbox art. 9 inline in Step 1 onboarding, rimuovere modal da Step 3 | Must | Da fare |
+| 16.5 | Verificare che `hasSensitiveDataConsent` pre-spunti la checkbox per utenti esistenti | Should | Da fare |

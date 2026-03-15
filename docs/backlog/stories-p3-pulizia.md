@@ -1,9 +1,33 @@
-# P3 — Pulizia Tecnica (4 stories)
+# Pulizia Tecnica (5 stories)
 
-> **Queste stories non cambiano il comportamento visibile dell'app.** Migliorano manutenibilita', type safety e performance.
+> **Queste stories non cambiano il comportamento visibile dell'app.** Migliorano manutenibilita', type safety, sicurezza e performance.
 > **Ogni story e' un prompt autonomo per Lovable.**
 >
 > Ultimo aggiornamento: 2026-03-15
+
+---
+
+## Story P0.1 — Sicurezza `cv-formal-review` (CRITICO)
+
+### Problema
+
+L'edge function `cv-formal-review` ha due problemi di sicurezza:
+Due edge function (`cv-formal-review` e `compact-headline`) hanno:
+1. **CORS wildcard** — usano `Access-Control-Allow-Origin: *` invece di `getCorsHeaders()` da `_shared/cors.ts`
+2. **Nessuna autenticazione** — non verificano il Bearer token. Chiunque puo' chiamarle e generare costi AI.
+
+### Cosa fare
+
+1. In entrambe: sostituire CORS hardcoded con `import { getCorsHeaders } from "../_shared/cors.ts"` e usare `getCorsHeaders(req)`
+2. In entrambe: aggiungere verifica autenticazione (Bearer token → Supabase → 401 se invalido)
+
+### Criteri di accettazione
+
+- [ ] `cv-formal-review` usa `getCorsHeaders(req)` da `_shared/cors.ts`
+- [ ] `cv-formal-review` verifica il Bearer token (401 se assente/invalido)
+- [ ] `compact-headline` usa `getCorsHeaders(req)` da `_shared/cors.ts`
+- [ ] `compact-headline` verifica il Bearer token (401 se assente/invalido)
+- [ ] Nessuna edge function usa `Access-Control-Allow-Origin: *`
 
 ---
 
@@ -78,7 +102,7 @@ Creare migrazione con:
 
 ### Problema
 
-`Home.tsx` contiene **906 righe** con almeno 8 componenti inline: `StatsBar`, `VirginState`, `RecentApplications`, `SalaryDisplay`, `CVCard`, `CVHistory`, `PlanCard`, `SalaryAnalysisCard`.
+`Home.tsx` contiene **697 righe** (ridotto da 906) con componenti inline: `HeroSection`, `VirginState`, `RecentApplications`, `CVCard`, `CVHistory`, `useCompactHeadline`.
 
 ### Cosa fare
 

@@ -31,7 +31,7 @@ Checklist per verificare il wizard a 6 step: Job Input, Pre-screening, Tailoring
 - [ ] **C3** — Se ci sono dealbreaker: vengono mostrati con indicazione di severita' (critical/significant)
 - [ ] **C4** — Se ci sono gap colmabili: vengono presentate domande di follow-up
 - [ ] **C5** — Le domande sono al massimo 5
-- [ ] **C6** — L'utente puo' rispondere alle domande
+- [ ] **C6** — L'utente puo' rispondere alle domande tramite chip contestuali (3-4 opzioni per domanda)
 - [ ] **C7** — Le risposte vengono salvate in `applications.user_answers`
 - [ ] **C8** — La feasibility (low/medium/high) e' visibile
 - [ ] **C9** — L'output e' tutto in italiano
@@ -67,9 +67,21 @@ Checklist per verificare il wizard a 6 step: Job Input, Pre-screening, Tailoring
 
 ---
 
+## D-bis. Step 3 — SkillManager (riordinamento e visibilita')
+
+- [ ] **D-bis.1** — SkillManager visibile nello step di revisione con lista skill
+- [ ] **D-bis.2** — Frecce su/giu' per riordinare le skill funzionano
+- [ ] **D-bis.3** — Icona occhio per nascondere/mostrare una skill
+- [ ] **D-bis.4** — Le skill nascoste appaiono con stile barrato e opacita' ridotta
+- [ ] **D-bis.5** — Le skill nascoste NON appaiono nel PDF/DOCX esportato
+- [ ] **D-bis.6** — Hint testuale: "Le skill nascoste non appariranno nel PDF"
+- [ ] **D-bis.7** — Conversione corretta da skills categorizzate a ManagedSkill[] e ritorno
+
+---
+
 ## E. Step 4 — Revisione
 
-- [ ] **E1** — Match Score (0-100) visibile con barra compatta
+- [ ] **E1** — Match Score (0-100) visibile con barra compatta (componente MatchScore)
 - [ ] **E2** — ATS Score (0-100) visibile con barra compatta
 - [ ] **E3** — Blocco "Cosa ho cambiato" con contatori (bullet riscritti, esperienze riordinate/rimosse, summary riscritto, skill rimosse)
 - [ ] **E4** — Confidence calcolato dal frontend (non dall'AI)
@@ -80,18 +92,32 @@ Checklist per verificare il wizard a 6 step: Job Input, Pre-screening, Tailoring
 
 ---
 
-## F. Step 5 — Export PDF
+## F. Step 5 — Export PDF + DOCX
 
 - [ ] **F1** — Step a pagina intera (non modale)
-- [ ] **F2** — Due template disponibili: Classico e Minimal
+- [ ] **F2** — 4 template disponibili: Classico, Minimal (free), Executive, Moderno (Pro-only)
 - [ ] **F3** — L'utente puo' selezionare il template (bordo accent sulla card selezionata)
+- [ ] **F3b** — Template Executive e Moderno mostrano icona lucchetto per utenti Free
 - [ ] **F4** — Preview PDF live che si aggiorna al cambio template
 - [ ] **F5** — Click "Scarica PDF": il PDF viene scaricato nel browser
-- [ ] **F6** — Il nome file segue il formato `CV-{Nome}-{Azienda}.pdf`
-- [ ] **F7** — Il PDF viene caricato automaticamente su Supabase Storage
+- [ ] **F5b** — Click "Scarica DOCX" (Pro-only): il DOCX viene scaricato
+- [ ] **F5c** — Utente Free che clicca "Scarica DOCX": redirect a `/upgrade`
+- [ ] **F6** — Il nome file segue il formato `CV-{Nome}-{Azienda}.pdf` / `.docx`
+- [ ] **F7** — Il PDF/DOCX viene caricato automaticamente su Supabase Storage
 - [ ] **F8** — Badge ATS Score e Confidence visibili in basso
 - [ ] **F9** — Viene creato un record in `applications` con tutti i campi compilati
 - [ ] **F10** — Viene creato un record in `tailored_cvs` con dati, score, pdf_url, template_id
+
+---
+
+## F-bis. Revisione formale automatica
+
+- [ ] **F-bis.1** — `cv-formal-review` viene chiamata automaticamente al mount dello step export
+- [ ] **F-bis.2** — Status "Revisione in corso..." visibile durante la chiamata
+- [ ] **F-bis.3** — A completamento: "N correzioni applicate" con lista espandibile
+- [ ] **F-bis.4** — Se nessuna correzione: feedback positivo (es. "Nessuna correzione necessaria")
+- [ ] **F-bis.5** — Se errore: nessun blocco, viene usato il CV originale
+- [ ] **F-bis.6** — Il CV revisionato viene usato per PDF e DOCX
 
 ---
 
@@ -133,5 +159,6 @@ Checklist per verificare il wizard a 6 step: Job Input, Pre-screening, Tailoring
 - [ ] **I2** — Annuncio in lingua diversa da italiano/inglese: comportamento gestito
 - [ ] **I3** — La pagina e' responsive (funziona su mobile)
 - [ ] **I4** — Navigazione indietro tra gli step funziona
-- [ ] **I6** — Step indicator mostra 6 step: Annuncio, Analisi, Tailoring, Revisione, Export, Completa
+- [ ] **I6** — Step indicator mostra 6 step: Annuncio, Verifica, Analisi, CV Adattato, Download, Fatto
+- [ ] **I7** — Step indicator mobile: compatto con dots e label step corrente
 - [ ] **I5** — Se l'AI fallisce in uno step: errore chiaro + possibilita' di riprovare

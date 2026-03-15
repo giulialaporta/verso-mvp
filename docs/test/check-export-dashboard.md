@@ -36,7 +36,36 @@
 
 ---
 
-## D. Qualita' ATS (entrambi i template)
+## C-bis. Template Executive (Pro-only)
+
+- [ ] **C-bis.1** — Layout a 2 colonne con sidebar scura
+- [ ] **C-bis.2** — Lucchetto visibile per utenti Free
+- [ ] **C-bis.3** — Utente Free che seleziona Executive: redirect a `/upgrade`
+- [ ] **C-bis.4** — Formato A4
+
+---
+
+## C-ter. Template Moderno (Pro-only)
+
+- [ ] **C-ter.1** — Design contemporaneo con accent
+- [ ] **C-ter.2** — Lucchetto visibile per utenti Free
+- [ ] **C-ter.3** — Utente Free che seleziona Moderno: redirect a `/upgrade`
+- [ ] **C-ter.4** — Formato A4
+
+---
+
+## C-quater. Export DOCX (Pro-only)
+
+- [ ] **C-quater.1** — Pulsante "Scarica DOCX" visibile nello step export
+- [ ] **C-quater.2** — DOCX generato correttamente con tutte le sezioni del CV
+- [ ] **C-quater.3** — Stile DOCX adattato al template selezionato (4 stili)
+- [ ] **C-quater.4** — DOCX apribile in Word, Google Docs, LibreOffice
+- [ ] **C-quater.5** — Utente Free: icona Lock + Crown sul pulsante DOCX
+- [ ] **C-quater.6** — File salvato su Supabase Storage
+
+---
+
+## D. Qualita' ATS (tutti i template)
 
 - [ ] **D1** — Layout single-column (no colonne multiple)
 - [ ] **D2** — Heading standard riconoscibili
@@ -71,14 +100,15 @@
 
 ---
 
-## G. Dashboard — Stato 3: CV + candidature
+## G. Dashboard — Stato 3: CV + candidature (Home redesign)
 
-- [x] **G1** — CV card collapsible con dati principali e azioni (verificato via screenshot: card visibile in basso)
-- [x] **G2** — StatsBar con 3 card: Briefcase (1 ATTIVE), ChartLineUp (87% SCORE), FileText (OK CV) (verificato via screenshot)
-- [x] **G3** — Candidature recenti: mostra le ultime 3 (verificato via screenshot: 2 candidature mostrate)
-- [x] **G4** — Ogni card candidatura mostra: ruolo, azienda, match score, ATS score, data (verificato via screenshot)
+- [ ] **G1** — HeroSection: avatar cliccabile (upload foto), nome, headline AI, badge piano, stats inline
+- [ ] **G2** — Headline compattata via AI (`compact-headline` edge function) con cache localStorage
+- [ ] **G3** — Candidature recenti: ultime 3 con card specifiche per status (`pronta` = bordo accent)
+- [ ] **G4** — Ogni card mostra: iniziale azienda, ruolo, azienda, data, MatchScoreCompact, StatusChip
 - [x] **G5** — Hover su una card candidatura: prefetch dei dati (`usePrefetchApplication`) (verificato da code review)
 - [x] **G6** — Link alla pagina completa candidature ("Vedi tutte") (verificato via screenshot)
+- [ ] **G6b** — CTA "Nuova candidatura" con gradient accent prominente
 
 ---
 
