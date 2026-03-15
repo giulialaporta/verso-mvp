@@ -142,11 +142,23 @@ const TOOL_SCHEMA = {
             type: "object",
             properties: {
               id: { type: "string" },
-              question: { type: "string" },
-              context: { type: "string" },
+              question: { type: "string", description: "Single direct question, max 15 words" },
+              context: { type: "string", description: "Why this matters, max 20 words" },
               field: { type: "string", enum: ["experience", "skills", "education", "other"] },
+              options: {
+                type: "array",
+                description: "3-4 contextual answer chips, specific to the question. Short (2-5 words). From strongest match to weakest. Last option should be negative/no.",
+                items: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Machine-readable value" },
+                    label: { type: "string", description: "Display label, 2-5 words, specific to the question" },
+                  },
+                  required: ["value", "label"],
+                },
+              },
             },
-            required: ["id", "question", "context", "field"],
+            required: ["id", "question", "context", "field", "options"],
           },
         },
         overall_feasibility: {
