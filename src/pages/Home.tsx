@@ -156,7 +156,7 @@ function HeroSection({
             </h1>
             {/* Plan badge */}
             <span
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider ${
                 isPro
                   ? cancelAtPeriodEnd
                     ? "bg-warning/15 text-warning"
