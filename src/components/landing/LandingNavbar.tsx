@@ -57,9 +57,9 @@ const LandingNavbar = () => {
           <Button
             size="sm"
             className="font-bold rounded-full text-sm px-5"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/login?plan=free")}
           >
-            Accedi
+            Inizia gratis
           </Button>
           <button
             className="text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
