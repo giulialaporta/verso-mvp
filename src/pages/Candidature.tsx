@@ -276,7 +276,7 @@ export default function Candidature() {
     <div className="mx-auto max-w-xl space-y-5 px-4 sm:px-0">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold">Candidature</h1>
-        <Button onClick={() => navigate("/app/nuova")} size="sm" className="gap-2">
+        <Button onClick={() => navigate("/app/nuova")} size="sm" className="gap-2 active:scale-[0.98] transition-transform">
           <Plus size={14} /> Nuova
         </Button>
       </div>

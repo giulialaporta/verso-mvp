@@ -412,7 +412,7 @@ export default function CandidaturaDetail() {
         )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
+            <Button variant="ghost" className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 active:scale-[0.98] transition-transform">
               <Trash size={16} /> Elimina candidatura
             </Button>
           </AlertDialogTrigger>
