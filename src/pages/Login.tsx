@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -28,6 +29,7 @@ export default function Login() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const trackEvent = useTrackEvent();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState("");
@@ -92,6 +94,7 @@ export default function Login() {
           await saveRegistrationConsents(data.user.id, email);
         }
         toast.success("Controlla la tua email per confermare la registrazione!");
+        trackEvent("signup_completed", { method: "email" });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;

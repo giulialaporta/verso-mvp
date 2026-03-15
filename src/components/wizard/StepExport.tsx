@@ -1,10 +1,13 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTrackEvent } from "@/hooks/useTrackEvent";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap, Lock, Crown } from "@phosphor-icons/react";
 import { ClassicoTemplate, MinimalTemplate, ExecutiveTemplate, ModernoTemplate, TEMPLATES } from "@/components/cv-templates";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
@@ -29,8 +32,22 @@ export function StepExport({
   onNext: () => void;
 }) {
   const { user } = useAuth();
+  const { isPro } = useSubscription();
+  const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState<string>("classico");
   const [downloading, setDownloading] = useState(false);
+  const trackEvent = useTrackEvent();
+
+  const handleTemplateSelect = (templateId: string) => {
+    const tpl = TEMPLATES.find(t => t.id === templateId);
+    if (tpl && !tpl.free && !isPro) {
+      toast("Sblocca questo template con Verso Pro", {
+        action: { label: "Upgrade", onClick: () => navigate("/upgrade") },
+      });
+      return;
+    }
+    setSelectedTemplate(templateId);
+  };
 
   const personalName = (tailoredCv?.personal as any)?.name || "CV";
   const matchScore = analyzeResult?.match_score ?? 0;
@@ -70,6 +87,7 @@ export function StepExport({
       }
 
       toast.success("PDF scaricato!");
+      trackEvent("pdf_downloaded", { template: selectedTemplate });
       onNext();
     } catch (e) {
       console.error("PDF generation error:", e);
@@ -95,15 +113,28 @@ export function StepExport({
         <div className="grid grid-cols-2 gap-3">
           {TEMPLATES.map((t) => {
             const isSelected = selectedTemplate === t.id;
+            const isLocked = !t.free && !isPro;
             return (
               <button
                 key={t.id}
-                onClick={() => setSelectedTemplate(t.id)}
+                onClick={() => handleTemplateSelect(t.id)}
                 className={`relative rounded-xl border-2 p-6 text-center transition-all ${
-                  isSelected ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+                  isLocked ? "border-border/30 opacity-70"
+                  : isSelected ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
                   : "border-border/50 hover:border-primary/40"
                 }`}
               >
+                {/* Pro badge + lock overlay */}
+                {isLocked && (
+                  <>
+                    <div className="absolute inset-0 rounded-xl backdrop-blur-[2px] bg-background/40 z-10 flex items-center justify-center">
+                      <Lock size={24} className="text-muted-foreground" weight="fill" />
+                    </div>
+                    <span className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] text-primary font-bold">
+                      <Crown size={10} weight="fill" /> Pro
+                    </span>
+                  </>
+                )}
                 <div className="h-16 flex items-center justify-center mb-3">
                   {t.id === "classico" && (
                     <div className="w-12 h-16 rounded border border-primary/30 flex flex-row overflow-hidden">

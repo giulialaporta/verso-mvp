@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +25,7 @@ export default function Nuova() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const trackEvent = useTrackEvent();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isPro, loading } = useSubscription();
   const checkCanCreate = useProGate();
@@ -152,6 +154,7 @@ export default function Nuova() {
     if (!user) return;
     setJobData(data);
     setJobUrl(url);
+    trackEvent("wizard_started", { is_draft_resume: !!searchParams.get("draft") });
     updateStep(1);
     setPrescreening(true);
     setPrescreenResult(null);
@@ -206,6 +209,7 @@ export default function Nuova() {
   const handleVerificaProceed = async (answers: { question: string; answer: string; level?: string; detail?: string }[]) => {
     if (!user || !jobData) return;
     setUserAnswers(answers);
+    trackEvent("wizard_step_completed", { step: 1, step_name: "verifica" });
     updateStep(2);
 
     if (applicationId && answers.length > 0) {
@@ -303,6 +307,7 @@ export default function Nuova() {
         }
       }
 
+      trackEvent("wizard_step_completed", { step: 3, step_name: "tailoring" });
       updateStep(3);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Errore durante la generazione del CV";
@@ -319,6 +324,7 @@ export default function Nuova() {
   const handleMarkSent = async () => {
     if (applicationId) {
       await supabase.from("applications").update({ status: "inviata" } as any).eq("id", applicationId);
+      trackEvent("application_status_changed", { from: "draft", to: "inviata" });
     }
     queryClient.invalidateQueries({ queryKey: ["applications"] });
     toast.success("Candidatura segnata come inviata!");
@@ -346,7 +352,10 @@ export default function Nuova() {
     setSearchParams({}, { replace: true });
   };
 
-  const handleAbandon = () => handleNewApplication();
+  const handleAbandon = () => {
+    trackEvent("wizard_abandoned", { last_step: step });
+    handleNewApplication();
+  };
 
   if (cvCheck === "loading" || !proChecked || loading) {
     return <div className="flex items-center justify-center py-20"><SpinnerGap size={32} className="text-primary animate-spin" /></div>;

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +32,7 @@ export default function Onboarding() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const trackEvent = useTrackEvent();
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -99,6 +101,7 @@ export default function Onboarding() {
       setParsedData(data.parsed_data);
       setPhotoUrl(data.photo_url || null);
       setRawText(data.raw_text || null);
+      trackEvent("cv_uploaded", { file_type: file.type || "pdf" });
       setStep("preview");
     } catch (e: any) {
       console.error("Parse error:", e);

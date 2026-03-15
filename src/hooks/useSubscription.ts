@@ -62,7 +62,7 @@ export function useSubscription() {
     }
 
     refresh();
-    intervalRef.current = setInterval(refresh, 60_000);
+    intervalRef.current = setInterval(refresh, 300_000); // 5 min — webhook handles real-time updates
 
     return () => {
       mountedRef.current = false;

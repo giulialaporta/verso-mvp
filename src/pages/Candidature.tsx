@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +52,7 @@ export default function Candidature() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const prefetch = usePrefetchApplication();
+  const trackEvent = useTrackEvent();
   const { data: apps, isLoading: appsLoading } = useApplications(100);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedApp, setSelectedApp] = useState<AppRowWithAts | null>(null);
@@ -108,6 +110,7 @@ export default function Candidature() {
         .update({ status: drawerStatus, notes: drawerNotes || null } as any)
         .eq("id", selectedApp.id);
       if (error) throw error;
+      trackEvent("application_status_changed", { from: selectedApp.status, to: drawerStatus });
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       toast.success("Stato aggiornato.");
       setSelectedApp(null);
