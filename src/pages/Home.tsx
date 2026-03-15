@@ -169,7 +169,7 @@ function HeroSection({
             </span>
           </div>
           {headline && (
-            <p className={`${headline.length > 35 ? 'text-xs' : 'text-sm'} text-muted-foreground mt-0.5 line-clamp-1`}>{headline}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{headline}</p>
           )}
 
           {/* Stats row */}
