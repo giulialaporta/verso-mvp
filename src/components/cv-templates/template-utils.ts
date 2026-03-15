@@ -16,9 +16,8 @@ export const ensureArray = (val: unknown): string[] => {
 export const MAX_SIDEBAR_SKILLS = 20;
 
 // ─── Adaptive density system ────────────────────────────────
-// Estimates content volume and returns style adjustments to fit max 2 pages.
 
-export type DensityTier = "normal" | "compact" | "dense" | "ultra";
+export type DensityTier = "normal" | "compact" | "dense" | "ultra" | "extreme";
 
 export interface DensityConfig {
   tier: DensityTier;
@@ -33,11 +32,15 @@ export interface DensityConfig {
   eduBlockMarginBottom: number;
   bulletMarginBottom: number;
   lineHeight: number;
-  /** For "ultra" tier: max bullets per experience for older entries (index >= 2) */
   maxBulletsOldEntries: number | null;
+  /** For "extreme": max bullets for ALL entries */
+  maxBulletsAllEntries: number | null;
+  /** Max summary chars (null = no limit) */
+  maxSummaryChars: number | null;
+  /** Max experiences to show (null = no limit) */
+  maxExperiences: number | null;
 }
 
-// Base values (short CV — fits easily in 1-2 pages)
 const NORMAL: DensityConfig = {
   tier: "normal",
   bodyFontSize: 10,
@@ -52,9 +55,11 @@ const NORMAL: DensityConfig = {
   bulletMarginBottom: 2.5,
   lineHeight: 1.6,
   maxBulletsOldEntries: null,
+  maxBulletsAllEntries: null,
+  maxSummaryChars: null,
+  maxExperiences: null,
 };
 
-// Step 1: reduce margins
 const COMPACT: DensityConfig = {
   ...NORMAL,
   tier: "compact",
@@ -66,7 +71,6 @@ const COMPACT: DensityConfig = {
   lineHeight: 1.5,
 };
 
-// Step 2: reduce body font sizes (never below 9)
 const DENSE: DensityConfig = {
   ...COMPACT,
   tier: "dense",
@@ -76,7 +80,6 @@ const DENSE: DensityConfig = {
   lineHeight: 1.45,
 };
 
-// Step 3: reduce section titles + truncate old bullets
 const ULTRA: DensityConfig = {
   ...DENSE,
   tier: "ultra",
@@ -87,11 +90,30 @@ const ULTRA: DensityConfig = {
   expBlockMarginBottom: 6,
   eduBlockMarginBottom: 4,
   maxBulletsOldEntries: 3,
+  maxSummaryChars: 300,
+};
+
+const EXTREME: DensityConfig = {
+  ...ULTRA,
+  tier: "extreme",
+  bodyFontSize: 9,
+  bulletFontSize: 9,
+  summaryFontSize: 9,
+  sectionMarginTop: 8,
+  sectionMarginBottom: 5,
+  expBlockMarginBottom: 5,
+  eduBlockMarginBottom: 3,
+  bulletMarginBottom: 1.5,
+  lineHeight: 1.35,
+  maxBulletsOldEntries: 2,
+  maxBulletsAllEntries: 3,
+  maxSummaryChars: 200,
+  maxExperiences: 5,
 };
 
 /**
  * Estimate content "weight" and return the appropriate density tier.
- * Uses a simple heuristic: count total text lines the CV will produce.
+ * Uses chars/42 (realistic for main column width at 10pt).
  */
 export function computeDensity(cv: Record<string, any>): DensityConfig {
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
@@ -100,22 +122,24 @@ export function computeDensity(cv: Record<string, any>): DensityConfig {
   const projects = Array.isArray(cv.projects) ? cv.projects : [];
   const extraSections = Array.isArray(cv.extra_sections) ? cv.extra_sections : [];
   const summary = typeof cv.summary === "string" ? cv.summary : "";
+  const skills = cv.skills;
 
-  // Estimate line count (rough: 1 line ≈ 60 chars at font 10 in main column)
+  const CPL = 42; // chars per line (realistic for main column)
+
   let lines = 0;
 
   // Summary
-  lines += Math.ceil(summary.length / 55) + 1;
+  lines += Math.ceil(summary.length / CPL) + 1;
 
   // Experiences
   for (const exp of experience) {
     lines += 3; // role + company + meta
     if (typeof exp.description === "string" && exp.description.trim()) {
-      lines += Math.ceil(exp.description.length / 55);
+      lines += Math.ceil(exp.description.length / CPL);
     }
     const bullets = Array.isArray(exp.bullets) ? exp.bullets : [];
     for (const b of bullets) {
-      lines += Math.ceil((typeof b === "string" ? b.length : 0) / 55);
+      lines += Math.ceil((typeof b === "string" ? b.length : 0) / CPL);
     }
     lines += 1; // spacing
   }
@@ -130,7 +154,7 @@ export function computeDensity(cv: Record<string, any>): DensityConfig {
   for (const proj of projects) {
     lines += 2;
     if (typeof proj.description === "string") {
-      lines += Math.ceil(proj.description.length / 55);
+      lines += Math.ceil(proj.description.length / CPL);
     }
   }
 
@@ -140,27 +164,68 @@ export function computeDensity(cv: Record<string, any>): DensityConfig {
     lines += Array.isArray(sec.items) ? sec.items.length : 0;
   }
 
-  // A4 main column at font 10 ≈ 55-60 lines per page
-  // 2 pages ≈ 110-120 lines
-  if (lines <= 55) return NORMAL;
-  if (lines <= 75) return COMPACT;
-  if (lines <= 100) return DENSE;
-  return ULTRA;
+  // Sidebar content can also push pages — estimate sidebar lines
+  let sidebarLines = 0;
+  if (skills) {
+    const techSkills = Array.isArray(skills) ? skills : [
+      ...ensureArray(skills.technical),
+      ...ensureArray(skills.soft),
+      ...ensureArray(skills.tools),
+    ];
+    sidebarLines += Math.min(techSkills.length, MAX_SIDEBAR_SKILLS);
+    const langs = Array.isArray(skills.languages) ? skills.languages : [];
+    sidebarLines += langs.length * 2;
+  }
+  sidebarLines += certifications.length * 2;
+  // Use the max of main vs sidebar
+  lines = Math.max(lines, sidebarLines);
+
+  if (lines <= 45) return NORMAL;
+  if (lines <= 65) return COMPACT;
+  if (lines <= 85) return DENSE;
+  if (lines <= 110) return ULTRA;
+  return EXTREME;
 }
 
 /**
- * Truncate bullets for older experiences when in ultra density.
- * Returns filtered bullets array, adding "…" if truncated.
+ * Truncate bullets based on density config.
  */
 export function truncateBullets(
   bullets: string[],
   expIndex: number,
   config: DensityConfig
 ): string[] {
+  // Extreme: cap ALL entries
+  if (config.maxBulletsAllEntries !== null) {
+    const max = expIndex < 2 ? config.maxBulletsAllEntries : (config.maxBulletsOldEntries ?? config.maxBulletsAllEntries);
+    if (bullets.length <= max) return bullets;
+    return [...bullets.slice(0, max), "…"];
+  }
+  // Ultra: cap only old entries
   if (config.maxBulletsOldEntries === null || expIndex < 2) return bullets;
   const max = config.maxBulletsOldEntries;
   if (bullets.length <= max) return bullets;
   return [...bullets.slice(0, max), "…"];
+}
+
+/**
+ * Truncate summary text if density config requires it.
+ */
+export function truncateSummary(summary: string | null, config: DensityConfig): string | null {
+  if (!summary || config.maxSummaryChars === null) return summary;
+  if (summary.length <= config.maxSummaryChars) return summary;
+  return summary.slice(0, config.maxSummaryChars).replace(/\s+\S*$/, "") + "…";
+}
+
+/**
+ * Limit experiences array based on density config.
+ * Returns [limitedExperiences, omittedCount].
+ */
+export function limitExperiences<T>(experiences: T[], config: DensityConfig): [T[], number] {
+  if (config.maxExperiences === null || experiences.length <= config.maxExperiences) {
+    return [experiences, 0];
+  }
+  return [experiences.slice(0, config.maxExperiences), experiences.length - config.maxExperiences];
 }
 
 const HEADERS: Record<string, Record<string, string>> = {

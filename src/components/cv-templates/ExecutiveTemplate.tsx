@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet, Font } from "@react-pdf/renderer";
-import { clean, ensureArray, MAX_SIDEBAR_SKILLS, h, computeDensity, truncateBullets } from "./template-utils";
+import { clean, ensureArray, MAX_SIDEBAR_SKILLS, h, computeDensity, truncateBullets, truncateSummary, limitExperiences } from "./template-utils";
 
 Font.register({
   family: "DM Sans",
@@ -41,8 +41,8 @@ export function ExecutiveTemplate({ cv, lang }: { cv: Record<string, any>; lang?
   const d = computeDensity(cv);
 
   const personal = cv.personal || {};
-  const summary = clean(cv.summary);
-  const experience = cv.experience || [];
+  const summary = truncateSummary(clean(cv.summary), d);
+  const [experience, omittedExp] = limitExperiences(cv.experience || [], d);
   const education = cv.education || [];
   const skills = cv.skills;
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
