@@ -44,12 +44,11 @@ const ScoreMock = () => (
     </div>
     <div className="space-y-2">
       {[
-        { skill: "SQL", level: "Critico", color: "text-destructive" },
+    { skill: "SQL", level: "Critico", color: "text-destructive" },
         { skill: "Stakeholder Management", level: "Importante", color: "text-warning" },
       ].map((g) => (
         <div key={g.skill} className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2.5">
           <span className="font-mono text-xs">{g.skill} — <span className={g.color}>{g.level}</span></span>
-          <span className="text-[11px] text-info cursor-pointer hover:underline">Vai al corso →</span>
         </div>
       ))}
     </div>
