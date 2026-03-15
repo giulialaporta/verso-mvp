@@ -22,24 +22,6 @@ Route `/app/impostazioni` — accessibile dalla sidebar (desktop) e tab bar (mob
 - Mostra **nome utente** (da profilo)
 - Dati in sola lettura
 
-#### Piano
-
-Sottosezione nella card Account che mostra lo stato dell'abbonamento.
-
-**Utente Free:**
-- Label: "Piano: Free"
-- Link "Scopri Versō Pro" → `/upgrade`
-
-**Utente Pro:**
-- Label: "Piano: Versō Pro" con badge accent
-- Data rinnovo: "Si rinnova il [pro_expires_at formattata]"
-- "Gestisci fatturazione" → Stripe Customer Portal (edge function `customer-portal`)
-- "Cancella abbonamento" → dialog di conferma → chiama edge function `cancel-subscription` → imposta `cancel_at_period_end: true`
-
-**Utente Pro in scadenza (`cancel_at_period_end: true`):**
-- Mostra data di scadenza
-- Messaggio che l'accesso Pro resta attivo fino alla scadenza
-
 ---
 
 ### 2. Privacy e Dati
@@ -83,7 +65,6 @@ Visualizza lo stato di ogni consenso con `ConsentRow`:
 
 ### 3. Assistenza
 
-- **Guida & FAQ:** link a `/app/faq` (icona `Question`)
 - **Supporto generale:** supporto@verso-cv.app
 - **Privacy e dati:** privacy@verso-cv.app
 - **Tempi di risposta:** entro 48h lavorative
@@ -115,4 +96,3 @@ Visualizza lo stato di ogni consenso con `ConsentRow`:
 |------------|-------|
 | `ConsentRow` | Riga singolo consenso con stato, data e azione revoca |
 | `resetCookieConsent()` | Funzione per resettare il consenso cookie e riattivare il banner |
-| `useSubscription` | Hook per stato piano Pro (polling `check-subscription`) |

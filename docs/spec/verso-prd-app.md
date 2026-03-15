@@ -32,7 +32,7 @@ Dashboard Home ←→ Candidature (tracker con stati)
 | UI | Tailwind CSS + shadcn/ui + Framer Motion |
 | Icone | @phosphor-icons/react (duotone, regular, fill) |
 | Backend / DB | Supabase (Auth, DB, Storage, Edge Functions) |
-| AI | Multi-provider: Anthropic Claude (Sonnet 4 + Haiku 4.5) + Google AI Gemini 2.5 Flash (fallback) |
+| AI | Lovable API Gateway → Google Gemini 2.5 Flash |
 | PDF | @react-pdf/renderer |
 | State Management | React Context (auth) + React Query (data) |
 | Forms | React Hook Form + Zod |
@@ -49,12 +49,9 @@ Dashboard Home ←→ Candidature (tracker con stati)
 /onboarding         → 3 step: upload → parse → preview + edit
 
 /app                → App shell (autenticata)
-  /app/home         → Dashboard (PlanCard, CV card, stats, candidature recenti)
+  /app/home         → Dashboard (CV card, stats, candidature recenti)
   /app/nuova        → Wizard nuova candidatura (5 step)
   /app/candidature  → Lista candidature con stati e note
-  /app/faq          → FAQ (ATS, filosofia, consigli, dati/privacy)
-
-/upgrade            → Pagina upgrade a Versō Pro (protetta, fuori AppShell)
 ```
 
 **Mobile:** bottom tab bar (Home | + Nuova | Candidature)
@@ -70,12 +67,6 @@ create table profiles (
   user_id uuid references auth.users on delete cascade primary key,
   full_name text,
   avatar_url text,
-  is_pro boolean default false,
-  stripe_customer_id text,
-  stripe_subscription_id text,
-  pro_since timestamptz,
-  pro_expires_at timestamptz,
-  free_apps_used integer default 0,
   created_at timestamptz default now()
 );
 
@@ -194,11 +185,11 @@ Lo schema CV è molto più ricco rispetto al piano MVP:
 - Export PDF (2 template, download + upload storage)
 → [epic-03-nuova-candidatura.md](epic-03-nuova-candidatura.md)
 
-### F4 — AI Engine (10 Edge Functions)
-- 6 AI: `parse-cv`, `scrape-job`, `ai-prescreen`, `ai-tailor`, `cv-review`, `delete-account`
-- 4 Stripe: `create-checkout`, `check-subscription`, `cancel-subscription`, `customer-portal`
-- Multi-provider: Anthropic Claude (primario) + Google AI Gemini (fallback) via `ai-provider.ts`
-- Cost logging in `ai_usage_logs`
+### F4 — AI Engine (4 Edge Functions)
+- `parse-cv` — parsing multimodale PDF → JSON
+- `scrape-job` — scraping URL + cache 7gg
+- `ai-prescreen` — analisi gap e dealbreaker
+- `ai-tailor` — tailoring patch-based + score
 → [epic-04-ai-engine.md](epic-04-ai-engine.md)
 
 ### F5 — Export PDF + Dashboard
@@ -213,37 +204,19 @@ Lo schema CV è molto più ricco rispetto al piano MVP:
 - Edit drawer (stato, note, download CV)
 → [epic-06-candidature.md](epic-06-candidature.md)
 
-### F7 — Versō Pro (Abbonamento)
-- Freemium: 1 candidatura Free, illimitate con Pro (€9.90/mese)
-- Stripe Checkout, polling subscription, cancellazione in-app
-- Pagina upgrade, PlanCard dashboard, sezione Piano in Impostazioni
-- FAQ page (/app/faq)
-→ [epic-07-verso-pro.md](epics/epic-07-verso-pro.md)
-
-### F8 — Impostazioni
-- Account (email, nome, piano)
-- Privacy e Dati (consensi, data portability GDPR)
-- Assistenza, Sicurezza, Zona pericolosa
-→ [epic-08-impostazioni.md](epics/epic-08-impostazioni.md)
-
-### F9 — Legal, Privacy, Trasparenza AI
-- Pagine legali (T&C, Privacy, Cookie)
-- Consensi registrazione, art. 9 GDPR, cookie banner
-- Trasparenza AI, footer legale
-→ [epic-09-legal-privacy.md](epics/epic-09-legal-privacy.md)
-
 ---
 
 ## 7. Cosa NON è stato implementato
 
 | Feature | Stato |
 |---------|-------|
+| Settings / Profilo | Non implementato (solo nome da auth metadata) |
 | Template Pro (Executive, Moderno) | Non implementato |
 | Export DOCX | Non implementato |
 | Landing page pubblica | Non implementata |
 | Real-time updates | Non implementato (refresh manuale) |
-| Stripe webhook | Non implementato (usa polling con check-subscription) |
-| Gate template Pro (lucchetto) | Non implementato (solo 2 template free) |
+| Freemium / Piano Pro | Non implementato |
+| Dettaglio candidatura (pagina dedicata) | Non implementato |
 
 ---
 

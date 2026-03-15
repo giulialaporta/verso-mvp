@@ -91,8 +91,7 @@ Route `/app` — layout wrapper per tutte le pagine autenticate.
 - Link navigazione verticale con icone Phosphor:
   - Home → `House`
   - Candidature → icona lista
-  - Nuova candidatura → `Plus` (accent)
-  - Guida → `Question`
+  - Nuova → `Plus` (accent)
   - Impostazioni → `GearSix`
 - Nome utente in fondo
 
@@ -115,8 +114,6 @@ Route `/app` — layout wrapper per tutte le pagine autenticate.
 | `/app/impostazioni` | protetta | Impostazioni utente |
 | `/app/cv-edit` | protetta | Editor CV master |
 | `/app/candidatura/:id` | protetta | Dettaglio candidatura |
-| `/app/faq` | protetta | FAQ (ATS, filosofia, consigli, dati) |
-| `/upgrade` | protetta | Pagina upgrade a Versō Pro (fuori AppShell) |
 | `*` | pubblica | Pagina 404 (in italiano) |
 
 ---

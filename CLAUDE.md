@@ -33,8 +33,7 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | UI / Frontend | Lovable (React + TypeScript + Tailwind + shadcn/ui) |
 | Backend / DB | Supabase (auth, database, storage) |
 | API esterne | Edge Functions (Supabase) |
-| AI features | Multi-provider: Anthropic Claude (Sonnet 4 + Haiku 4.5) + Google AI Gemini 2.5 Flash (fallback) |
-| Pagamenti | Stripe (Checkout, Billing Portal, API) |
+| AI features | Lovable API Gateway → Google Gemini (2.5 Flash + 2.5 Pro) |
 
 > **Importante:** Non entrare nel dettaglio dell'implementazione tecnica. Lovable decide *come* implementare. Claude deve essere chiaro su *cosa* deve fare la funzionalità e sul suo behavior.
 
@@ -49,12 +48,13 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/spec/CLAUDE_APP.md` | Istruzioni e indice della cartella spec |
 | `docs/spec/verso-prd.md` | PRD principale (v1.1) — visione di prodotto |
 | `docs/spec/verso-prd-app.md` | PRD dell'app sviluppata |
-| `docs/spec/epics/` | 9 epic implementate (F1–F7, F8–F9) |
-| `docs/backlog/` | Cose da costruire — 5 epic (F11–F15) + 4 stories P3 |
+| `docs/spec/epics/` | 8 epic implementate (F1–F6, F8–F9) |
+| `docs/backlog/` | Cose da costruire (flat, come spec/) |
+| `docs/backlog/epic-07-verso-pro.md` | F7 — Versō Pro (abbonamento Stripe, €12.99/mese) |
+| `docs/backlog/epic-10-migrazione-ai.md` | F10 — Migrazione AI (Claude Sonnet 4 + Haiku, multi-provider) |
 | `docs/backlog/stories-p3-pulizia.md` | P3 — 4 stories pulizia tecnica |
-| `docs/backlog/PROMPT-LOVABLE-epic-11-15.md` | Prompt sequenziale per Lovable (epic 11→15) |
 | `docs/backlog/CLAUDE_epic-template.md` | Template per scrivere nuovi epic |
-| `docs/test/` | Checklist di acceptance criteria per test manuale (8 file, comando `/test`) |
+| `docs/test/` | Checklist di acceptance criteria per test manuale (7 file, comando `/test`) |
 | `docs/landing-page/` | Prompt per la landing page |
 | `docs/contesto/` | File di contesto progetto |
 | `docs/contesto/legal-pack/` | Documenti legali |
