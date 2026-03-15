@@ -114,73 +114,44 @@ function MobileTabBar() {
     if (canCreate) navigate("/app/nuova");
   };
 
+  const TabButton = ({ path, icon: Icon, label }: { path: string; icon: typeof House; label: string }) => (
+    <button
+      onClick={() => navigate(path)}
+      className="relative flex flex-col items-center justify-center gap-0.5 py-2"
+    >
+      <Icon
+        size={22}
+        weight={isActive(path) ? "fill" : "regular"}
+        className={isActive(path) ? "text-primary" : "text-muted-foreground"}
+      />
+      <span className={`text-[10px] font-medium ${isActive(path) ? "text-primary" : "text-muted-foreground"}`}>
+        {label}
+      </span>
+      {isActive(path) && (
+        <span className="absolute -bottom-1 h-1 w-1 rounded-full bg-primary" />
+      )}
+    </button>
+  );
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
-      <div className="flex h-14 items-end justify-around px-4">
-        {/* Home tab */}
-        <button
-          onClick={() => navigate("/app/home")}
-          className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2"
-        >
-          <House
-            size={22}
-            weight={isActive("/app/home") ? "fill" : "regular"}
-            className={isActive("/app/home") ? "text-primary" : "text-muted-foreground"}
-          />
-          <span className={`text-[10px] font-medium ${isActive("/app/home") ? "text-primary" : "text-muted-foreground"}`}>
-            Home
-          </span>
-          {isActive("/app/home") && (
-            <span className="absolute bottom-[calc(env(safe-area-inset-bottom)+2px)] h-1 w-1 rounded-full bg-primary" />
-          )}
-        </button>
+      <div className="grid h-14 grid-cols-5 items-center px-2">
+        <TabButton path="/app/home" icon={House} label="Home" />
+        <TabButton path="/app/candidature" icon={Briefcase} label="Candidature" />
 
-        {/* FAB + */}
-        <div className="flex flex-col items-center justify-center px-3 -mt-5">
+        {/* FAB center */}
+        <div className="flex items-center justify-center">
           <button
             onClick={handleNewApp}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-105 active:scale-95"
+            className="relative -top-3 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-105 active:scale-95"
             aria-label="Nuova candidatura"
           >
             <Plus size={22} weight="bold" />
           </button>
         </div>
 
-        {/* Candidature tab */}
-        <button
-          onClick={() => navigate("/app/candidature")}
-          className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2"
-        >
-          <Briefcase
-            size={22}
-            weight={isActive("/app/candidature") ? "fill" : "regular"}
-            className={isActive("/app/candidature") ? "text-primary" : "text-muted-foreground"}
-          />
-          <span className={`text-[10px] font-medium ${isActive("/app/candidature") ? "text-primary" : "text-muted-foreground"}`}>
-            Candidature
-          </span>
-          {isActive("/app/candidature") && (
-            <span className="absolute bottom-[calc(env(safe-area-inset-bottom)+2px)] h-1 w-1 rounded-full bg-primary" />
-          )}
-        </button>
-
-        {/* Impostazioni tab */}
-        <button
-          onClick={() => navigate("/app/impostazioni")}
-          className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2"
-        >
-          <Gear
-            size={22}
-            weight={isActive("/app/impostazioni") ? "fill" : "regular"}
-            className={isActive("/app/impostazioni") ? "text-primary" : "text-muted-foreground"}
-          />
-          <span className={`text-[10px] font-medium ${isActive("/app/impostazioni") ? "text-primary" : "text-muted-foreground"}`}>
-            Impostazioni
-          </span>
-          {isActive("/app/impostazioni") && (
-            <span className="absolute bottom-[calc(env(safe-area-inset-bottom)+2px)] h-1 w-1 rounded-full bg-primary" />
-          )}
-        </button>
+        <TabButton path="/app/faq" icon={Question} label="Guida" />
+        <TabButton path="/app/impostazioni" icon={Gear} label="Impostazioni" />
       </div>
     </nav>
   );

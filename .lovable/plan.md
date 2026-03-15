@@ -1,27 +1,16 @@
 
+# Riduzione Latenza AI ✅
 
-## Problem
+## Implementato
 
-The mobile tab bar has 4 items: Home, FAB+, Candidature, Impostazioni. The desktop sidebar has additional items: **Guida (FAQ)** and **Dev Test** (dev only). The FAQ/Guida link is missing from mobile navigation entirely.
+1. **Parallelizzazione prescreen + analyze** — `Promise.all` in `handleAnnuncioConfirm`, risultato analyze cachato in ref e usato istantaneamente allo Step 2 (−8-15s)
+2. **cv-review integrato nel prompt tailor** — Le 10 regole di qualità ora sono nel `SYSTEM_PROMPT_TAILOR`, eliminata la chiamata separata (−5-8s)  
+3. **Downgrade modelli** — `ai-prescreen` e `ai-tailor-analyze` ora usano Claude Haiku 4.5 (−40-60% latenza, −60% costi)
+4. **Progress indicator** — Già presente con animazioni staggered in StepVerifica e StepTailoring
 
-The layout is also asymmetric: 3 flex-1 tabs + 1 fixed-width FAB creates visual imbalance.
+## Risultato atteso
 
-## Solution
-
-Restructure the mobile tab bar as a **5-slot symmetric grid** with the FAB elevated in the center:
-
-```text
-┌────────┬────────┬────────┬────────┬────────┐
-│  Home  │ Cand.  │  [+]   │ Guida  │Impost. │
-└────────┴────────┴────────┴────────┴────────┘
 ```
-
-## Changes — `src/components/AppShell.tsx` (`MobileTabBar`)
-
-1. Replace `flex justify-around` with `grid grid-cols-5` for equal-width columns
-2. Reorder tabs: Home | Candidature | FAB (center) | Guida | Impostazioni
-3. Add **Guida** tab with `Question` icon linking to `/app/faq`
-4. Give FAB its own grid cell with `relative` positioning (`-top-3`) instead of the `-mt-5` hack
-5. Wrap each tab button in a `relative` container so active dot indicators position correctly
-6. Remove `items-end` from the container — use `items-center` for vertical alignment
-
+PRIMA:  Step 0→1: 12s | Step 1→2: 12s | Step 2→3: 20s = ~44s
+DOPO:   Step 0→1: 4s  | Step 1→2: 0s  | Step 2→3: 12s = ~16s  (−65%)
+```
