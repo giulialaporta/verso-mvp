@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+@page { size: A4; margin: 15mm 12mm 15mm 12mm; }
+:root {
+  --body-size: 10pt;
+  --line-height: 1.5;
+  --section-margin-top: 14px;
+  --exp-margin-bottom: 10px;
+  --bullet-margin-bottom: 2px;
+  --sidebar-font-size: 8.5pt;
+  --sidebar-bg: #F7F8FA;
+  --sidebar-text: #1a1a1a;
+  --accent: #6B7280;
+  --main-text: #1a1a1a;
+  --main-muted: #6B7280;
+  --border-color: #E5E7EB;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; font-size: var(--body-size); line-height: var(--line-height); color: var(--main-text); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.page { display: grid; grid-template-columns: 26% 74%; min-height: 100%; }
+.sidebar { background: var(--sidebar-bg); padding: 24px 14px; font-size: var(--sidebar-font-size); border-right: 1px solid var(--border-color); }
+.main { padding: 24px 20px; }
+.photo { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin: 0 auto 14px; display: block; }
+.sidebar h2 { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); margin-top: var(--section-margin-top); margin-bottom: 6px; }
+.sidebar .contact-item { margin-bottom: 3px; word-break: break-all; }
+.sidebar .skill-tag { display: inline-block; padding: 1px 6px; margin: 1px; font-size: 8pt; background: #E5E7EB; border-radius: 3px; }
+.sidebar .lang-item { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.sidebar .cert-item { margin-bottom: 5px; }
+.sidebar .cert-name { font-weight: 500; }
+.sidebar .cert-issuer { color: var(--accent); font-size: 7.5pt; }
+.main-name { font-size: 18pt; font-weight: 700; margin-bottom: 2px; }
+.main-headline { color: var(--main-muted); font-size: 9pt; margin-bottom: 10px; }
+.section-title { font-size: 10pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-top: var(--section-margin-top); margin-bottom: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 3px; break-after: avoid; }
+.experience-block { margin-bottom: var(--exp-margin-bottom); break-inside: avoid; }
+.experience-block:last-child { break-inside: auto; }
+.exp-header { display: flex; justify-content: space-between; align-items: baseline; }
+.exp-role { font-weight: 600; }
+.exp-meta { color: var(--main-muted); font-size: 9pt; }
+.exp-company { color: var(--main-muted); font-size: 9pt; margin-bottom: 3px; }
+ul { padding-left: 14px; margin: 3px 0; }
+li { margin-bottom: var(--bullet-margin-bottom); orphans: 2; widows: 2; }
+p { orphans: 2; widows: 2; }
+.summary-text { margin-bottom: 3px; }
+.edu-block { margin-bottom: 6px; break-inside: avoid; }
+.edu-degree { font-weight: 600; }
+.edu-meta { color: var(--main-muted); font-size: 9pt; }
+.project-block { margin-bottom: 5px; break-inside: avoid; }
+.project-name { font-weight: 600; }
+.project-desc { color: var(--main-muted); font-size: 9pt; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="sidebar">
+    {{#if photoUrl}}<img src="{{photoUrl}}" alt="Photo" class="photo">{{/if}}
+    <h2>{{headers.contact}}</h2>
+    {{#if email}}<div class="contact-item">{{email}}</div>{{/if}}
+    {{#if phone}}<div class="contact-item">{{phone}}</div>{{/if}}
+    {{#if location}}<div class="contact-item">{{location}}</div>{{/if}}
+    {{#if linkedin}}<div class="contact-item">{{linkedin}}</div>{{/if}}
+    {{#if website}}<div class="contact-item">{{website}}</div>{{/if}}
+    {{#if skills.length}}
+    <h2>{{headers.skills}}</h2>
+    <div>{{#each skills}}<span class="skill-tag">{{this}}</span>{{/each}}</div>
+    {{/if}}
+    {{#if languages.length}}
+    <h2>{{headers.languages}}</h2>
+    {{#each languages}}<div class="lang-item"><span>{{this.language}}</span><span>{{this.level}}</span></div>{{/each}}
+    {{/if}}
+    {{#if certifications.length}}
+    <h2>{{headers.certifications}}</h2>
+    {{#each certifications}}<div class="cert-item"><div class="cert-name">{{this.name}}</div>{{#if this.issuer}}<div class="cert-issuer">{{this.issuer}} {{this.year}}</div>{{/if}}</div>{{/each}}
+    {{/if}}
+  </div>
+  <div class="main">
+    <div class="main-name">{{name}}</div>
+    {{#if headline}}<div class="main-headline">{{headline}}</div>{{/if}}
+    {{#if summary}}<div class="section-title">{{headers.profile}}</div><p class="summary-text">{{summary}}</p>{{/if}}
+    {{#if experience.length}}
+    <div class="section-title">{{headers.experience}}</div>
+    {{#each experience}}
+    <div class="experience-block">
+      <div class="exp-header"><span class="exp-role">{{this.role}}</span><span class="exp-meta">{{this.start}} – {{this.end}}</span></div>
+      <div class="exp-company">{{this.company}}{{#if this.location}} · {{this.location}}{{/if}}</div>
+      {{#if this.description}}<p class="summary-text">{{this.description}}</p>{{/if}}
+      {{#if this.bullets.length}}<ul>{{#each this.bullets}}<li>{{this}}</li>{{/each}}</ul>{{/if}}
+    </div>
+    {{/each}}
+    {{/if}}
+    {{#if education.length}}
+    <div class="section-title">{{headers.education}}</div>
+    {{#each education}}<div class="edu-block"><span class="edu-degree">{{this.degree}}</span>{{#if this.field}} — {{this.field}}{{/if}}<div class="edu-meta">{{this.institution}} · {{this.period}}</div>{{#if this.grade}}<div class="edu-meta">{{this.grade}}</div>{{/if}}</div>{{/each}}
+    {{/if}}
+    {{#if projects.length}}
+    <div class="section-title">{{headers.projects}}</div>
+    {{#each projects}}<div class="project-block"><span class="project-name">{{this.name}}</span>{{#if this.description}}<div class="project-desc">{{this.description}}</div>{{/if}}</div>{{/each}}
+    {{/if}}
+    {{#each extraSections}}<div><div class="section-title">{{this.title}}</div><ul>{{#each this.items}}<li>{{this}}</li>{{/each}}</ul></div>{{/each}}
+  </div>
+</div>
+</body>
+</html>
