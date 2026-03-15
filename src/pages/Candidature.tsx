@@ -167,7 +167,7 @@ export default function Candidature() {
 
   const ProntaCard = ({ app }: { app: AppRowWithAts }) => (
     <div
-      className="rounded-lg border border-primary/20 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-colors"
+      className="rounded-lg border border-primary/20 bg-card/60 px-3 py-3 cursor-pointer hover:border-primary/40 transition-all active:scale-[0.98] overflow-hidden"
       onClick={() => navigate(`/app/candidatura/${app.id}`)}
       onMouseEnter={() => prefetch(app.id)}
     >
