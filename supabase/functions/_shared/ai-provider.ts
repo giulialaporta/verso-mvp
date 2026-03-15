@@ -387,6 +387,7 @@ async function callLovableGateway(request: AiRequest, model: string): Promise<Pr
       },
     ],
   };
+  if (request.temperature !== undefined) body.temperature = request.temperature;
 
   if (request.tools) body.tools = request.tools;
   if (request.toolChoice) body.tool_choice = request.toolChoice;
