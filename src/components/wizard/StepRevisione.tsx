@@ -26,6 +26,26 @@ export function StepRevisione({
   onUpdateSkills?: (skills: any) => void;
   tailoring?: boolean;
 }) {
+  // Tailoring loading state — shown when user clicked "Genera CV" and we advanced here
+  if (tailoring || !tailorResult) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 px-4">
+        <div>
+          <h2 className="font-display text-2xl font-bold">Adattamento CV</h2>
+          <p className="text-muted-foreground mt-1">Sto adattando il tuo CV al ruolo...</p>
+        </div>
+        {["Adattamento contenuti...", "Ottimizzazione ATS...", "Verifica onestà..."].map((msg, i) => (
+          <motion.div key={msg} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 1.2, duration: 0.4 }}>
+            <Card className="border-border/30 bg-card/60"><CardContent className="py-6">
+              <div className="flex items-center gap-3"><SpinnerGap size={20} className="text-primary animate-spin" /><span className="text-sm text-muted-foreground">{msg}</span></div>
+              <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden"><motion.div className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary" initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ delay: i * 1.2, duration: 2, ease: "easeOut" }} /></div>
+            </CardContent></Card>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
+
   const [diffOpen, setDiffOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
 
