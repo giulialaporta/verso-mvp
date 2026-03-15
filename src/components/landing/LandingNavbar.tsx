@@ -52,13 +52,22 @@ const LandingNavbar = () => {
           </Button>
         </div>
 
-        {/* Mobile toggle */}
-        <button
-          className="md:hidden text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
-          onClick={() => setOpen(!open)}
-        >
-          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        {/* Mobile CTA + toggle */}
+        <div className="md:hidden flex items-center gap-2">
+          <Button
+            size="sm"
+            className="font-bold rounded-full text-sm px-5"
+            onClick={() => navigate("/login")}
+          >
+            Accedi
+          </Button>
+          <button
+            className="text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
+            onClick={() => setOpen(!open)}
+          >
+            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
