@@ -307,6 +307,7 @@ export default function Nuova() {
         }
       }
 
+      trackEvent("wizard_step_completed", { step: 3, step_name: "tailoring" });
       updateStep(3);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Errore durante la generazione del CV";
