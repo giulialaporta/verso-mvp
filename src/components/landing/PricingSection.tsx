@@ -47,7 +47,7 @@ const PricingSection = () => {
               variant="outline"
               size="lg"
               className="w-full font-bold rounded-full h-12"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/login?plan=free")}
             >
               Inizia gratis
             </Button>
