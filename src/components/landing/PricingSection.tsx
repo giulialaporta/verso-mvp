@@ -69,11 +69,11 @@ const PricingSection = () => {
             <ul className="space-y-3 mb-8 flex-1">
               {[
                 "Candidature illimitate",
-                "Tutti i template premium",
+                "Tutti i template (Executive, Moderno)",
+                "Export DOCX",
                 "Pre-screening di fattibilità",
-                "Doppio score: compatibilità + ATS",
+                "Score compatibilità + ATS",
                 "Analisi stipendio",
-                "Priorità nuove funzionalità",
               ].map((f) => (
                 <li key={f} className="flex items-start gap-3 text-sm">
                   <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />

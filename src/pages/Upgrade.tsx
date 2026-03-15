@@ -90,8 +90,8 @@ export default function Upgrade() {
 
   const benefits = [
     { icon: Briefcase, text: "Candidature illimitate" },
-    { icon: FileText, text: "Tutti i template CV" },
-    { icon: Sparkle, text: "Priorità sulle nuove funzionalità" },
+    { icon: FileText, text: "Tutti i template CV (Executive, Moderno)" },
+    { icon: Sparkle, text: "Export DOCX" },
   ];
 
   return (
