@@ -12,7 +12,7 @@ import { CookieBanner } from "@/components/CookieBanner";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import AppShell from "./components/AppShell";
-import Home from "./pages/Home";
+const Home = lazy(() => import("./pages/Home"));
 import NotFound from "./pages/NotFound";
 
 const Termini = lazy(() => import("./pages/Termini"));
