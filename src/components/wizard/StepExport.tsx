@@ -131,7 +131,7 @@ export function StepExport({
       }
 
       toast.success("DOCX scaricato!");
-      trackEvent("docx_downloaded", {});
+      trackEvent("docx_downloaded", { template: selectedTemplate });
     } catch (e) {
       console.error("DOCX generation error:", e);
       toast.error("Errore durante la generazione del DOCX.");
