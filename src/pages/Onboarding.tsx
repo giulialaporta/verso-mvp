@@ -48,9 +48,8 @@ export default function Onboarding() {
   const [currentRal, setCurrentRal] = useState<string>("");
   const [desiredRal, setDesiredRal] = useState<string>("");
 
-  // Sensitive data consent
-  const [showConsentModal, setShowConsentModal] = useState(false);
-  const [hasConsent, setHasConsent] = useState(false);
+  // Sensitive data consent (inline checkbox)
+  const [sensitiveConsent, setSensitiveConsent] = useState(false);
 
   useEffect(() => {
     if (user) {
