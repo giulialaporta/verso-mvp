@@ -568,11 +568,11 @@ export default function Home() {
       {/* Hero */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
         <HeroSection
-          name={profileName || cv?.parsed_data?.personal?.name || ""}
+          name={profileName || parsedData?.personal?.name || ""}
           headline={headline}
           avatarUrl={avatarUrl}
           photoUrl={cv?.photo_url || null}
-          photoBase64={cv?.parsed_data?.personal?.photo_base64 || cv?.parsed_data?.photo_base64 || null}
+          photoBase64={parsedData?.personal?.photo_base64 || parsedData?.photo_base64 || null}
           avgMatchScore={avgMatchScore}
           isPro={isPro}
           cancelAtPeriodEnd={cancelAtPeriodEnd}
