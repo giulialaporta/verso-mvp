@@ -32,6 +32,7 @@ export default function Onboarding() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const trackEvent = useTrackEvent();
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
