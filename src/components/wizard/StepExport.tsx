@@ -32,6 +32,7 @@ export function StepExport({
   const { user } = useAuth();
   const [selectedTemplate, setSelectedTemplate] = useState<string>("classico");
   const [downloading, setDownloading] = useState(false);
+  const trackEvent = useTrackEvent();
 
   const personalName = (tailoredCv?.personal as any)?.name || "CV";
   const matchScore = analyzeResult?.match_score ?? 0;
