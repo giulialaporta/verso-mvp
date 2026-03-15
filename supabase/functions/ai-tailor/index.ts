@@ -753,6 +753,9 @@ Deno.serve(async (req) => {
           });
         }
       }
+    }
+
+    if (photoBase64) (tailoredCV as any).photo_base64 = photoBase64;
 
     // --- INTEGRITY CHECK: validate tailored CV against original ---
     const integrityResult = checkIntegrity(originalCV, tailoredCV as Record<string, unknown>);
