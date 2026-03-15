@@ -120,10 +120,10 @@ export function DetailContent({
       </ScrollArea>
 
       <div className="space-y-2 p-4 pt-2">
-        <Button onClick={onSave} className="w-full gap-2">
+        <Button onClick={onSave} className="w-full gap-2 active:scale-[0.98] transition-transform">
           <FloppyDisk size={16} /> Salva
         </Button>
-        <Button variant="outline" className="w-full gap-2" onClick={onExport}>
+        <Button variant="outline" className="w-full gap-2 active:scale-[0.98] transition-transform" onClick={onExport}>
           <DownloadSimple size={16} /> Scarica PDF
         </Button>
         <AlertDialog>
