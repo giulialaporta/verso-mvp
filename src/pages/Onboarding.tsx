@@ -450,14 +450,14 @@ export default function Onboarding() {
                     <Button
                       variant="outline"
                       onClick={() => setStep("preview")}
-                      className="gap-2"
+                      className="gap-2 active:scale-[0.98] transition-transform"
                     >
                       <ArrowLeft size={16} /> Indietro
                     </Button>
                     <Button
                       onClick={handleSave}
                       disabled={saving}
-                      className="flex-1 gap-2"
+                      className="flex-1 gap-2 active:scale-[0.98] transition-transform"
                     >
                       {saving ? "Salvataggio..." : "Salva e continua"}
                       <ArrowRight size={16} />

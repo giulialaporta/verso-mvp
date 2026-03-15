@@ -28,7 +28,7 @@ export function ConsentCheckboxes({ acceptedTerms, acceptedPrivacy, onTermsChang
           </a>
         </Label>
       </div>
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-2 min-h-[44px]">
         <Checkbox
           id="privacy"
           checked={acceptedPrivacy}

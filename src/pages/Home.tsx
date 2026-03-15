@@ -445,7 +445,7 @@ function VirginState() {
         ))}
       </div>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.3 }}>
-        <Button onClick={() => navigate("/onboarding")} className="w-full gap-2 h-12 text-base rounded-full">
+        <Button onClick={() => navigate("/onboarding")} className="w-full gap-2 h-12 text-base rounded-full active:scale-[0.98] transition-transform">
           Carica il tuo CV <ArrowRight size={18} />
         </Button>
       </motion.div>

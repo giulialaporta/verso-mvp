@@ -79,9 +79,9 @@ function DesktopSidebar() {
         <div className="border-t border-border">
           {!collapsed && (
             <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 pt-2 pb-1">
-              <Link to="/termini" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground py-1">T&C</Link>
-              <Link to="/privacy" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground py-1">Privacy</Link>
-              <Link to="/cookie-policy" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground py-1">Cookie</Link>
+              <Link to="/termini" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground py-1.5">T&C</Link>
+              <Link to="/privacy" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground py-1.5">Privacy</Link>
+              <Link to="/cookie-policy" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground py-1.5">Cookie</Link>
             </div>
           )}
           <div className="p-2">

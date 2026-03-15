@@ -360,7 +360,7 @@ export function StepExport({
             <><FileDoc size={16} /> Scarica DOCX</>
           )}
           {!isPro && (
-            <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] text-primary font-bold">
+            <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[11px] text-primary font-bold">
               <Crown size={8} weight="fill" /> Pro
             </span>
           )}

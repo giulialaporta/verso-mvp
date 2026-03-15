@@ -247,7 +247,7 @@ export function StepTailoring({
       </motion.div>
 
       {!isLowScore && (
-        <Button onClick={onGenerateCv} className="w-full gap-2">
+        <Button onClick={onGenerateCv} className="w-full gap-2 active:scale-[0.98] transition-transform">
           <MagicWand size={16} /> Genera il CV adattato
         </Button>
       )}
