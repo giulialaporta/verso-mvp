@@ -198,7 +198,7 @@ export default function CandidaturaDetail() {
           {atsScore !== null && (
             <Card className="border-border/50 bg-card/80">
               <CardContent className="py-4 text-center space-y-1">
-                <p className="text-[10px] font-mono text-muted-foreground uppercase">ATS</p>
+                <p className="text-[11px] font-mono text-muted-foreground uppercase">ATS</p>
                 <p className="font-mono text-2xl font-bold text-info">{atsScore}%</p>
                 <div className="h-2 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={atsScore} aria-valuemin={0} aria-valuemax={100} aria-label={`ATS score ${atsScore}%`}>
                   <div className="h-full rounded-full bg-info" style={{ width: `${atsScore}%` }} />
