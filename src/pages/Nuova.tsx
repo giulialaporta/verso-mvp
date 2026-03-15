@@ -209,6 +209,7 @@ export default function Nuova() {
   const handleVerificaProceed = async (answers: { question: string; answer: string; level?: string; detail?: string }[]) => {
     if (!user || !jobData) return;
     setUserAnswers(answers);
+    trackEvent("wizard_step_completed", { step: 1, step_name: "verifica" });
     updateStep(2);
 
     if (applicationId && answers.length > 0) {
