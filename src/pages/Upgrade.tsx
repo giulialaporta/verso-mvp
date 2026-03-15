@@ -65,7 +65,10 @@ export default function Upgrade() {
       }
 
       if (data?.url) {
-        window.location.href = data.url;
+        // window.location.href fails inside iframes (e.g. Lovable preview)
+        // Try same-tab first, fall back to new tab
+        const opened = window.open(data.url, "_self");
+        if (!opened) window.open(data.url, "_blank");
         return;
       }
 
