@@ -45,10 +45,10 @@ export function StepRevisione({
       <AiLabel text="Punteggi calcolati con AI — valore indicativo" />
 
       {/* Compact scores */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Card className="border-border/50 bg-card/80">
           <CardContent className="py-4 text-center space-y-1">
-            <p className="text-[10px] font-mono text-muted-foreground uppercase">Match</p>
+            <p className="text-[11px] font-mono text-muted-foreground uppercase">Match</p>
             <p className="font-mono text-xl font-bold text-primary">{matchScore}%</p>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary" style={{ width: `${matchScore}%` }} />
@@ -57,16 +57,16 @@ export function StepRevisione({
         </Card>
         <Card className="border-border/50 bg-card/80">
           <CardContent className="py-4 text-center space-y-1">
-            <p className="text-[10px] font-mono text-muted-foreground uppercase">ATS</p>
+            <p className="text-[11px] font-mono text-muted-foreground uppercase">ATS</p>
             <p className="font-mono text-xl font-bold text-info">{atsScore}%</p>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div className="h-full rounded-full bg-info" style={{ width: `${atsScore}%` }} />
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border/50 bg-card/80">
+        <Card className="border-border/50 bg-card/80 col-span-2 md:col-span-1">
           <CardContent className="py-4 text-center space-y-1">
-            <p className="text-[10px] font-mono text-muted-foreground uppercase">Confidence</p>
+            <p className="text-[11px] font-mono text-muted-foreground uppercase">Confidence</p>
             <p className={`font-mono text-xl font-bold ${stats.confidence >= 90 ? "text-primary" : stats.confidence >= 70 ? "text-warning" : "text-destructive"}`}>{stats.confidence}%</p>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div className={`h-full rounded-full ${stats.confidence >= 90 ? "bg-primary" : stats.confidence >= 70 ? "bg-warning" : "bg-destructive"}`} style={{ width: `${stats.confidence}%` }} />

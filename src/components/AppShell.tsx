@@ -153,7 +153,7 @@ function MobileTabBar() {
         <div className="flex items-center justify-center">
           <button
             onClick={handleNewApp}
-            className="relative -top-3 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-105 active:scale-95"
+            className="relative -top-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-105 active:scale-95"
             aria-label="Nuova candidatura"
           >
             <Plus size={22} weight="bold" />

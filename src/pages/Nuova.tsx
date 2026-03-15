@@ -376,7 +376,7 @@ export default function Nuova() {
   }
 
   return (
-    <div className="py-6 px-2">
+    <div className="py-6 px-4">
       <StepIndicator current={step} />
       <AnimatePresence mode="wait">
         <motion.div
