@@ -122,8 +122,10 @@ export default function Nuova() {
         supabase.from("master_cvs").select("parsed_data").eq("id", tc.master_cv_id).single()
           .then(({ data: mcv }) => { if (mcv?.parsed_data) setOriginalCv(mcv.parsed_data as Record<string, unknown>); });
 
-        const urlStep = parseInt(searchParams.get("step") || "3", 10);
-        updateStep(urlStep >= 3 ? urlStep : 3);
+        // Infer correct step from status and URL
+        const urlStep = parseInt(searchParams.get("step") || "0", 10);
+        const inferredStep = app.status === "pronta" ? 5 : urlStep >= 3 ? urlStep : 4;
+        updateStep(inferredStep);
       } else if (app.job_description) {
         if ((app as any).prescreen_data) {
           setPrescreenResult((app as any).prescreen_data);
