@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

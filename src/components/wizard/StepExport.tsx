@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { pdf } from "@react-pdf/renderer";
