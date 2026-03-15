@@ -311,7 +311,7 @@ export default function CandidaturaDetail() {
 
       {/* Learning Suggestions */}
       {learningSuggestions && learningSuggestions.length > 0 && (
-        <Card className="border-border/50 bg-card/80">
+        <Card className="border-border/50 bg-card/80 overflow-hidden">
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center gap-2">
               <GraduationCap size={16} className="text-primary" />
