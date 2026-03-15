@@ -62,6 +62,13 @@ export default function Impostazioni() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isPro, subscriptionEnd, cancelAtPeriodEnd, refresh: refreshSubscription } = useSubscription();
+  const { data: profileData } = useProfile();
+  const queryClient = useQueryClient();
+  const salaryExpectations = (profileData as any)?.salary_expectations as { current_ral: number | null; desired_ral: number | null } | null;
+  const [editingSalary, setEditingSalary] = useState(false);
+  const [currentRal, setCurrentRal] = useState("");
+  const [desiredRal, setDesiredRal] = useState("");
+  const [savingSalary, setSavingSalary] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [open, setOpen] = useState(false);
