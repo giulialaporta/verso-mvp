@@ -535,7 +535,7 @@ export default function Home() {
     if (!exp) return "";
     const role = exp.role || exp.title || "";
     const company = exp.company || "";
-    return [role, company].filter(Boolean).join(" · ");
+    return compactHeadline(role, company);
   }, [parsedData]);
 
   // Redirect to onboarding if user has apps but no CV
