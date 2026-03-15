@@ -90,9 +90,9 @@ function StatsBar({
         },
         {
           icon: ChartLineUp,
-          label: "Score",
-          value: avgScore !== null ? `${avgScore}%` : "—",
-          accent: avgScore !== null && avgScore >= 70,
+          label: "Verso Score",
+          value: avgVersoScore !== null ? `${avgVersoScore}` : "—",
+          accent: avgVersoScore !== null && avgVersoScore >= 66,
         },
         {
           icon: FileText,
