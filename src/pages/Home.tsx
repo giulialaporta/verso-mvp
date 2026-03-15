@@ -124,7 +124,7 @@ function HeroSection({
         {/* Info */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight truncate">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight line-clamp-1">
               {name.split(" ")[0] || "Ciao"}
             </h1>
             {/* Plan badge */}
