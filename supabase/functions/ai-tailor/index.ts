@@ -197,7 +197,7 @@ The tailored CV MUST always have at least 2 experiences, or all original ones if
 ### Level 2 — CONTENT (how to rewrite what remains)
 - Summary: 2-3 sentences maximum, specific to this role
 - Bullets: action verb + measurable result, one line each
-- Skills: ordered by relevance, remove generic/obvious ones
+- Skills: MUST be ordered by relevance to the job posting. First: skills that directly match job requirements. Then: other technical skills relevant to the role. Then: tools. Last: soft skills. Remove generic/obvious ones (e.g. "Microsoft Office", "Teamwork" for senior roles). This ordering rule applies to skills.technical, skills.soft, and skills.tools arrays.
 
 ## CONCISENESS RULE
 A well-targeted 1-page CV beats a generic 3-page CV.
