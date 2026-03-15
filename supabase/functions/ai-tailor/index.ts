@@ -626,6 +626,8 @@ Deno.serve(async (req) => {
       userMessage: userContent,
       tools: [TOOL_SCHEMA_TAILOR],
       toolChoice: { type: "function", function: { name: "tailor_cv" } },
+      temperature: 0.2,
+      maxTokens: 8192,
     }, userId);
 
     const result = aiTailorResult.content;

@@ -249,6 +249,8 @@ Apply all 10 rules and return the corrected CV. Remember: EVERY text field must 
       userMessage,
       tools: [TOOL_SCHEMA],
       toolChoice: { type: "function", function: { name: "reviewed_cv" } },
+      temperature: 0.2,
+      maxTokens: 8192,
     }, userId);
 
     const parsed = aiResult.content;
