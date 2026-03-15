@@ -324,6 +324,7 @@ export default function Nuova() {
   const handleMarkSent = async () => {
     if (applicationId) {
       await supabase.from("applications").update({ status: "inviata" } as any).eq("id", applicationId);
+      trackEvent("application_status_changed", { from: "draft", to: "inviata" });
     }
     queryClient.invalidateQueries({ queryKey: ["applications"] });
     toast.success("Candidatura segnata come inviata!");
