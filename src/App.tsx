@@ -45,7 +45,7 @@ const App = () => (
               <Route path="/termini" element={<Suspense fallback={<PageSkeleton />}><Termini /></Suspense>} />
               <Route path="/privacy" element={<Suspense fallback={<PageSkeleton />}><PrivacyPage /></Suspense>} />
               <Route path="/cookie-policy" element={<Suspense fallback={<PageSkeleton />}><CookiePolicyPage /></Suspense>} />
-              <Route path="/" element={<Navigate to="/app/home" replace />} />
+              <Route path="/" element={<Landing />} />
               <Route
                 path="/upgrade"
                 element={
