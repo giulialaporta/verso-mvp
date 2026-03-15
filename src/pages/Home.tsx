@@ -62,39 +62,32 @@ type MasterCV = {
   is_active: boolean;
   photo_url?: string | null;
 };
-// ─── Compact Headline ────────────────────────────────────────
-const ABBREVIATIONS: [RegExp, string][] = [
-  [/\bArtificial Intelligence\b/gi, "AI"],
-  [/\bMachine Learning\b/gi, "ML"],
-  [/\bInformation Technology\b/gi, "IT"],
-  [/\bResearch and Development\b/gi, "R&D"],
-  [/\bHuman Resources\b/gi, "HR"],
-  [/\bBusiness Development\b/gi, "BD"],
-  [/\bCustomer Experience\b/gi, "CX"],
-  [/\bUser Experience\b/gi, "UX"],
-  [/\bUser Interface\b/gi, "UI"],
-  [/\bSoftware Engineering\b/gi, "SWE"],
-  [/\bData Science\b/gi, "DS"],
-];
+// ─── Compact Headline (AI-powered with cache) ───────────────
+function useCompactHeadline(role: string, company: string) {
+  const [headline, setHeadline] = useState("");
 
-function compactHeadline(role: string, company: string): string {
-  if (!role && !company) return "";
-  let r = role.trim();
-  // Apply known abbreviations
-  for (const [pattern, short] of ABBREVIATIONS) {
-    r = r.replace(pattern, short);
-  }
-  // If still long, drop trailing "and/e ..." clauses
-  if (r.length > 40) {
-    r = r.replace(/\s+(and|e|&)\s+[^,]+$/i, "").trim();
-  }
-  // Hard truncate if still too long
-  if (r.length > 45) {
-    r = r.slice(0, 42).trimEnd() + "…";
-  }
-  if (!company) return r;
-  if (!r) return company;
-  return `${r} @${company}`;
+  useEffect(() => {
+    if (!role && !company) { setHeadline(""); return; }
+
+    const cacheKey = `verso_headline_${role}_${company}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) { setHeadline(cached); return; }
+
+    // Immediate fallback while AI loads
+    const fallback = (role.length > 35 ? role.slice(0, 32) + "…" : role) + (company ? ` @${company}` : "");
+    setHeadline(fallback);
+
+    supabase.functions.invoke("compact-headline", {
+      body: { role, company },
+    }).then(({ data, error }) => {
+      if (!error && data?.headline) {
+        setHeadline(data.headline);
+        localStorage.setItem(cacheKey, data.headline);
+      }
+    }).catch(() => { /* keep fallback */ });
+  }, [role, company]);
+
+  return headline;
 }
 
 // ─── Hero Section ────────────────────────────────────────────
@@ -562,15 +555,17 @@ export default function Home() {
   }, [apps]);
   const recentApps = useMemo(() => (apps ?? []).filter((a) => !["draft"].includes(a.status.toLowerCase())).slice(0, 5), [apps]);
 
-  // Build headline from CV data
+  // Build headline from CV data (AI-powered)
   const parsedData = cv?.parsed_data as any;
-  const headline = useMemo(() => {
+  const heroRole = useMemo(() => {
     const exp = parsedData?.experience?.[0];
-    if (!exp) return "";
-    const role = exp.role || exp.title || "";
-    const company = exp.company || "";
-    return compactHeadline(role, company);
+    return exp?.role || exp?.title || "";
   }, [parsedData]);
+  const heroCompany = useMemo(() => {
+    const exp = parsedData?.experience?.[0];
+    return exp?.company || "";
+  }, [parsedData]);
+  const headline = useCompactHeadline(heroRole, heroCompany);
 
   // Redirect to onboarding if user has apps but no CV
   useEffect(() => {
