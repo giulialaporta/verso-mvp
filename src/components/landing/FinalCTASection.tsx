@@ -22,13 +22,13 @@ const FinalCTASection = () => {
         <Button
           size="lg"
           className="font-bold text-sm sm:text-base px-8 sm:px-10 h-12 sm:h-14 rounded-full glow-accent hover:glow-accent-hover transition-shadow active:scale-[0.98]"
-          onClick={() => navigate("/login")}
+          onClick={() => navigate("/login?plan=free")}
         >
           Inizia gratis — è subito
           <ArrowRight className="w-5 h-5 ml-2" />
         </Button>
         <p className="text-[11px] sm:text-xs text-muted-foreground mt-4">
-          Nessuna carta di credito · Setup in 3 minuti · 3 tailoring gratuiti
+          Nessuna carta di credito · Setup in 3 minuti
         </p>
       </div>
     </section>
