@@ -201,7 +201,7 @@ function HeroSection({
       >
         <Button
           onClick={onNewApp}
-          className="w-full gap-2 h-12 text-base rounded-full"
+          className="w-full gap-2 h-12 text-base rounded-full active:scale-[0.98] transition-transform"
         >
           <Plus size={18} weight="bold" /> Nuova candidatura <ArrowRight size={18} />
         </Button>
