@@ -343,7 +343,7 @@ function CVSnapshot({
             {skills.map((skill) => (
               <span
                 key={skill}
-                className="rounded-full bg-muted px-2.5 py-0.5 font-mono text-[10px] text-muted-foreground uppercase tracking-wider"
+                className="rounded-full bg-muted px-2.5 py-0.5 font-mono text-[11px] text-muted-foreground uppercase tracking-wider"
               >
                 {skill}
               </span>
