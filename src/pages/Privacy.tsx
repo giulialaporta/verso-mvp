@@ -12,7 +12,7 @@ const toc = [
 
 export default function Privacy() {
   return (
-    <LegalLayout title="Informativa Privacy" version="1.0" lastUpdated="8 marzo 2026" toc={toc}>
+    <LegalLayout title="Informativa Privacy" version="1.1" lastUpdated="15 marzo 2026" toc={toc}>
       <section id="titolare">
         <h2>Titolare del Trattamento</h2>
         <p>
@@ -34,6 +34,13 @@ export default function Privacy() {
 
         <h3>Dati delle candidature</h3>
         <p>Aziende, ruoli, date, note personali, punteggi di compatibilità, CV adattati.</p>
+
+        <h3>Dati di pagamento</h3>
+        <p>
+          I pagamenti sono gestiti interamente da Stripe Inc. Verso non memorizza né ha accesso ai numeri
+          di carta di credito o ad altri dati di pagamento sensibili. Conserviamo esclusivamente identificativi
+          tecnici (customer ID e subscription ID) necessari alla gestione dell'abbonamento.
+        </p>
 
         <h3>Dati tecnici</h3>
         <p>Indirizzo IP, browser, user agent, dati di sessione.</p>
@@ -66,6 +73,11 @@ export default function Privacy() {
               <td>Erogazione servizio (parsing, tailoring, tracking)</td>
               <td>Esecuzione contratto</td>
               <td>Durata account + 6 mesi</td>
+            </tr>
+            <tr>
+              <td>Gestione pagamenti e abbonamento Pro</td>
+              <td>Esecuzione contratto (art. 6(1)(b))</td>
+              <td>Durata abbonamento + 12 mesi</td>
             </tr>
             <tr>
               <td>Invio dati all'AI per elaborazione</td>
@@ -105,10 +117,22 @@ export default function Privacy() {
               <td>Tutti i dati account e CV</td>
             </tr>
             <tr>
+              <td>Anthropic PBC</td>
+              <td>USA</td>
+              <td>Elaborazione AI (provider primario)</td>
+              <td>Testo CV + job description</td>
+            </tr>
+            <tr>
               <td>Google (Gemini)</td>
               <td>USA/UE</td>
-              <td>Elaborazione AI</td>
+              <td>Elaborazione AI (fallback)</td>
               <td>Testo CV + job description</td>
+            </tr>
+            <tr>
+              <td>Stripe Inc.</td>
+              <td>USA</td>
+              <td>Gestione pagamenti e abbonamenti</td>
+              <td>Email, ID cliente, dati di pagamento</td>
             </tr>
             <tr>
               <td>Google LLC</td>
