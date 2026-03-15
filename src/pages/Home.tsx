@@ -580,9 +580,9 @@ export default function Home() {
           name={profileName || parsedData?.personal?.name || ""}
           headline={headline}
           avatarUrl={avatarUrl}
-          photoUrl={cv?.photo_url || null}
-          photoBase64={parsedData?.personal?.photo_base64 || parsedData?.photo_base64 || null}
           avgMatchScore={avgMatchScore}
+          activeCount={activeApps.length}
+          totalCount={(apps ?? []).length}
           isPro={isPro}
           cancelAtPeriodEnd={cancelAtPeriodEnd}
           onAvatarClick={() => fileInputRef.current?.click()}

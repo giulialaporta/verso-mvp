@@ -94,18 +94,29 @@ export default function CandidaturaDetail() {
     });
   }, [user, id]);
 
-  const handleSave = async () => {
-    if (!app) return;
-    setSaving(true);
+  const handleStatusChange = async (newStatus: string) => {
+    if (!app || newStatus === status) return;
+    setStatus(newStatus);
     const { error } = await supabase
       .from("applications")
-      .update({ status, notes: notes || null } as any)
+      .update({ status: newStatus } as any)
       .eq("id", app.id);
-    setSaving(false);
     if (error) {
       toast.error("Errore durante il salvataggio.");
+      setStatus(status); // revert
     } else {
-      toast.success("Candidatura aggiornata.");
+      toast.success("Stato aggiornato.");
+    }
+  };
+
+  const handleNotesBlur = async () => {
+    if (!app) return;
+    const { error } = await supabase
+      .from("applications")
+      .update({ notes: notes || null } as any)
+      .eq("id", app.id);
+    if (error) {
+      toast.error("Errore nel salvataggio note.");
     }
   };
 
