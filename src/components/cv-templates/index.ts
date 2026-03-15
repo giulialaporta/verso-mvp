@@ -1,7 +1,3 @@
-export { ClassicoTemplate } from "./ClassicoTemplate";
-export { MinimalTemplate } from "./MinimalTemplate";
-export { ExecutiveTemplate } from "./ExecutiveTemplate";
-export { ModernoTemplate } from "./ModernoTemplate";
 export { clean, ensureArray, h, MAX_SIDEBAR_SKILLS } from "./template-utils";
 
 export const TEMPLATES = [
