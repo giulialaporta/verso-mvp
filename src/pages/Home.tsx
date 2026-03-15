@@ -520,13 +520,14 @@ export default function Home() {
   const recentApps = useMemo(() => (apps ?? []).filter((a) => a.status.toLowerCase() !== "draft").slice(0, 5), [apps]);
 
   // Build headline from CV data
+  const parsedData = cv?.parsed_data as any;
   const headline = useMemo(() => {
-    const exp = cv?.parsed_data?.experience?.[0];
+    const exp = parsedData?.experience?.[0];
     if (!exp) return "";
     const role = exp.role || exp.title || "";
     const company = exp.company || "";
     return [role, company].filter(Boolean).join(" · ");
-  }, [cv]);
+  }, [parsedData]);
 
   // Redirect to onboarding if user has apps but no CV
   useEffect(() => {
