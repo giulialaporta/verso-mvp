@@ -45,15 +45,34 @@ const LinkedInCard = () => {
         <div className="relative z-10 flex h-full">
           {/* Left side — branding */}
           <div className="flex flex-col justify-center pl-16 pr-8" style={{ width: "55%" }}>
-            {/* Logo */}
-            <div className="mb-8">
+            {/* Logo - Brand aligned */}
+            <div className="mb-8 flex items-center">
               <span
                 className="font-display font-extrabold tracking-[0.08em]"
                 style={{ fontSize: 48, color: "#F2F3F7" }}
               >
                 VERS
-                <span style={{ color: "#A8FF78" }}>O</span>
               </span>
+              {/* Chevron pointing right-up replacing O */}
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                style={{
+                  transform: "rotate(-45deg)",
+                  marginLeft: "-4px",
+                  marginTop: "-4px",
+                }}
+              >
+                <path
+                  d="M9 18L15 12L9 6"
+                  stroke="#A8FF78"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
 
             {/* Claim */}
