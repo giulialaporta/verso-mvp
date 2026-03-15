@@ -742,7 +742,7 @@ export default function Home() {
       >
         <StatsBar
           activeCount={activeApps.length}
-          avgVersoScore={avgVersoScore}
+          avgMatchScore={avgMatchScore}
           hasCV={hasCV}
         />
       </motion.div>
