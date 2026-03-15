@@ -328,10 +328,9 @@ function RecentApplications({ apps }: { apps: AppRowWithAts[] }) {
               </div>
             </div>
             <div className="flex items-center gap-2 mt-2 ml-11">
-              <VersoScoreCompact
+              <MatchScoreCompact
                 matchScore={app.match_score}
-                atsScore={(app as any).ats_score}
-                honestScore={(app as any).honest_score}
+                isHonest={((app as any).honest_score ?? 0) >= 85}
               />
               <StatusChip status={app.status} />
             </div>
