@@ -65,6 +65,9 @@
 - [x] **D10** — Non vengono rimosse tutte le esperienze (minimo 2) (verificato da code review: validate-output)
 - [x] **D11** — Non vengono rimosse piu' del 50% delle esperienze (verificato da code review: validate-output)
 - [x] **D12** — Il CV output e' nella lingua dell'annuncio (verificato da code review)
+- [ ] **D13** — Pro gate server-side: utente Free con `free_apps_used >= 1` → 403 `UPGRADE_REQUIRED`
+- [ ] **D14** — Utente Pro: nessun blocco, tailoring procede normalmente
+- [ ] **D15** — Frontend intercetta 403 e fa redirect a `/upgrade`
 
 ---
 
@@ -117,14 +120,15 @@
 
 ---
 
-## H. Configurazione modelli
+## H. Configurazione modelli (aggiornata — migrazione AI)
 
-- [x] **H1** — `parse-cv` usa `google/gemini-2.5-flash` (verificato da code review)
-- [x] **H2** — `scrape-job` usa `google/gemini-2.5-flash` (verificato da code review)
-- [x] **H3** — `ai-prescreen` usa `google/gemini-2.5-pro` (verificato da code review)
-- [x] **H4** — `ai-tailor` usa `google/gemini-2.5-pro` (verificato da code review)
-- [x] **H5** — `cv-review` usa `google/gemini-2.5-flash` (verificato da code review)
-- [x] **H6** — Il fallback model resta `google/gemini-2.0-flash` per tutti (verificato da code review: ai-fetch.ts)
+- [ ] **H1** — `parse-cv` usa Anthropic Claude Sonnet 4 come primario
+- [ ] **H2** — `scrape-job` usa Google AI Gemini 2.5 Flash come primario
+- [ ] **H3** — `ai-prescreen` usa Anthropic Claude Haiku 4.5 come primario
+- [ ] **H4** — `ai-tailor` (mode tailor) usa Anthropic Claude Sonnet 4 come primario
+- [ ] **H4b** — `ai-tailor` (mode analyze, task `ai-tailor-analyze`) usa Anthropic Claude Haiku 4.5
+- [ ] **H5** — `cv-review` usa Anthropic Claude Haiku 4.5 come primario
+- [ ] **H6** — Fallback: Gemini 2.5 Flash per funzioni Anthropic, Lovable Gateway per scrape-job
 - [ ] **H7** — Il summary riscritto da ai-tailor e' specifico per il ruolo (non generico)
 - [ ] **H8** — I bullet point contengono verbi d'azione e metriche
 - [ ] **H9** — Il tempo di risposta di ai-tailor resta sotto i 30 secondi
@@ -135,7 +139,17 @@
 
 ## I. Moduli condivisi
 
-- [x] **I1** — `_shared/ai-fetch.ts`: wrapper per chiamate AI con retry e parsing funziona (verificato da code review)
+- [ ] **I1** — `_shared/ai-provider.ts`: multi-provider routing con retry, fallback e cost logging (sostituisce ai-fetch.ts)
 - [x] **I2** — `_shared/compact-cv.ts`: compattazione CV riduce token senza perdere dati (verificato da code review)
 - [x] **I3** — `_shared/validate-output.ts`: validazione output AI rileva JSON malformati (verificato da code review)
 - [x] **I4** — `_shared/cors.ts`: CORS dinamico con whitelist origini funziona (verificato da code review)
+
+---
+
+## J. Tabella `ai_usage_logs`
+
+- [ ] **J1** — Tabella `ai_usage_logs` esiste con colonne: task, provider, model, tokens_in, tokens_out, cost_usd, duration_ms, is_fallback
+- [ ] **J2** — RLS attiva con policy "No user access" (`USING (false)`)
+- [ ] **J3** — Ogni chiamata AI logga una riga (fire-and-forget)
+- [ ] **J4** — Il costo calcolato e' coerente con i rate per modello
+- [ ] **J5** — Le chiamate fallback sono marcate con `is_fallback = true`

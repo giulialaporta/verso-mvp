@@ -82,6 +82,16 @@
 
 ---
 
+## G-bis. Dashboard — PlanCard e Pro gate
+
+- [ ] **G7** — PlanCard visibile: mostra stato piano (Free/Pro/Pro in scadenza)
+- [ ] **G8** — Utente Free: PlanCard mostra "Piano Free" con info limite
+- [ ] **G9** — Utente Pro: PlanCard mostra "Versō Pro" con badge e data rinnovo
+- [ ] **G10** — Pro gate su "Nuova candidatura": se Free + `free_apps_used >= 1` → redirect a `/upgrade`
+- [ ] **G11** — Post-upgrade: param `upgrade=success` → polling + toast "Benvenuto in Versō Pro!"
+
+---
+
 ## H. Pagina CVEdit
 
 - [ ] **H1** — Route `/app/cv-edit` accessibile dalla dashboard

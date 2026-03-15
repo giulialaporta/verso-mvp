@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { pdf } from "@react-pdf/renderer";
-import { ClassicoTemplate } from "@/components/cv-templates";
+// Dynamic import for heavy PDF library — loaded only when user clicks "Download PDF"
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -458,6 +457,10 @@ function CVCard({
     if (!cv.parsed_data) return;
     setDownloadingPdf(true);
     try {
+      const [{ pdf }, { ClassicoTemplate }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/components/cv-templates"),
+      ]);
       const blob = await pdf(<ClassicoTemplate cv={cv.parsed_data} />).toBlob();
       const name = cv.parsed_data?.personal?.name || "CV";
       const fileName = `CV-${name.replace(/\s+/g, "-")}.pdf`;

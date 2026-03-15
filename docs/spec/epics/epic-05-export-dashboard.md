@@ -83,11 +83,24 @@ Route `/app/home` — pagina principale dopo il login.
 
 ### Stato 3: CV + candidature presenti
 
+**PlanCard:**
+- Componente che mostra lo stato del piano (Free/Pro/Pro in scadenza)
+- **Free:** "Piano Free" con info limite candidature
+- **Pro:** "Versō Pro" con badge accent e data rinnovo
+- **Pro in scadenza** (`cancel_at_period_end`): mostra data scadenza
+
 **StatsBar:**
 - 3 card con icone Phosphor:
   - **Briefcase** — numero candidature attive
   - **ChartLineUp** — score medio di match
   - **FileText** — stato CV (caricato/aggiornato)
+
+**CTA "Nuova candidatura":**
+- Se utente Free con `free_apps_used >= 1` → redirect a `/upgrade` (pro gate via `useProGate`)
+- Se utente Pro o Free con 0 candidature → redirect a `/app/nuova`
+
+**Post-upgrade polling:**
+- Se query param `upgrade=success` → polling `check-subscription` fino a `is_pro = true` → toast di benvenuto
 
 **CV Card (collapsible):**
 - Espandibile/collassabile con toggle
@@ -129,6 +142,7 @@ Route `/app/cv-edit` — pagina dedicata alla modifica del CV master.
 | `RecentApplications` | Lista ultime 3 candidature con hover prefetch (interno a Home.tsx) |
 | `CVCard` | Card collapsible con CVSections editabile e azioni CV (interno a Home.tsx) |
 | `SalaryDisplay` | Mostra RAL attuale/desiderata con inline edit (interno a Home.tsx) |
+| `PlanCard` | Card stato piano Free/Pro/Expiring (interno a Home.tsx) |
 
 ---
 

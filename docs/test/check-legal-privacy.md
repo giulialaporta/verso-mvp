@@ -113,9 +113,23 @@
 
 ## J. Pagina Impostazioni — Assistenza
 
+- [ ] **J0** — Link "Guida & FAQ" presente con icona Question, punta a `/app/faq`
 - [x] **J1** — Contatto supporto generale: supporto@verso-cv.app (verificato via screenshot)
 - [x] **J2** — Contatto privacy e dati: privacy@verso-cv.app (verificato via screenshot)
 - [x] **J3** — Tempi di risposta indicati: entro 48h lavorative (verificato via screenshot)
+
+---
+
+## K-bis. Pagina Impostazioni — Piano
+
+- [ ] **K-bis1** — Sezione "Piano" visibile nella card Account
+- [ ] **K-bis2** — Utente Free: mostra "Piano: Free" + link "Scopri Versō Pro" → `/upgrade`
+- [ ] **K-bis3** — Utente Pro: mostra "Piano: Versō Pro" + badge + data rinnovo
+- [ ] **K-bis4** — Utente Pro: "Gestisci fatturazione" → apre Stripe Customer Portal
+- [ ] **K-bis5** — Utente Pro: "Cancella abbonamento" → dialog di conferma
+- [ ] **K-bis6** — Conferma cancellazione → chiama `cancel-subscription` → `cancel_at_period_end: true`
+- [ ] **K-bis7** — Dopo cancellazione: mostra data scadenza, messaggio accesso attivo fino a fine periodo
+- [ ] **K-bis8** — Utente Pro in scadenza: mostra stato corretto (data scadenza, no rinnovo)
 
 ---
 
