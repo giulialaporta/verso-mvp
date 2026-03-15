@@ -7,8 +7,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap, Lock, Crown } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap, Lock, Crown, FileDoc } from "@phosphor-icons/react";
 import { ClassicoTemplate, MinimalTemplate, ExecutiveTemplate, ModernoTemplate, TEMPLATES } from "@/components/cv-templates";
+import { generateDocx } from "@/components/cv-templates/docx-generator";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
 
@@ -36,6 +37,7 @@ export function StepExport({
   const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState<string>("classico");
   const [downloading, setDownloading] = useState(false);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
   const trackEvent = useTrackEvent();
 
   const handleTemplateSelect = (templateId: string) => {
@@ -58,6 +60,8 @@ export function StepExport({
     [tailorResult.original_cv, tailoredCv, tailorResult.diff]
   );
 
+  const fileBaseName = `CV-${personalName.replace(/\s+/g, "-")}-${jobData.company_name.replace(/\s+/g, "-")}`;
+
   const handleDownload = async () => {
     setDownloading(true);
     try {
@@ -69,7 +73,7 @@ export function StepExport({
       };
       const TemplateComponent = templateMap[selectedTemplate] || ClassicoTemplate;
       const blob = await pdf(<TemplateComponent cv={tailoredCv} lang={cvLang} />).toBlob();
-      const fileName = `CV-${personalName.replace(/\s+/g, "-")}-${jobData.company_name.replace(/\s+/g, "-")}.pdf`;
+      const fileName = `${fileBaseName}.pdf`;
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -94,6 +98,45 @@ export function StepExport({
       toast.error("Errore durante la generazione del PDF.");
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const handleDownloadDocx = async () => {
+    if (!isPro) {
+      toast("Export DOCX disponibile con Verso Pro", {
+        action: { label: "Upgrade", onClick: () => navigate("/upgrade") },
+      });
+      return;
+    }
+    setDownloadingDocx(true);
+    try {
+      const blob = await generateDocx(tailoredCv as Record<string, any>, cvLang);
+      const fileName = `${fileBaseName}.docx`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      if (user?.id && applicationId) {
+        const storagePath = `${user.id}/${applicationId}/${fileName}`;
+        await supabase.storage.from("cv-exports").upload(storagePath, blob, {
+          contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          upsert: true,
+        });
+      }
+
+      toast.success("DOCX scaricato!");
+      trackEvent("docx_downloaded", {});
+    } catch (e) {
+      console.error("DOCX generation error:", e);
+      toast.error("Errore durante la generazione del DOCX.");
+    } finally {
+      setDownloadingDocx(false);
     }
   };
 
@@ -179,10 +222,31 @@ export function StepExport({
         </span>
       </div>
 
-      {/* Download button */}
-      <Button onClick={handleDownload} disabled={downloading} className="w-full gap-2 h-12 text-base">
-        {downloading ? <><SpinnerGap size={18} className="animate-spin" /> Generazione...</> : <><DownloadSimple size={18} /> Scarica PDF</>}
-      </Button>
+      {/* Download buttons */}
+      <div className="space-y-3">
+        <Button onClick={handleDownload} disabled={downloading} className="w-full gap-2 h-12 text-base">
+          {downloading ? <><SpinnerGap size={18} className="animate-spin" /> Generazione...</> : <><DownloadSimple size={18} /> Scarica PDF</>}
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={handleDownloadDocx}
+          disabled={downloadingDocx}
+          className="w-full gap-2 h-11 relative"
+        >
+          {!isPro && <Lock size={14} className="text-muted-foreground" />}
+          {downloadingDocx ? (
+            <><SpinnerGap size={16} className="animate-spin" /> Generazione DOCX...</>
+          ) : (
+            <><FileDoc size={16} /> Scarica DOCX</>
+          )}
+          {!isPro && (
+            <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] text-primary font-bold">
+              <Crown size={8} weight="fill" /> Pro
+            </span>
+          )}
+        </Button>
+      </div>
 
       <Button variant="outline" onClick={onNext} className="w-full gap-2 text-muted-foreground">
         Salta per ora <ArrowRight size={16} />
