@@ -7,41 +7,121 @@ import {
   AlignmentType,
   BorderStyle,
   convertMillimetersToTwip,
-  SectionType,
-  ImageRun,
 } from "docx";
-import { clean, ensureArray, MAX_SIDEBAR_SKILLS } from "./template-utils";
+import { clean, ensureArray, MAX_SIDEBAR_SKILLS, computeDensity, truncateSummary, limitExperiences, truncateBullets, h } from "./template-utils";
+import type { TemplateId } from "./index";
 
-const ACCENT_HEX = "2563EB";
-const MUTED_HEX = "666666";
+// ─── Template-specific style configs ────────────────────────
 
-function sectionTitle(text: string): Paragraph {
+interface DocxStyle {
+  accentHex: string;
+  mutedHex: string;
+  headingFont: string;
+  bodyFont: string;
+  nameSize: number;       // half-points
+  sectionSize: number;
+  bodySize: number;
+  bulletSize: number;
+  metaSize: number;
+  sectionBorder: boolean;
+  sectionUppercase: boolean;
+  nameUppercase: boolean;
+}
+
+const STYLES: Record<string, DocxStyle> = {
+  classico: {
+    accentHex: "60A5FA",
+    mutedHex: "555555",
+    headingFont: "Calibri",
+    bodyFont: "Calibri",
+    nameSize: 36,
+    sectionSize: 22,
+    bodySize: 20,
+    bulletSize: 20,
+    metaSize: 18,
+    sectionBorder: true,
+    sectionUppercase: true,
+    nameUppercase: false,
+  },
+  minimal: {
+    accentHex: "111111",
+    mutedHex: "666666",
+    headingFont: "Calibri",
+    bodyFont: "Calibri",
+    nameSize: 40,
+    sectionSize: 20,
+    bodySize: 20,
+    bulletSize: 20,
+    metaSize: 18,
+    sectionBorder: true,
+    sectionUppercase: false,
+    nameUppercase: false,
+  },
+  executive: {
+    accentHex: "2563EB",
+    mutedHex: "6B7280",
+    headingFont: "Calibri",
+    bodyFont: "Calibri",
+    nameSize: 44,
+    sectionSize: 22,
+    bodySize: 20,
+    bulletSize: 20,
+    metaSize: 18,
+    sectionBorder: true,
+    sectionUppercase: true,
+    nameUppercase: false,
+  },
+  moderno: {
+    accentHex: "38BDF8",
+    mutedHex: "64748B",
+    headingFont: "Calibri",
+    bodyFont: "Calibri",
+    nameSize: 38,
+    sectionSize: 22,
+    bodySize: 20,
+    bulletSize: 20,
+    metaSize: 18,
+    sectionBorder: true,
+    sectionUppercase: true,
+    nameUppercase: false,
+  },
+};
+
+function getStyle(templateId?: string): DocxStyle {
+  return STYLES[templateId || "classico"] || STYLES.classico;
+}
+
+function sectionTitle(text: string, s: DocxStyle): Paragraph {
+  const displayText = s.sectionUppercase ? text.toUpperCase() : text;
   return new Paragraph({
     heading: HeadingLevel.HEADING_2,
     spacing: { before: 280, after: 120 },
-    border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: ACCENT_HEX } },
-    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 22, font: "Calibri", color: "111111" })],
+    border: s.sectionBorder ? { bottom: { style: BorderStyle.SINGLE, size: 2, color: s.accentHex } } : undefined,
+    children: [new TextRun({ text: displayText, bold: true, size: s.sectionSize, font: s.headingFont, color: "111111" })],
   });
 }
 
-function bulletParagraph(text: string): Paragraph {
+function bulletParagraph(text: string, s: DocxStyle): Paragraph {
   return new Paragraph({
     spacing: { after: 40 },
-    children: [new TextRun({ text: `• ${text}`, size: 20, font: "Calibri" })],
+    children: [new TextRun({ text: `• ${text}`, size: s.bulletSize, font: s.bodyFont })],
   });
 }
 
-function metaText(text: string): Paragraph {
+function metaText(text: string, s: DocxStyle): Paragraph {
   return new Paragraph({
     spacing: { after: 40 },
-    children: [new TextRun({ text, size: 18, font: "Calibri", color: MUTED_HEX, italics: true })],
+    children: [new TextRun({ text, size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true })],
   });
 }
 
-export async function generateDocx(cv: Record<string, any>, lang?: string): Promise<Blob> {
+export async function generateDocx(cv: Record<string, any>, lang?: string, templateId?: string): Promise<Blob> {
+  const s = getStyle(templateId);
+  const d = computeDensity(cv);
+
   const personal = cv.personal || {};
-  const summary = clean(cv.summary);
-  const experience = cv.experience || [];
+  const summary = truncateSummary(clean(cv.summary), d);
+  const [experience, omittedExp] = limitExperiences(cv.experience || [], d);
   const education = cv.education || [];
   const skills = cv.skills;
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
@@ -62,69 +142,72 @@ export async function generateDocx(cv: Record<string, any>, lang?: string): Prom
   const children: Paragraph[] = [];
 
   // Name
+  const nameText = clean(personal.name) || "Nome Cognome";
   children.push(new Paragraph({
     alignment: AlignmentType.LEFT,
     spacing: { after: 60 },
-    children: [new TextRun({ text: clean(personal.name) || "Nome Cognome", bold: true, size: 36, font: "Calibri" })],
+    children: [new TextRun({ text: s.nameUppercase ? nameText.toUpperCase() : nameText, bold: true, size: s.nameSize, font: s.headingFont })],
   }));
 
   // Contact line
   if (contactParts.length > 0 || links.length > 0) {
     children.push(new Paragraph({
       spacing: { after: 200 },
-      children: [new TextRun({ text: [...contactParts, ...links].join("  ·  "), size: 18, font: "Calibri", color: MUTED_HEX })],
+      children: [new TextRun({ text: [...contactParts, ...links].join("  ·  "), size: s.metaSize, font: s.bodyFont, color: s.mutedHex })],
     }));
   }
 
   // Summary
   if (summary) {
-    children.push(sectionTitle(lang === "en" ? "Profile" : "Profilo"));
+    children.push(sectionTitle(h("profile", lang), s));
     children.push(new Paragraph({
       spacing: { after: 120 },
-      children: [new TextRun({ text: summary, size: 20, font: "Calibri" })],
+      children: [new TextRun({ text: summary, size: s.bodySize, font: s.bodyFont })],
     }));
   }
 
   // Experience
   if (experience.length > 0) {
-    children.push(sectionTitle(lang === "en" ? "Experience" : "Esperienza"));
-    for (const exp of experience) {
+    children.push(sectionTitle(h("experience", lang), s));
+    for (let i = 0; i < experience.length; i++) {
+      const exp = experience[i];
       children.push(new Paragraph({
         spacing: { before: 120, after: 20 },
-        children: [new TextRun({ text: clean(exp.role) || clean(exp.title) || "", bold: true, size: 22, font: "Calibri" })],
+        children: [new TextRun({ text: clean(exp.role) || clean(exp.title) || "", bold: true, size: s.sectionSize, font: s.headingFont })],
       }));
       children.push(new Paragraph({
         spacing: { after: 20 },
-        children: [new TextRun({ text: exp.company || "", bold: true, size: 20, font: "Calibri", color: "333333" })],
+        children: [new TextRun({ text: exp.company || "", bold: true, size: s.bodySize, font: s.bodyFont, color: "333333" })],
       }));
       const meta = [
         exp.start || exp.period,
         exp.end ? ` – ${exp.end}` : exp.current ? " – Attuale" : "",
         clean(exp.location) ? `  ·  ${exp.location}` : "",
       ].join("");
-      if (meta.trim()) children.push(metaText(meta));
+      if (meta.trim()) children.push(metaText(meta, s));
       if (clean(exp.description)) {
         children.push(new Paragraph({
           spacing: { after: 40 },
-          children: [new TextRun({ text: exp.description, size: 20, font: "Calibri" })],
+          children: [new TextRun({ text: exp.description, size: s.bodySize, font: s.bodyFont })],
         }));
       }
-      const bullets = Array.isArray(exp.bullets) ? exp.bullets.filter((b: string) => clean(b)) : [];
+      const rawBullets = Array.isArray(exp.bullets) ? exp.bullets.filter((b: string) => clean(b)) : [];
+      const bullets = truncateBullets(rawBullets, i, d);
       for (const b of bullets) {
-        children.push(bulletParagraph(b));
+        children.push(bulletParagraph(b, s));
       }
     }
   }
 
   // Education
   if (education.length > 0) {
-    children.push(sectionTitle(lang === "en" ? "Education" : "Formazione"));
+    children.push(sectionTitle(h("education", lang), s));
     for (const ed of education) {
       children.push(new Paragraph({
         spacing: { before: 80, after: 20 },
         children: [new TextRun({
           text: `${ed.degree}${clean(ed.field) ? ` in ${ed.field}` : ""} — ${ed.institution}`,
-          bold: true, size: 20, font: "Calibri",
+          bold: true, size: s.bodySize, font: s.bodyFont,
         })],
       }));
       const meta = [
@@ -132,40 +215,40 @@ export async function generateDocx(cv: Record<string, any>, lang?: string): Prom
         ed.end ? ` – ${ed.end}` : "",
         clean(ed.grade) ? `  ·  ${ed.grade}` : "",
       ].join("");
-      if (meta.trim()) children.push(metaText(meta));
+      if (meta.trim()) children.push(metaText(meta, s));
     }
   }
 
   // Skills
   if (allSkills.length > 0) {
-    children.push(sectionTitle(lang === "en" ? "Skills" : "Competenze"));
+    children.push(sectionTitle(h("skills", lang), s));
     children.push(new Paragraph({
       spacing: { after: 80 },
-      children: [new TextRun({ text: allSkills.join("  ·  "), size: 20, font: "Calibri" })],
+      children: [new TextRun({ text: allSkills.join("  ·  "), size: s.bodySize, font: s.bodyFont })],
     }));
   }
 
   // Languages
   if (languages.length > 0) {
-    children.push(sectionTitle(lang === "en" ? "Languages" : "Lingue"));
+    children.push(sectionTitle(h("languages", lang), s));
     for (const l of languages) {
       children.push(new Paragraph({
         spacing: { after: 40 },
-        children: [new TextRun({ text: `${l.language}${clean(l.level) ? ` — ${l.level}` : ""}`, size: 20, font: "Calibri" })],
+        children: [new TextRun({ text: `${l.language}${clean(l.level) ? ` — ${l.level}` : ""}`, size: s.bodySize, font: s.bodyFont })],
       }));
     }
   }
 
   // Certifications
   if (certifications.length > 0) {
-    children.push(sectionTitle(lang === "en" ? "Certifications" : "Certificazioni"));
+    children.push(sectionTitle(h("certifications", lang), s));
     for (const cert of certifications) {
       children.push(new Paragraph({
         spacing: { after: 40 },
         children: [
-          new TextRun({ text: cert.name, bold: true, size: 20, font: "Calibri" }),
-          ...(clean(cert.issuer) ? [new TextRun({ text: ` — ${cert.issuer}`, size: 20, font: "Calibri" })] : []),
-          ...(clean(cert.year) ? [new TextRun({ text: ` (${cert.year})`, size: 18, font: "Calibri", color: MUTED_HEX })] : []),
+          new TextRun({ text: cert.name, bold: true, size: s.bodySize, font: s.bodyFont }),
+          ...(clean(cert.issuer) ? [new TextRun({ text: ` — ${cert.issuer}`, size: s.bodySize, font: s.bodyFont })] : []),
+          ...(clean(cert.year) ? [new TextRun({ text: ` (${cert.year})`, size: s.metaSize, font: s.bodyFont, color: s.mutedHex })] : []),
         ],
       }));
     }
@@ -173,22 +256,22 @@ export async function generateDocx(cv: Record<string, any>, lang?: string): Prom
 
   // Projects
   if (projects.length > 0) {
-    children.push(sectionTitle(lang === "en" ? "Projects" : "Progetti"));
+    children.push(sectionTitle(h("projects", lang), s));
     for (const proj of projects) {
       children.push(new Paragraph({
         spacing: { before: 80, after: 20 },
-        children: [new TextRun({ text: proj.name, bold: true, size: 20, font: "Calibri" })],
+        children: [new TextRun({ text: proj.name, bold: true, size: s.bodySize, font: s.bodyFont })],
       }));
       if (clean(proj.description)) {
         children.push(new Paragraph({
           spacing: { after: 40 },
-          children: [new TextRun({ text: proj.description, size: 20, font: "Calibri" })],
+          children: [new TextRun({ text: proj.description, size: s.bodySize, font: s.bodyFont })],
         }));
       }
       if (clean(proj.link)) {
         children.push(new Paragraph({
           spacing: { after: 40 },
-          children: [new TextRun({ text: proj.link, size: 18, font: "Calibri", color: ACCENT_HEX })],
+          children: [new TextRun({ text: proj.link, size: s.metaSize, font: s.bodyFont, color: s.accentHex })],
         }));
       }
     }
@@ -196,10 +279,10 @@ export async function generateDocx(cv: Record<string, any>, lang?: string): Prom
 
   // Extra sections
   for (const sec of extraSections) {
-    children.push(sectionTitle(sec.title));
+    children.push(sectionTitle(sec.title, s));
     const items = (sec.items || []).filter((item: string) => clean(item));
     for (const item of items) {
-      children.push(bulletParagraph(item));
+      children.push(bulletParagraph(item, s));
     }
   }
 
