@@ -16,13 +16,15 @@ export function StepRevisione({
   onNext,
   onBack,
   onUpdateSkills,
+  tailoring,
 }: {
-  tailorResult: TailorResult;
+  tailorResult: TailorResult | null;
   analyzeResult: AnalyzeResult | null;
   originalCv: Record<string, unknown> | null;
   onNext: () => void;
   onBack: () => void;
   onUpdateSkills?: (skills: any) => void;
+  tailoring?: boolean;
 }) {
   const [diffOpen, setDiffOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
