@@ -1,9 +1,21 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAi } from "../_shared/ai-provider.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { checkIntegrity } from "../_shared/integrity-check.ts";
 
 const SYSTEM_PROMPT = `You are an elite HR reviewer and CV quality controller.
 You receive a tailored CV (JSON) and must return a PERFECTED version following these 10 rules.
+
+You also receive the ORIGINAL CV (before tailoring) as ground truth.
+
+## GROUND TRUTH RULE
+For every bullet, description, and skill in the tailored CV:
+- If the content cannot be traced back to the original CV, REVERT it to the original wording
+- If the tailored version adds metrics (%, numbers, amounts) not in the original, REMOVE them
+- If the tailored version adds qualitative outcomes ("con risultati misurabili", "migliorando significativamente") not in the original, REMOVE them
+- When in doubt, prefer the original wording over the tailored version
+
+The original CV is the SOURCE OF TRUTH. Your job is to POLISH, not to INVENT.
 
 ## 10 RULES — APPLY ALL, NO EXCEPTIONS
 
@@ -14,8 +26,8 @@ Exception: proper nouns (company names, product names, technology names like Rea
 
 ### 2. BULLET = ACTION VERB + RESULT
 Every bullet point MUST start with a strong action verb (past tense for past roles, present for current).
-Bad: "CRM project management" → Good: "Gestito il progetto CRM aziendale con risultati misurabili"
-Bad: "Conversational AI initiatives" → Good: "Guidato iniziative di AI conversazionale"
+Bad: "CRM project management" → Good: "Gestito il progetto CRM aziendale"
+Bad: "Sales activities" → Good: "Gestito le attivita' commerciali e la relazione con i clienti"
 
 ### 3. CAPITALIZATION
 First letter of every bullet point, description, and summary sentence MUST be uppercase.
@@ -39,7 +51,7 @@ Keep certification names in their original language (they are proper nouns).
 
 ### 7. SKILL DEDUPLICATION & CLEANUP
 - Remove duplicate skills (case-insensitive)
-- Remove generic clichés: "Comunicazione Efficace", "Problem Solving", "Team Working", "Lavoro di Squadra", "Capacità di Adattamento", "Orientamento al Risultato"
+- Remove generic clichés: "Comunicazione Efficace", "Problem Solving", "Team Working", "Lavoro di Squadra", "Capacità di Adattamento", "Orientamento al Risultato", "Effective Communication", "Teamwork", "Adaptability", "Results-Oriented", "Self-Motivated", "Detail-Oriented", "Proactive", "Dynamic Professional"
 - Remove skills that are just job titles or role descriptions
 - Keep technical skills, tools, frameworks, methodologies
 
@@ -63,6 +75,11 @@ The summary MUST be:
 - Mention years of experience and key domain expertise
 If the summary is generic or has filler, rewrite it.
 
+### 11. NO INVENTED OUTCOMES
+If a bullet in the input contains no metrics or results, do NOT add them.
+"Managed CRM project" → "Gestito il progetto CRM" (not "...con risultati eccellenti").
+Your job is to POLISH language, not to INVENT results.
+
 ## WHAT YOU MUST NOT DO
 - Do NOT invent new experiences, skills, or certifications
 - Do NOT modify company names, dates, degree titles, grades
@@ -79,7 +96,7 @@ const TOOL_SCHEMA = {
   type: "function",
   function: {
     name: "reviewed_cv",
-    description: "Return the complete corrected CV after applying all 10 HR review rules",
+    description: "Return the complete corrected CV after applying all review rules",
     parameters: {
       type: "object",
       properties: {
@@ -194,7 +211,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // US-S06: Auth check — verify user identity
+    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Non autorizzato" }), {
@@ -216,7 +233,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { cv, detected_language, role_title } = await req.json();
+    const { cv, detected_language, role_title, original_cv, job_requirements } = await req.json();
 
     if (!cv) {
       return new Response(
@@ -235,11 +252,16 @@ Deno.serve(async (req: Request) => {
     const userMessage = `## CONTEXT
 Target language: ${lang}
 Target role: ${role}
+${job_requirements ? `Job requirements: ${JSON.stringify(job_requirements)}` : ""}
 
-## CV TO REVIEW
+## ORIGINAL CV (GROUND TRUTH — every claim must be traceable to this)
+${original_cv ? JSON.stringify(original_cv) : "Not provided"}
+
+## TAILORED CV TO REVIEW
 ${JSON.stringify(cvForReview)}
 
-Apply all 10 rules and return the corrected CV. Remember: EVERY text field must be in "${lang}". Fix ALL bullets to start with action verbs. Remove all artifacts and clichés.`;
+Apply all 11 rules. EVERY text field must be in "${lang}". Fix ALL bullets to start with action verbs. Remove all artifacts and clichés.
+CRITICAL: if ANY content in the tailored CV is not traceable to the original CV, revert it to the original.`;
 
     const userId = claimsData.claims.sub as string;
 
@@ -271,13 +293,20 @@ Apply all 10 rules and return the corrected CV. Remember: EVERY text field must 
     if (cv.personal) {
       const reviewed = parsed as any;
       if (!reviewed.personal) reviewed.personal = {};
-      // Keep original personal fields, only allow language translation of location
       reviewed.personal.name = cv.personal.name;
       reviewed.personal.email = cv.personal.email;
       reviewed.personal.phone = cv.personal.phone;
       reviewed.personal.linkedin = cv.personal.linkedin;
       reviewed.personal.website = cv.personal.website;
       reviewed.personal.date_of_birth = cv.personal.date_of_birth;
+    }
+
+    // Integrity check post-review (only if original_cv provided)
+    if (original_cv) {
+      const integrityResult = checkIntegrity(original_cv, parsed as Record<string, unknown>);
+      if (integrityResult.warnings.length > 0) {
+        console.warn(`[cv-review] Integrity: ${integrityResult.warnings.length} issues corrected`);
+      }
     }
 
     return new Response(
@@ -292,4 +321,3 @@ Apply all 10 rules and return the corrected CV. Remember: EVERY text field must 
     );
   }
 });
-
