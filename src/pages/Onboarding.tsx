@@ -111,18 +111,25 @@ export default function Onboarding() {
     }
   };
 
-  const handleUploadAndParse = () => {
+  const handleUploadAndParse = async () => {
     if (!file || !user) return;
-    if (!hasConsent) {
-      setShowConsentModal(true);
-      return;
+    // Save consent inline if not already saved
+    if (sensitiveConsent) {
+      const alreadyConsented = await hasSensitiveDataConsent(user.id);
+      if (!alreadyConsented) {
+        const userHash = user.email ? await hashEmail(user.email) : undefined;
+        await supabase.from("consent_logs" as any).insert({
+          user_id: user.id,
+          user_hash: userHash,
+          consent_type: "sensitive_data",
+          consent_version: "1.0",
+          granted: true,
+          user_agent: navigator.userAgent,
+          method: "inline_upload",
+          metadata: { screen: "onboarding_upload" },
+        });
+      }
     }
-    doUploadAndParse();
-  };
-
-  const handleConsentGranted = () => {
-    setShowConsentModal(false);
-    setHasConsent(true);
     doUploadAndParse();
   };
 
