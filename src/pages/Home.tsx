@@ -672,9 +672,9 @@ export default function Home() {
     [apps]
   );
   const hasApplications = activeApps.length > 0;
-  const avgVersoScore = useMemo(() => {
+  const avgMatchScore = useMemo(() => {
     const scores = (apps ?? [])
-      .map((a) => calcVersoScore({ match_score: a.match_score, ats_score: a.ats_score, honest_score: (a as any).honest_score }))
+      .map((a) => a.match_score)
       .filter((s): s is number => s !== null);
     if (scores.length === 0) return null;
     return Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);
