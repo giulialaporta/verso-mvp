@@ -114,24 +114,34 @@ function MobileTabBar() {
     if (canCreate) navigate("/app/nuova");
   };
 
-  const TabButton = ({ path, icon: Icon, label }: { path: string; icon: typeof House; label: string }) => (
-    <button
-      onClick={() => navigate(path)}
-      className="relative flex flex-col items-center justify-center gap-0.5 py-2"
-    >
-      <Icon
-        size={22}
-        weight={isActive(path) ? "fill" : "regular"}
-        className={isActive(path) ? "text-primary" : "text-muted-foreground"}
-      />
-      <span className={`text-[10px] font-medium ${isActive(path) ? "text-primary" : "text-muted-foreground"}`}>
-        {label}
-      </span>
-      {isActive(path) && (
-        <span className="absolute -bottom-1 h-1 w-1 rounded-full bg-primary" />
-      )}
-    </button>
-  );
+  const TabButton = ({ path, icon: Icon, label }: { path: string; icon: typeof House; label: string }) => {
+    const active = isActive(path);
+    const handleClick = () => {
+      if (active) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        navigate(path);
+      }
+    };
+    return (
+      <button
+        onClick={handleClick}
+        className="relative flex flex-col items-center justify-center gap-0.5 py-2 min-h-[44px]"
+      >
+        <Icon
+          size={22}
+          weight={active ? "fill" : "regular"}
+          className={active ? "text-primary" : "text-muted-foreground"}
+        />
+        <span className={`text-[11px] font-medium ${active ? "text-primary" : "text-muted-foreground"}`}>
+          {label}
+        </span>
+        {active && (
+          <span className="absolute -bottom-1 h-1 w-1 rounded-full bg-primary" />
+        )}
+      </button>
+    );
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
