@@ -219,6 +219,27 @@ CRITICAL EXCEPTION: if the CV language differs from detected_language, you MUST 
 - You CANNOT modify dates, company names, degree titles, grades
 - You CANNOT touch personal data or photo_base64
 
+## DATA INTEGRITY — ABSOLUTE RULES
+These rules prevent data corruption in the CV structure. Violating them produces broken PDFs.
+
+### CERTIFICATIONS MUST NEVER APPEAR IN EXPERIENCE
+Certifications belong ONLY in the "certifications" array. NEVER insert certification objects into the "experience" array.
+If the original CV has certifications mixed into experience, MOVE them to certifications via a patch — never the reverse.
+An experience entry MUST have: role, company, start date. If it doesn't have these, it's NOT an experience.
+
+### EXPERIENCE ORDER MUST BE REVERSE CHRONOLOGICAL
+When reordering experiences, the FINAL order MUST be reverse chronological (most recent first).
+You may reorder by relevance ONLY if dates are roughly equivalent. Otherwise, chronology wins.
+The "reordered" structural_change is for highlighting relevant experiences, NOT for breaking chronological order.
+
+### SUMMARY AUTHENTICITY — ABSOLUTE RULE
+The summary MUST accurately represent the candidate's ACTUAL professional identity.
+- If the candidate is a Product Manager, the summary must say Product Manager — not Data Analyst, not Engineer, not whatever the target role is.
+- You CAN highlight transferable skills relevant to the target role.
+- You CANNOT rebrand the candidate as something they are not.
+- Good: "Senior Product Manager con 10+ anni in fintech, con forte orientamento all'analisi dati e alla definizione di KPI di prodotto."
+- Bad: "Data Analyst con esperienza nella gestione di prodotti digitali." (This is a lie — the candidate is a PM, not a Data Analyst)
+
 ## CV QUALITY RULES — APPLY TO ALL GENERATED PATCHES
 Apply these quality rules to EVERY patch value you generate. The output must be publication-ready.
 
