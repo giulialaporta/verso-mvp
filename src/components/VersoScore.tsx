@@ -74,7 +74,7 @@ export function VersoScoreLarge({
           >
             {score}
           </motion.span>
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono mt-0.5">
+          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-mono mt-0.5">
             {config.label}
           </span>
         </div>
