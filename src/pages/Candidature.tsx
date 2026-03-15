@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -24,14 +23,16 @@ import {
   Trash,
   ArrowClockwise,
   Plus,
+  CaretDown,
+  CaretRight,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ExportDrawer } from "@/components/ExportDrawer";
 import { MatchScoreCompact } from "@/components/MatchScore";
 import { DetailContent } from "@/components/candidature/DetailContent";
 import { ResponsiveDetailPanel } from "@/components/candidature/ResponsiveDetailPanel";
-
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 import { useApplications } from "@/hooks/useApplications";
 import type { AppRowWithAts } from "@/types/application";
@@ -46,7 +47,16 @@ function formatDate(dateStr: string) {
   });
 }
 
-
+// Status order for grouping
+const STATUS_ORDER = ["draft", "inviata", "visualizzata", "contattato", "follow-up", "ko"];
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Bozze",
+  inviata: "Inviate",
+  visualizzata: "Visualizzate",
+  contattato: "Contattato",
+  "follow-up": "Follow-up",
+  ko: "KO",
+};
 
 export default function Candidature() {
   const { user } = useAuth();
@@ -70,21 +80,16 @@ export default function Candidature() {
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
-      // Delete PDF from storage if exists
       const { data: tcData } = await supabase
         .from("tailored_cvs")
         .select("pdf_url")
         .eq("application_id", id);
       if (tcData) {
-        // pdf_url now stores the storage path directly (not a full URL)
-        const pdfPaths = tcData
-          .map((tc) => tc.pdf_url)
-          .filter(Boolean) as string[];
+        const pdfPaths = tcData.map((tc) => tc.pdf_url).filter(Boolean) as string[];
         if (pdfPaths.length > 0) {
           await supabase.storage.from("cv-exports").remove(pdfPaths);
         }
       }
-      // Delete related tailored_cvs first
       await supabase.from("tailored_cvs").delete().eq("application_id", id);
       const { error } = await supabase.from("applications").delete().eq("id", id);
       if (error) throw error;
@@ -120,8 +125,17 @@ export default function Candidature() {
     }
   };
 
-  const drafts = useMemo(() => (apps ?? []).filter((a) => a.status.toLowerCase() === "draft"), [apps]);
-  const active = useMemo(() => (apps ?? []).filter((a) => a.status.toLowerCase() !== "draft"), [apps]);
+  // Group apps by status
+  const grouped = useMemo(() => {
+    if (!apps) return {};
+    const groups: Record<string, AppRowWithAts[]> = {};
+    for (const app of apps) {
+      const key = app.status.toLowerCase();
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(app);
+    }
+    return groups;
+  }, [apps]);
 
   if (appsLoading) {
     return (
@@ -177,6 +191,58 @@ export default function Candidature() {
     </div>
   );
 
+  const DraftCard = ({ draft }: { draft: AppRowWithAts }) => (
+    <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/60 px-3 py-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
+        {draft.company_name.charAt(0)}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium truncate">{draft.role_title}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          {draft.company_name} · {formatDate(draft.created_at)}
+        </p>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate(`/app/nuova?draft=${draft.id}`)}
+        className="gap-1 text-xs"
+      >
+        Riprendi <ArrowRight size={12} />
+      </Button>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+            aria-label={`Elimina bozza ${draft.role_title}`}
+          >
+            <Trash size={14} />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminare la bozza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La bozza per {draft.role_title} — {draft.company_name} verrà eliminata permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDelete(draft.id)}
+              disabled={deletingId === draft.id}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingId === draft.id ? "Eliminazione..." : "Elimina"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+
   return (
     <div className="mx-auto max-w-xl space-y-5 px-4 sm:px-0">
       <div className="flex items-center justify-between">
@@ -186,94 +252,47 @@ export default function Candidature() {
         </Button>
       </div>
 
-      {/* Drafts section */}
-      {drafts.length > 0 && (
-        <Card className="border-warning/30 bg-card/80">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-warning flex items-center gap-2">
-              <ArrowClockwise size={16} /> Bozze ({drafts.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {drafts.map((draft, i) => (
-              <motion.div
-                key={draft.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/60 px-3 py-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-bold text-muted-foreground uppercase">
-                    {draft.company_name.charAt(0)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{draft.role_title}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {draft.company_name} · {formatDate(draft.created_at)}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate(`/app/nuova?draft=${draft.id}`)}
-                    className="gap-1 text-xs"
+      {/* Status-grouped sections */}
+      {STATUS_ORDER.map((status) => {
+        const items = grouped[status];
+        if (!items || items.length === 0) return null;
+
+        const style = STATUS_STYLES[status] ?? STATUS_STYLES.draft;
+        const label = STATUS_LABELS[status] || status;
+        const defaultOpen = status !== "ko";
+
+        return (
+          <Collapsible key={status} defaultOpen={defaultOpen}>
+            <CollapsibleTrigger className="flex items-center gap-2 w-full py-2 group">
+              <span className={`h-2 w-2 rounded-full ${style.bg.replace("/15", "").replace("/20", "")} ${style.text}`} style={{ backgroundColor: "currentColor", opacity: 0.7 }} />
+              <span className="text-sm font-medium text-foreground">{label}</span>
+              <span className="text-xs text-muted-foreground font-mono">({items.length})</span>
+              <CaretDown size={14} className="ml-auto text-muted-foreground group-data-[state=closed]:hidden" />
+              <CaretRight size={14} className="ml-auto text-muted-foreground group-data-[state=open]:hidden" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="space-y-2 mt-1">
+                {items.map((app, i) => (
+                  <motion.div
+                    key={app.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
                   >
-                    Riprendi <ArrowRight size={12} />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        aria-label={`Elimina bozza ${draft.role_title}`}
-                      >
-                        <Trash size={14} />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Eliminare la bozza?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          La bozza per {draft.role_title} — {draft.company_name} verrà eliminata permanentemente.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Annulla</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(draft.id)}
-                          disabled={deletingId === draft.id}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          {deletingId === draft.id ? "Eliminazione..." : "Elimina"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </motion.div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+                    {status === "draft" ? (
+                      <DraftCard draft={app} />
+                    ) : (
+                      <AppCard app={app} />
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
 
-      {/* Active applications */}
-      {active.length > 0 && (
-        <div className="space-y-3">
-          {active.map((app, i) => (
-            <motion.div
-              key={app.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <AppCard app={app} />
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {/* Detail Panel — Sheet on desktop, Drawer on mobile */}
+      {/* Detail Panel */}
       <ResponsiveDetailPanel
         open={selectedApp !== null}
         onOpenChange={(o) => !o && setSelectedApp(null)}

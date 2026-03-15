@@ -10,7 +10,7 @@ export function useProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, salary_expectations")
+        .select("full_name, salary_expectations, avatar_url")
         .eq("user_id", user!.id)
         .single();
       if (error) throw error;

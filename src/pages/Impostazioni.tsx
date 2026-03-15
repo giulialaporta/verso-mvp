@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useProfile } from "@/hooks/useProfile";
+import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Trash, User, Warning, Lock, SignOut, ShieldCheck,
   Cookie, ArrowSquareOut, CheckCircle, XCircle, DownloadSimple, Headset, EnvelopeSimple,
-  Crown, ArrowRight, Question,
+  Crown, ArrowRight, Question, CurrencyEur, PencilSimple, Check, X,
 } from "@phosphor-icons/react";
 import { resetCookieConsent, getCookieConsent } from "@/components/CookieBanner";
 import { hashEmail } from "@/lib/hash-email";
@@ -60,6 +62,13 @@ export default function Impostazioni() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isPro, subscriptionEnd, cancelAtPeriodEnd, refresh: refreshSubscription } = useSubscription();
+  const { data: profileData } = useProfile();
+  const queryClient = useQueryClient();
+  const salaryExpectations = (profileData as any)?.salary_expectations as { current_ral: number | null; desired_ral: number | null } | null;
+  const [editingSalary, setEditingSalary] = useState(false);
+  const [currentRal, setCurrentRal] = useState("");
+  const [desiredRal, setDesiredRal] = useState("");
+  const [savingSalary, setSavingSalary] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -273,6 +282,92 @@ export default function Impostazioni() {
               {user?.user_metadata?.full_name || user?.user_metadata?.name || "—"}
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Aspettative RAL */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <CurrencyEur size={20} weight="bold" />
+            Aspettative RAL
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {editingSalary ? (
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="RAL attuale"
+                value={currentRal}
+                onChange={(e) => setCurrentRal(e.target.value.replace(/\D/g, ""))}
+                className="h-8 text-xs font-mono w-28"
+                inputMode="numeric"
+              />
+              <span className="text-muted-foreground text-xs">→</span>
+              <Input
+                placeholder="Desiderata"
+                value={desiredRal}
+                onChange={(e) => setDesiredRal(e.target.value.replace(/\D/g, ""))}
+                className="h-8 text-xs font-mono w-28"
+                inputMode="numeric"
+              />
+              <button
+                onClick={async () => {
+                  setSavingSalary(true);
+                  try {
+                    await supabase
+                      .from("profiles")
+                      .update({
+                        salary_expectations: {
+                          current_ral: currentRal ? parseInt(currentRal, 10) : null,
+                          desired_ral: desiredRal ? parseInt(desiredRal, 10) : null,
+                        },
+                      } as any)
+                      .eq("user_id", user!.id);
+                    queryClient.invalidateQueries({ queryKey: ["profile"] });
+                    setEditingSalary(false);
+                    toast({ title: "Aspettative RAL aggiornate." });
+                  } finally {
+                    setSavingSalary(false);
+                  }
+                }}
+                disabled={savingSalary}
+                className="text-primary hover:text-primary/80 p-0.5"
+              >
+                <Check size={16} weight="bold" />
+              </button>
+              <button onClick={() => setEditingSalary(false)} className="text-muted-foreground hover:text-foreground p-0.5">
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {salaryExpectations?.current_ral || salaryExpectations?.desired_ral ? (
+                <>
+                  <span className="text-xs text-muted-foreground">Attuale:</span>
+                  <span className="font-mono text-sm">
+                    {salaryExpectations.current_ral ? `€ ${salaryExpectations.current_ral.toLocaleString("it-IT")}` : "—"}
+                  </span>
+                  <span className="text-muted-foreground text-xs">→</span>
+                  <span className="font-mono text-sm text-primary">
+                    {salaryExpectations.desired_ral ? `€ ${salaryExpectations.desired_ral.toLocaleString("it-IT")}` : "—"}
+                  </span>
+                </>
+              ) : (
+                <span className="text-sm text-muted-foreground">Nessuna aspettativa impostata</span>
+              )}
+              <button
+                onClick={() => {
+                  setCurrentRal(salaryExpectations?.current_ral?.toString() || "");
+                  setDesiredRal(salaryExpectations?.desired_ral?.toString() || "");
+                  setEditingSalary(true);
+                }}
+                className="ml-auto text-muted-foreground hover:text-primary transition-colors p-0.5"
+              >
+                <PencilSimple size={14} />
+              </button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
