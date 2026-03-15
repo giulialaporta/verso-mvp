@@ -328,16 +328,11 @@ function RecentApplications({ apps }: { apps: AppRowWithAts[] }) {
               </div>
             </div>
             <div className="flex items-center gap-2 mt-2 ml-11">
-              {app.match_score !== null && (
-                <span className="font-mono text-xs font-bold text-primary">
-                  {app.match_score}%
-                </span>
-              )}
-              {(app as any).ats_score !== null && (app as any).ats_score !== undefined && (
-                <span className="font-mono text-xs font-bold text-info">
-                  ATS {(app as any).ats_score}%
-                </span>
-              )}
+              <VersoScoreCompact
+                matchScore={app.match_score}
+                atsScore={(app as any).ats_score}
+                honestScore={(app as any).honest_score}
+              />
               <StatusChip status={app.status} />
             </div>
           </div>
