@@ -8,7 +8,7 @@ import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap, Lock, Crown, FileDoc } from "@phosphor-icons/react";
-import { ClassicoTemplate, MinimalTemplate, ExecutiveTemplate, ModernoTemplate, TEMPLATES } from "@/components/cv-templates";
+import { ClassicoTemplate, MinimalTemplate, ExecutiveTemplate, ModernoTemplate, TEMPLATES, type TemplateId } from "@/components/cv-templates";
 import { generateDocx } from "@/components/cv-templates/docx-generator";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
@@ -35,12 +35,12 @@ export function StepExport({
   const { user } = useAuth();
   const { isPro } = useSubscription();
   const navigate = useNavigate();
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("classico");
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>("classico");
   const [downloading, setDownloading] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const trackEvent = useTrackEvent();
 
-  const handleTemplateSelect = (templateId: string) => {
+  const handleTemplateSelect = (templateId: TemplateId) => {
     const tpl = TEMPLATES.find(t => t.id === templateId);
     if (tpl && !tpl.free && !isPro) {
       toast("Sblocca questo template con Verso Pro", {
@@ -111,7 +111,7 @@ export function StepExport({
     setDownloadingDocx(true);
     try {
       const blob = await generateDocx(tailoredCv as Record<string, any>, cvLang, selectedTemplate);
-      const fileName = `${fileBaseName}.docx`;
+      const fileName = `${fileBaseName}-${selectedTemplate}.docx`;
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -131,7 +131,7 @@ export function StepExport({
       }
 
       toast.success("DOCX scaricato!");
-      trackEvent("docx_downloaded", {});
+      trackEvent("docx_downloaded", { template: selectedTemplate });
     } catch (e) {
       console.error("DOCX generation error:", e);
       toast.error("Errore durante la generazione del DOCX.");
