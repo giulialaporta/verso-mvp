@@ -137,7 +137,7 @@ export function StepAnnuncio({
               </TabsContent>
               <TabsContent value="url" className="mt-4">
                 <Input placeholder="https://www.linkedin.com/jobs/view/..." value={url} onChange={(e) => setUrl(e.target.value)} disabled={loading} />
-                <p className="text-[10px] text-muted-foreground mt-2">Se l'URL non funziona, copia il testo dell'annuncio e usa il tab Testo.</p>
+                <p className="text-[11px] text-muted-foreground mt-2">Se l'URL non funziona, copia il testo dell'annuncio e usa il tab Testo.</p>
               </TabsContent>
             </Tabs>
             {loading ? (

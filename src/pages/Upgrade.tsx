@@ -199,7 +199,7 @@ export default function Upgrade() {
           </Button>
         </motion.div>
 
-        <p className="text-center text-[10px] text-muted-foreground">
+        <p className="text-center text-[11px] text-muted-foreground">
           Puoi disdire in qualsiasi momento dalle impostazioni.
         </p>
       </div>

@@ -294,7 +294,7 @@ export default function CandidaturaDetail() {
                 <div className="flex items-center gap-2">
                   <Eye size={16} className="text-primary" />
                   <span className="text-sm font-medium">Modifiche AI</span>
-                  <span className="font-mono text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{diff.length}</span>
+                  <span className="font-mono text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{diff.length}</span>
                 </div>
                 <CaretDown size={14} className={`text-muted-foreground transition-transform ${diffOpen ? "rotate-180" : ""}`} />
               </CollapsibleTrigger>
