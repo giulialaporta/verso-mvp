@@ -165,7 +165,9 @@ function compileTemplate(template: string, data: Record<string, any>): string {
       result = result.replace(/\{\{this\.([\w]+)\}\}/g, function(_: string, prop: string) {
         return escapeHtml(String(item != null ? (item[prop] != null ? item[prop] : "") : ""));
       });
-      var ctx = typeof item === "object" ? Object.assign({}, data, item, {".": item}) : Object.assign({}, data, {".": item});
+      var ctx = typeof item === "object"
+        ? Object.assign({}, data, item, {"this": item, ".": item})
+        : Object.assign({}, data, {"this": item, ".": item});
       return compileTemplate(result, ctx);
     }).join("");
   });
