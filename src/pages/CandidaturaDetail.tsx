@@ -62,6 +62,7 @@ export default function CandidaturaDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(true);
   const [app, setApp] = useState<any>(null);
