@@ -453,6 +453,7 @@ export default function Nuova() {
               onNewApplication={handleNewApplication}
             />
           )}
+
         </motion.div>
       </AnimatePresence>
     </div>
