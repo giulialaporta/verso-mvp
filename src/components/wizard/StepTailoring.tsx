@@ -162,7 +162,7 @@ export function StepTailoring({
                 ))}
             </div>
             {analyzeResult.skills_missing.length > 0 && (
-              <p className="text-[10px] text-muted-foreground italic">Clicca su una skill per dire che ce l'hai</p>
+              <p className="text-[11px] text-muted-foreground italic">Clicca su una skill per dire che ce l'hai</p>
             )}
           </CardContent></Card>
         </motion.div>
