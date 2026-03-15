@@ -40,7 +40,7 @@ export function StepExport({
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const trackEvent = useTrackEvent();
 
-  const handleTemplateSelect = (templateId: string) => {
+  const handleTemplateSelect = (templateId: TemplateId) => {
     const tpl = TEMPLATES.find(t => t.id === templateId);
     if (tpl && !tpl.free && !isPro) {
       toast("Sblocca questo template con Verso Pro", {

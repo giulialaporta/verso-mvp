@@ -135,7 +135,7 @@ function getStyle(templateId?: TemplateId): DocxStyle {
   return STYLES[templateId ?? "classico"];
 }
 
-function toAlignment(align: HorizontalAlign): AlignmentType {
+function toAlignment(align: HorizontalAlign) {
   return align === "center" ? AlignmentType.CENTER : AlignmentType.LEFT;
 }
 
