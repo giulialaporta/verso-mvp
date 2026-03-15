@@ -148,9 +148,12 @@ export default function Login() {
     if (oauthLoading) return;
     setOauthLoading(true);
     try {
-      // Save pending consent flag before redirect
+      // Save pending consent flag + plan before redirect
       if (isSignUp) {
         localStorage.setItem("verso_pending_oauth_consents", "true");
+      }
+      if (isPro) {
+        localStorage.setItem("verso_pending_plan", "pro");
       }
       // Redirect back to /login so the session can be picked up
       // before ProtectedRoute kicks in (avoids race condition)
