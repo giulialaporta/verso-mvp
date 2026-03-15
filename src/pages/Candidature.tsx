@@ -28,7 +28,7 @@ import {
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ExportDrawer } from "@/components/ExportDrawer";
-import { VersoScoreCompact } from "@/components/VersoScore";
+import { MatchScoreCompact } from "@/components/MatchScore";
 import { DetailContent } from "@/components/candidature/DetailContent";
 import { ResponsiveDetailPanel } from "@/components/candidature/ResponsiveDetailPanel";
 
