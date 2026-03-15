@@ -26,8 +26,30 @@ export function StepRevisione({
   onUpdateSkills?: (skills: any) => void;
   tailoring?: boolean;
 }) {
+  const [diffOpen, setDiffOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
+
+  const initialManaged = useMemo(
+    () => skillsToManaged((tailorResult?.tailored_cv as any)?.skills),
+    [tailorResult?.tailored_cv]
+  );
+  const [managedSkills, setManagedSkills] = useState<ManagedSkill[]>(initialManaged);
+
+  const handleSkillsChange = (updated: ManagedSkill[]) => {
+    setManagedSkills(updated);
+    if (onUpdateSkills && tailorResult) {
+      const originalSkills = (tailorResult.tailored_cv as any)?.skills;
+      onUpdateSkills(managedToSkills(updated, originalSkills));
+    }
+  };
+
+  const stats = useMemo(() =>
+    tailorResult ? computeConfidence(originalCv, tailorResult.tailored_cv, tailorResult.diff) : null,
+    [originalCv, tailorResult]
+  );
+
   // Tailoring loading state — shown when user clicked "Genera CV" and we advanced here
-  if (tailoring || !tailorResult) {
+  if (tailoring || !tailorResult || !stats) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 px-4">
         <div>
@@ -46,28 +68,6 @@ export function StepRevisione({
     );
   }
 
-  const [diffOpen, setDiffOpen] = useState(false);
-  const [skillsOpen, setSkillsOpen] = useState(false);
-
-  const initialManaged = useMemo(
-    () => skillsToManaged((tailorResult.tailored_cv as any)?.skills),
-    [tailorResult.tailored_cv]
-  );
-  const [managedSkills, setManagedSkills] = useState<ManagedSkill[]>(initialManaged);
-
-  const handleSkillsChange = (updated: ManagedSkill[]) => {
-    setManagedSkills(updated);
-    if (onUpdateSkills) {
-      const originalSkills = (tailorResult.tailored_cv as any)?.skills;
-      onUpdateSkills(managedToSkills(updated, originalSkills));
-    }
-  };
-
-  const stats = useMemo(() =>
-    computeConfidence(originalCv, tailorResult.tailored_cv, tailorResult.diff),
-    [originalCv, tailorResult.tailored_cv, tailorResult.diff]
-  );
-
   const matchScore = analyzeResult?.match_score ?? 0;
   const atsScore = analyzeResult?.ats_score ?? 0;
   const totalDiffs = tailorResult.diff?.length ?? 0;
@@ -78,8 +78,8 @@ export function StepRevisione({
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft size={20} /></button>
         <div>
-          <h2 className="font-display text-2xl font-bold">Revisione</h2>
-          <p className="text-muted-foreground mt-1">Riepilogo delle modifiche effettuate dal tailoring.</p>
+          <h2 className="font-display text-2xl font-bold">CV Adattato</h2>
+          <p className="text-muted-foreground mt-1">Riepilogo delle modifiche effettuate.</p>
         </div>
       </div>
       <AiLabel text="Punteggi calcolati con AI — valore indicativo" />
@@ -205,7 +205,7 @@ export function StepRevisione({
       )}
 
       <Button onClick={onNext} className="w-full gap-2">
-        Procedi all'export <ArrowRight size={16} />
+        Procedi al download <ArrowRight size={16} />
       </Button>
     </div>
   );
