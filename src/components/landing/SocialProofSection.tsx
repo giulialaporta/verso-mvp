@@ -52,9 +52,9 @@ const SocialProofSection = () => {
         <div className="rounded-2xl border border-border bg-card">
           <div className="grid grid-cols-3 divide-x divide-border text-center py-6 sm:py-8">
             {[
-              { num: "2.400+", label: "candidature gestite" },
-              { num: "94%", label: "degli utenti ottiene più colloqui" },
-              { num: "3 min", label: "per un CV tailorizzato" },
+              { num: "4 step", label: "per un CV su misura" },
+              { num: "< 3 min", label: "dal job post al CV pronto" },
+              { num: "0 bugie", label: "solo fatti, ottimizzati" },
             ].map((s) => (
               <div key={s.num} className="px-2">
                 <div className="font-display font-extrabold text-xl sm:text-3xl text-primary mb-1">{s.num}</div>

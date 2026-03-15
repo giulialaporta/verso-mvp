@@ -111,7 +111,7 @@ const rows = [
     tagColor: "text-warning border-warning/30 bg-warning/5",
     title: "Il tuo funnel del recruiting, sotto controllo.",
     body: "Dalla prima candidatura alla risposta finale. Verso tiene traccia di tutto e ti ricorda quando fare follow-up.",
-    bullets: ["Kanban drag & drop", "Gestione stati candidatura", "Reminder follow-up intelligenti"],
+    bullets: ["Gestione stati candidatura", "Vista dettaglio per ogni application", "Tutto in un unico posto"],
     mock: <TrackerMock />,
     reverse: false,
   },

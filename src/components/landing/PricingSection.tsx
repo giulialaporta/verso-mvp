@@ -1,10 +1,8 @@
 import { Check, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const PricingSection = () => {
-  const [annual, setAnnual] = useState(false);
   const navigate = useNavigate();
 
   return (
@@ -18,19 +16,6 @@ const PricingSection = () => {
             Semplice.{" "}
             <span className="text-gradient">Senza sorprese.</span>
           </h2>
-
-          {/* Toggle */}
-          <div className="inline-flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2">
-            <span className={`text-sm ${!annual ? "text-foreground font-semibold" : "text-muted-foreground"}`}>Mensile</span>
-            <button
-              onClick={() => setAnnual(!annual)}
-              className={`relative w-11 h-6 rounded-full transition-colors ${annual ? "bg-primary" : "bg-muted"}`}
-            >
-              <div className={`absolute top-1 w-4 h-4 rounded-full bg-background transition-transform ${annual ? "left-6" : "left-1"}`} />
-            </button>
-            <span className={`text-sm ${annual ? "text-foreground font-semibold" : "text-muted-foreground"}`}>Annuale</span>
-            {annual && <span className="text-[11px] font-mono text-warning">Risparmia €57</span>}
-          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-3xl mx-auto">
@@ -41,16 +26,16 @@ const PricingSection = () => {
               <span className="font-display font-extrabold text-3xl sm:text-4xl">€0</span>
               <span className="text-muted-foreground text-sm">per sempre</span>
             </div>
-            <p className="text-muted-foreground text-sm mb-6 sm:mb-8">Per iniziare a ottimizzare il tuo CV</p>
+            <p className="text-muted-foreground text-sm mb-6 sm:mb-8">Per provare Verso e ottimizzare il tuo primo CV</p>
 
             <ul className="space-y-3 mb-8 flex-1">
-              {["3 tailoring / mese", "Tracker fino a 10 candidature", "2 template CV", "Score base"].map((f) => (
+              {["1 candidatura completa", "2 template CV (Classico, Minimal)", "Score di compatibilità"].map((f) => (
                 <li key={f} className="flex items-start gap-3 text-sm">
                   <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   <span>{f}</span>
                 </li>
               ))}
-              {["Sync email", "Corsi consigliati", "Link condivisibile"].map((f) => (
+              {["Template premium (Executive, Moderno)", "Candidature illimitate", "Analisi stipendio"].map((f) => (
                 <li key={f} className="flex items-start gap-3 text-sm text-muted-foreground">
                   <X className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{f}</span>
@@ -76,21 +61,19 @@ const PricingSection = () => {
 
             <h3 className="font-display font-bold text-xl sm:text-2xl mb-1">Pro</h3>
             <div className="flex items-baseline gap-1 mb-2">
-              <span className="font-display font-extrabold text-3xl sm:text-4xl">
-                {annual ? "€99" : "€12.99"}
-              </span>
-              <span className="text-muted-foreground text-sm">{annual ? "/anno" : "/mese"}</span>
+              <span className="font-display font-extrabold text-3xl sm:text-4xl">€9,90</span>
+              <span className="text-muted-foreground text-sm">/mese</span>
             </div>
             <p className="text-muted-foreground text-sm mb-6 sm:mb-8">Per chi cerca lavoro seriamente</p>
 
             <ul className="space-y-3 mb-8 flex-1">
               {[
-                "CV personalizzati illimitati",
-                "Doppio score: compatibilità + ATS",
-                "Pre-screening di fattibilità",
+                "Candidature illimitate",
                 "Tutti i template premium",
+                "Pre-screening di fattibilità",
+                "Doppio score: compatibilità + ATS",
                 "Analisi stipendio",
-                "Suggerimenti corsi e gap analysis",
+                "Priorità nuove funzionalità",
               ].map((f) => (
                 <li key={f} className="flex items-start gap-3 text-sm">
                   <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
