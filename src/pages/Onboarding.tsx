@@ -53,7 +53,7 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (user) {
-      hasSensitiveDataConsent(user.id).then(setHasConsent);
+      hasSensitiveDataConsent(user.id).then((v) => setSensitiveConsent(v));
     }
   }, [user]);
 
