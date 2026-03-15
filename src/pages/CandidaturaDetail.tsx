@@ -208,7 +208,7 @@ export default function CandidaturaDetail() {
       </div>
 
       {/* Status Grid — prominente, subito dopo header */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
         {STATUSES.map((s) => {
           const style = STATUS_STYLES[s] ?? STATUS_STYLES.draft;
           const isActive = status === s;
