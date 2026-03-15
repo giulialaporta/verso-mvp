@@ -689,7 +689,70 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (photoBase64) (tailoredCV as any).photo_base64 = photoBase64;
+    // --- SERVER-SIDE VALIDATION (Story 20.3) ---
+
+    // 1. Remove ghost/placeholder bullets
+    if (Array.isArray(cvExperience)) {
+      for (const exp of cvExperience) {
+        if (Array.isArray(exp.bullets)) {
+          const origBullets = [...exp.bullets];
+          exp.bullets = exp.bullets
+            .map((b: string) => {
+              if (typeof b !== "string") return b;
+              // Trim trailing "..." that indicate truncation
+              return b.replace(/\.\.\.\s*$/, "").trim();
+            })
+            .filter((b: string) =>
+              typeof b === "string" &&
+              b.trim().length >= 10 &&
+              !/^[•\-…\.·\s]+$/.test(b.trim()) &&
+              !/^\.{2,}/.test(b.trim())
+            );
+          // If all bullets were removed, restore originals
+          if (exp.bullets.length === 0 && origBullets.length > 0) {
+            exp.bullets = origBullets;
+          }
+        }
+      }
+    }
+
+    // 2. Deduplicate skills
+    if (cvSkills && typeof cvSkills === "object") {
+      for (const key of ["technical", "soft", "tools"]) {
+        if (Array.isArray(cvSkills[key])) {
+          const seen = new Set<string>();
+          cvSkills[key] = cvSkills[key].filter((s: string) => {
+            if (typeof s !== "string") return false;
+            const normalized = s.trim().toLowerCase();
+            if (!normalized || normalized === "..." || seen.has(normalized)) return false;
+            seen.add(normalized);
+            return true;
+          });
+        }
+      }
+    }
+
+    // 3. Reorder skills by job relevance
+    const jobSkills = (job_data?.required_skills || []).map((s: string) => s.toLowerCase());
+    const jobNice = (job_data?.nice_to_have || []).map((s: string) => s.toLowerCase());
+    if (cvSkills && typeof cvSkills === "object") {
+      for (const key of ["technical", "soft", "tools"]) {
+        if (Array.isArray(cvSkills[key]) && cvSkills[key].length > 1) {
+          cvSkills[key].sort((a: string, b: string) => {
+            const aLower = a.toLowerCase();
+            const bLower = b.toLowerCase();
+            const aRequired = jobSkills.some((j: string) => aLower.includes(j) || j.includes(aLower));
+            const bRequired = jobSkills.some((j: string) => bLower.includes(j) || j.includes(bLower));
+            const aNice = jobNice.some((j: string) => aLower.includes(j) || j.includes(aLower));
+            const bNice = jobNice.some((j: string) => bLower.includes(j) || j.includes(bLower));
+            if (aRequired && !bRequired) return -1;
+            if (!aRequired && bRequired) return 1;
+            if (aNice && !bNice) return -1;
+            if (!aNice && bNice) return 1;
+            return 0;
+          });
+        }
+      }
 
     // --- INTEGRITY CHECK: validate tailored CV against original ---
     const integrityResult = checkIntegrity(originalCV, tailoredCV as Record<string, unknown>);
