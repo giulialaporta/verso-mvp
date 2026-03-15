@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { hasSensitiveDataConsent } from "@/components/SensitiveDataConsent";
 import { hashEmail } from "@/lib/hash-email";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
