@@ -68,10 +68,16 @@ export default function Login() {
     saveRegistrationConsents(user.id, user.email ?? "", "oauth_by_action").catch(() => {});
   }, [user]);
 
-  // Redirect authenticated users imperatively (avoids Navigate ref warning)
+  // Redirect authenticated users — check pending plan from OAuth
   useEffect(() => {
     if (!loading && user) {
-      navigate(fromPath, { replace: true });
+      const pendingPlan = localStorage.getItem("verso_pending_plan");
+      if (pendingPlan) {
+        localStorage.removeItem("verso_pending_plan");
+        navigate(pendingPlan === "pro" ? "/upgrade" : "/app/home", { replace: true });
+      } else {
+        navigate(fromPath, { replace: true });
+      }
     }
   }, [loading, user, fromPath, navigate]);
 
