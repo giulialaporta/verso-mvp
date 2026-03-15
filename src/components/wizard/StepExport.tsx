@@ -318,10 +318,10 @@ export function StepExport({
               {reviewFixes.map((fix, i) => (
                 <div key={i} className="rounded-lg border border-border/30 bg-card/50 px-4 py-3 text-sm">
                   <div className="flex items-start gap-2">
-                    <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 font-mono text-[10px] text-warning uppercase">
+                    <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 font-mono text-[11px] text-warning uppercase">
                       {fix.section}
                     </span>
-                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
                       {fix.field}
                     </span>
                   </div>
