@@ -343,7 +343,7 @@ export function StepExport({
 
       {/* Download buttons */}
       <div className="space-y-3">
-        <Button onClick={handleDownload} disabled={downloading} className="w-full gap-2 h-12 text-base">
+        <Button onClick={handleDownload} disabled={downloading} className="w-full gap-2 h-12 text-base active:scale-[0.98] transition-transform">
           {downloading ? <><SpinnerGap size={18} className="animate-spin" /> Generazione...</> : <><DownloadSimple size={18} /> Scarica PDF</>}
         </Button>
 
