@@ -20,10 +20,17 @@ export function useApplications(limit?: number) {
       const { data, error } = await query;
       if (error) throw error;
 
-      return (data ?? []).map((d: any) => ({
-        ...d,
-        ats_score: d.tailored_cvs?.[0]?.ats_score ?? null,
-      })) as AppRowWithAts[];
+      return (data ?? []).map((d: any) => {
+        const tc = d.tailored_cvs?.[0];
+        const honestObj = tc?.honest_score;
+        return {
+          ...d,
+          ats_score: tc?.ats_score ?? null,
+          honest_score: typeof honestObj === "object" && honestObj !== null
+            ? (honestObj as any).confidence ?? null
+            : typeof honestObj === "number" ? honestObj : null,
+        };
+      }) as AppRowWithAts[];
     },
     enabled: !!user,
     staleTime: 30_000,

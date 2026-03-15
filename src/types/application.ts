@@ -14,7 +14,8 @@ export type AppRow = {
   notes: string | null;
 };
 
-/** AppRow enriched with ats_score from tailored_cvs join */
+/** AppRow enriched with ats_score and honest_score from tailored_cvs join */
 export type AppRowWithAts = AppRow & {
   ats_score: number | null;
+  honest_score: number | null;
 };
