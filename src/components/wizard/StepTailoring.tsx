@@ -91,7 +91,7 @@ export function StepTailoring({
             <div className="flex items-center gap-2"><ChartLineUp size={20} className="text-primary" /><span className="text-sm font-medium">Match Score</span></div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-3xl font-bold text-primary">{animatedScore}%</span>
-              {scoreBadge && <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-medium ${scoreBadge.className}`}>{scoreBadge.label}</span>}
+              {scoreBadge && <span className={`rounded-full px-2 py-0.5 text-[11px] font-mono font-medium ${scoreBadge.className}`}>{scoreBadge.label}</span>}
             </div>
           </div>
           <div className="h-3 rounded-full bg-muted overflow-hidden">
