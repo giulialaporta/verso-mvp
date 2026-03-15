@@ -30,13 +30,20 @@ The rule is simple: this is an Italian product. Analysis is ALWAYS in Italian. N
    - Missing required degree type
    - These are UNBRIDGEABLE gaps — no amount of rewording fixes them
 5. Generate 3-5 FOLLOW-UP QUESTIONS for bridgeable gaps only
-   - Each question MUST be a single, direct question — ONE sentence, max 15 words
-   - Ask YES/NO-style questions about specific skills or experiences
-   - Good: "Hai esperienza con Kubernetes in produzione?"
-   - Bad: "Quale esperienza hai avuto con la gestione end-to-end di discovery e validazione di ipotesi (user research, competitive analysis) prima della delivery di un prodotto? Puoi portare un esempio concreto?"
-   - Do NOT combine multiple questions into one
-   - Do NOT ask the candidate to provide examples or elaborate — the detail field handles that
-   - The "context" field explains WHY you're asking (for the UI), keep it under 20 words
+    - Each question MUST be a single, direct question — ONE sentence, max 15 words
+    - Ask YES/NO-style questions about specific skills or experiences
+    - Good: "Hai esperienza con Kubernetes in produzione?"
+    - Bad: "Quale esperienza hai avuto con la gestione end-to-end di discovery e validazione di ipotesi?"
+    - Do NOT combine multiple questions into one
+    - Do NOT ask the candidate to provide examples or elaborate
+    - For each question, generate 3-4 CONTEXTUAL answer options as chips. These must be:
+      * Specific to the question (NOT generic "Sì/No/Un po'")
+      * Short (2-5 words each)
+      * Covering the full spectrum from strong match to no match
+      * Examples: for "Hai esperienza con Kubernetes?" → ["In produzione, 3+ anni", "Uso base/dev", "Solo teoria", "No"]
+      * Examples: for "Conosci Python?" → ["Uso quotidiano", "Progetti personali", "Basi scolastiche", "No"]
+      * Examples: for "Hai gestito team?" → ["Team 5+", "Team piccolo", "Co-lead", "No"]
+    - The "context" field explains WHY you're asking (for the UI), keep it under 20 words
 6. Assess overall feasibility: low / medium / high
 
 ## SALARY ANALYSIS
@@ -135,11 +142,23 @@ const TOOL_SCHEMA = {
             type: "object",
             properties: {
               id: { type: "string" },
-              question: { type: "string" },
-              context: { type: "string" },
+              question: { type: "string", description: "Single direct question, max 15 words" },
+              context: { type: "string", description: "Why this matters, max 20 words" },
               field: { type: "string", enum: ["experience", "skills", "education", "other"] },
+              options: {
+                type: "array",
+                description: "3-4 contextual answer chips, specific to the question. Short (2-5 words). From strongest match to weakest. Last option should be negative/no.",
+                items: {
+                  type: "object",
+                  properties: {
+                    value: { type: "string", description: "Machine-readable value" },
+                    label: { type: "string", description: "Display label, 2-5 words, specific to the question" },
+                  },
+                  required: ["value", "label"],
+                },
+              },
             },
-            required: ["id", "question", "context", "field"],
+            required: ["id", "question", "context", "field", "options"],
           },
         },
         overall_feasibility: {

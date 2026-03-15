@@ -2,23 +2,18 @@ import { useState } from "react";
 import { AiLabel } from "@/components/AiLabel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, CheckCircle, XCircle, Warning,
-  SpinnerGap, ShieldWarning, ChatTeardropDots,
+  SpinnerGap, ShieldWarning, ChatTeardropDots, Check,
 } from "@phosphor-icons/react";
 import { SalaryAnalysisCard } from "@/components/SalaryAnalysisCard";
 import type { PrescreenResult } from "./wizard-types";
 
-type StructuredAnswer = { level: string; detail: string };
-
 const DEFAULT_OPTIONS = [
-  { value: "expert", label: "Sì, molto" },
+  { value: "yes", label: "Sì" },
   { value: "some", label: "Un po'" },
-  { value: "none", label: "No" },
+  { value: "no", label: "No" },
 ];
 
 export function StepVerifica({
@@ -32,7 +27,7 @@ export function StepVerifica({
   onProceed: (answers: { question: string; answer: string; level?: string; detail?: string }[]) => void;
   onBack: () => void;
 }) {
-  const [answers, setAnswers] = useState<Record<string, StructuredAnswer>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>({});
 
   if (loading) {
     return (
@@ -61,14 +56,25 @@ export function StepVerifica({
 
   const handleProceed = () => {
     const formattedAnswers = prescreenResult.follow_up_questions
-      .filter((q) => answers[q.id]?.level)
-      .map((q) => ({
-        question: q.question,
-        answer: `${answers[q.id].level}${answers[q.id].detail ? ` — ${answers[q.id].detail}` : ""}`,
-        level: answers[q.id].level,
-        detail: answers[q.id].detail || "",
-      }));
+      .filter((q) => answers[q.id])
+      .map((q) => {
+        const selectedValue = answers[q.id];
+        const selectedOption = (q.options || DEFAULT_OPTIONS).find(o => o.value === selectedValue);
+        return {
+          question: q.question,
+          answer: selectedOption?.label || selectedValue,
+          level: selectedValue,
+          detail: "",
+        };
+      });
     onProceed(formattedAnswers);
+  };
+
+  const selectAnswer = (questionId: string, value: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: prev[questionId] === value ? "" : value, // toggle
+    }));
   };
 
   return (
@@ -148,48 +154,63 @@ export function StepVerifica({
       {prescreenResult.follow_up_questions.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="border-info/30 bg-card/80">
-            <CardContent className="pt-5 space-y-4">
-              <div className="flex items-center gap-2"><ChatTeardropDots size={20} className="text-info" weight="fill" /><span className="text-sm font-medium">Aiutami a conoscerti meglio</span></div>
-              <p className="text-xs text-muted-foreground">Seleziona il tuo livello per ogni domanda. Le risposte sono facoltative ma aiutano Verso a personalizzare il CV.</p>
-              <div className="space-y-5">
-                {prescreenResult.follow_up_questions.map((q) => {
-                  const options = q.options || DEFAULT_OPTIONS;
-                  const current = answers[q.id] || { level: "", detail: "" };
+            <CardContent className="pt-5 space-y-5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <ChatTeardropDots size={20} className="text-info" weight="fill" />
+                  <span className="text-sm font-medium">Aiutami a conoscerti meglio</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Tocca la risposta più vicina alla tua esperienza. Facoltativo ma migliora il CV.</p>
+              </div>
+              <div className="space-y-4">
+                {prescreenResult.follow_up_questions.map((q, qi) => {
+                  const options = q.options?.length ? q.options : DEFAULT_OPTIONS;
+                  const selected = answers[q.id];
                   return (
-                    <div key={q.id} className="space-y-2.5">
-                      <p className="text-sm font-medium">{q.question}</p>
-                      <p className="text-xs text-muted-foreground italic">{q.context}</p>
-                      <RadioGroup
-                        value={current.level}
-                        onValueChange={(val) =>
-                          setAnswers((prev) => ({ ...prev, [q.id]: { ...prev[q.id], level: val, detail: prev[q.id]?.detail || "" } }))
-                        }
-                        className="flex flex-wrap gap-2"
-                      >
-                        {options.map((opt) => (
-                          <div key={opt.value} className="flex items-center">
-                            <RadioGroupItem value={opt.value} id={`${q.id}-${opt.value}`} className="sr-only peer" />
-                            <Label
-                              htmlFor={`${q.id}-${opt.value}`}
-                              className="cursor-pointer rounded-full border border-border px-3 py-1.5 text-xs font-medium transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:text-primary hover:border-muted-foreground/50"
+                    <motion.div
+                      key={q.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 + qi * 0.1 }}
+                      className="space-y-2"
+                    >
+                      <p className="text-sm font-medium leading-snug">{q.question}</p>
+                      <p className="text-[11px] text-muted-foreground">{q.context}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {options.map((opt) => {
+                          const isSelected = selected === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              onClick={() => selectAnswer(q.id, opt.value)}
+                              className={`
+                                inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium
+                                transition-all duration-150 border
+                                ${isSelected
+                                  ? "border-primary bg-primary/15 text-primary"
+                                  : "border-border bg-background/50 text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
+                                }
+                              `}
                             >
+                              <AnimatePresence mode="wait">
+                                {isSelected && (
+                                  <motion.span
+                                    initial={{ width: 0, opacity: 0 }}
+                                    animate={{ width: 14, opacity: 1 }}
+                                    exit={{ width: 0, opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="overflow-hidden"
+                                  >
+                                    <Check size={14} weight="bold" />
+                                  </motion.span>
+                                )}
+                              </AnimatePresence>
                               {opt.label}
-                            </Label>
-                          </div>
-                        ))}
-                      </RadioGroup>
-                      {current.level && current.level !== "none" && (
-                        <Input
-                          value={current.detail}
-                          onChange={(e) =>
-                            setAnswers((prev) => ({ ...prev, [q.id]: { ...prev[q.id], detail: e.target.value.slice(0, 200) } }))
-                          }
-                          placeholder="Dettaglio opzionale (max 200 car.)..."
-                          maxLength={200}
-                          className="text-sm h-9"
-                        />
-                      )}
-                    </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
                   );
                 })}
               </div>
