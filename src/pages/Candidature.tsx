@@ -282,6 +282,8 @@ export default function Candidature() {
                   >
                     {status === "draft" ? (
                       <DraftCard draft={app} />
+                    ) : status === "pronta" ? (
+                      <ProntaCard app={app} />
                     ) : (
                       <AppCard app={app} />
                     )}
