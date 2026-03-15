@@ -31,8 +31,13 @@ export default function Login() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const trackEvent = useTrackEvent();
-  const [isSignUp, setIsSignUp] = useState(false);
+
+  const planParam = searchParams.get("plan"); // "free" | "pro" | null
+  const isPro = planParam === "pro";
+
+  const [isSignUp, setIsSignUp] = useState(!!planParam);
   const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,7 +48,8 @@ export default function Login() {
 
   // US-S10: Sanitize redirect — only allow internal /app/ paths
   const rawPath = (location.state as any)?.from?.pathname;
-  const fromPath = rawPath && typeof rawPath === "string" && rawPath.startsWith("/app/") ? rawPath : "/app/home";
+  const defaultRedirect = isPro ? "/upgrade" : "/app/home";
+  const fromPath = rawPath && typeof rawPath === "string" && rawPath.startsWith("/app/") ? rawPath : defaultRedirect;
 
   // Show toast if logged out due to inactivity
   useEffect(() => {
