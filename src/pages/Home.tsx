@@ -285,22 +285,26 @@ function CVSnapshot({
     if (!cv.parsed_data) return;
     setDownloadingPdf(true);
     try {
-      const [{ pdf }, { ClassicoTemplate }] = await Promise.all([
-        import("@react-pdf/renderer"),
-        import("@/components/cv-templates"),
-      ]);
-      const blob = await pdf(<ClassicoTemplate cv={cv.parsed_data} />).toBlob();
-      const name = cv.parsed_data?.personal?.name || "CV";
-      const fileName = `CV-${name.replace(/\s+/g, "-")}.pdf`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success("PDF scaricato!");
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data, error } = await supabase.functions.invoke("render-cv", {
+        body: { cv: cv.parsed_data, template_id: "classico", format: "html", lang: "it" },
+      });
+      if (error || !data) throw new Error("Errore nel rendering del CV");
+
+      const htmlStr = typeof data === "string" ? data : "";
+      const printWindow = window.open("", "_blank", "width=800,height=1100");
+      if (!printWindow) throw new Error("Popup bloccato dal browser");
+
+      printWindow.document.open();
+      printWindow.document.write(htmlStr);
+      printWindow.document.close();
+
+      printWindow.onload = () => {
+        setTimeout(() => printWindow.print(), 400);
+      };
+      setTimeout(() => printWindow.print(), 1500);
+
+      toast.success("Finestra di stampa aperta — salva come PDF.");
     } catch (e) {
       console.error("PDF generation error:", e);
       toast.error("Errore durante la generazione del PDF.");
