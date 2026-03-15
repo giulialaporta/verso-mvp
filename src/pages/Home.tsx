@@ -72,11 +72,11 @@ import { MatchScoreCompact } from "@/components/MatchScore";
 // ─── Stats Bar ───────────────────────────────────────────────
 function StatsBar({
   activeCount,
-  avgVersoScore,
+  avgMatchScore,
   hasCV,
 }: {
   activeCount: number;
-  avgVersoScore: number | null;
+  avgMatchScore: number | null;
   hasCV: boolean;
 }) {
   return (
@@ -90,9 +90,9 @@ function StatsBar({
         },
         {
           icon: ChartLineUp,
-          label: "Verso Score",
-          value: avgVersoScore !== null ? `${avgVersoScore}` : "—",
-          accent: avgVersoScore !== null && avgVersoScore >= 66,
+          label: "Match",
+          value: avgMatchScore !== null ? `${avgMatchScore}` : "—",
+          accent: avgMatchScore !== null && avgMatchScore >= 66,
         },
         {
           icon: FileText,
