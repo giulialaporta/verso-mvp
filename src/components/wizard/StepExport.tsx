@@ -35,7 +35,7 @@ export function StepExport({
   const { user } = useAuth();
   const { isPro } = useSubscription();
   const navigate = useNavigate();
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("classico");
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>("classico");
   const [downloading, setDownloading] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const trackEvent = useTrackEvent();
