@@ -46,11 +46,11 @@ const LandingFooter = () => {
 
         {/* Bottom bar */}
         <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="font-mono text-[11px] tracking-wide text-muted-foreground">
-            © {new Date().getFullYear()} Verso. Fatto con precisione.
+          <span className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground/60">
+            © {new Date().getFullYear()} Verso
           </span>
-          <span className="font-mono text-[11px] tracking-wide text-muted-foreground">
-            Made in Italy <span className="not-italic">🇮🇹</span>
+          <span className="font-mono text-[11px] tracking-widest uppercase text-muted-foreground/60">
+            Milano, IT
           </span>
         </div>
       </div>
