@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -7,11 +7,24 @@ import { useAuth } from "@/contexts/AuthContext";
 import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap, Lock, Crown, FileDoc } from "@phosphor-icons/react";
+import {
+  ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap,
+  Lock, Crown, FileDoc, CheckCircle, CaretDown, CaretUp, Pencil
+} from "@phosphor-icons/react";
 import { ClassicoTemplate, MinimalTemplate, ExecutiveTemplate, ModernoTemplate, TEMPLATES, type TemplateId } from "@/components/cv-templates";
 import { generateDocx } from "@/components/cv-templates/docx-generator";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+
+type ReviewFix = {
+  section: string;
+  field: string;
+  problem: string;
+  correction: string;
+};
+
+type ReviewStatus = "idle" | "reviewing" | "done" | "error";
 
 export function StepExport({
   tailoredCv,
@@ -40,6 +53,47 @@ export function StepExport({
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const trackEvent = useTrackEvent();
 
+  // Formal review state
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("idle");
+  const [reviewFixes, setReviewFixes] = useState<ReviewFix[]>([]);
+  const [reviewedCv, setReviewedCv] = useState<Record<string, unknown> | null>(null);
+  const [fixesOpen, setFixesOpen] = useState(false);
+  const reviewCalledRef = useRef(false);
+
+  // Launch review in background on mount
+  useEffect(() => {
+    if (reviewCalledRef.current) return;
+    reviewCalledRef.current = true;
+    setReviewStatus("reviewing");
+
+    supabase.functions
+      .invoke("cv-formal-review", {
+        body: { cv: tailoredCv, template_id: selectedTemplate },
+      })
+      .then(({ data, error }) => {
+        if (error || !data) {
+          console.error("cv-formal-review error:", error);
+          setReviewStatus("error");
+          return;
+        }
+        const fixes = (data.fixes as ReviewFix[]) || [];
+        setReviewFixes(fixes);
+        setReviewedCv(data.revised_cv || tailoredCv);
+        setReviewStatus("done");
+
+        if (fixes.length > 0) {
+          setFixesOpen(true);
+        }
+      })
+      .catch((e) => {
+        console.error("cv-formal-review fetch error:", e);
+        setReviewStatus("error");
+      });
+  }, [tailoredCv, selectedTemplate]);
+
+  // The CV to use for downloads: reviewed if available, otherwise original
+  const activeCv = reviewedCv || tailoredCv;
+
   const handleTemplateSelect = (templateId: TemplateId) => {
     const tpl = TEMPLATES.find(t => t.id === templateId);
     if (tpl && !tpl.free && !isPro) {
@@ -51,16 +105,16 @@ export function StepExport({
     setSelectedTemplate(templateId);
   };
 
-  const personalName = (tailoredCv?.personal as any)?.name || "CV";
+  const personalName = (activeCv?.personal as any)?.name || "CV";
   const matchScore = analyzeResult?.match_score ?? 0;
   const atsScore = analyzeResult?.ats_score ?? 0;
 
   const stats = useMemo(() =>
-    computeConfidence(tailorResult.original_cv ?? null, tailoredCv, tailorResult.diff),
-    [tailorResult.original_cv, tailoredCv, tailorResult.diff]
+    computeConfidence(tailorResult.original_cv ?? null, activeCv, tailorResult.diff),
+    [tailorResult.original_cv, activeCv, tailorResult.diff]
   );
 
-  const fileBaseName = `CV-${personalName.replace(/\s+/g, "-")}-${jobData.company_name.replace(/\s+/g, "-")}`;
+  const fileBaseName = "CV-" + personalName.replace(/\s+/g, "-") + "-" + jobData.company_name.replace(/\s+/g, "-");
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -72,8 +126,8 @@ export function StepExport({
         moderno: ModernoTemplate,
       };
       const TemplateComponent = templateMap[selectedTemplate] || ClassicoTemplate;
-      const blob = await pdf(<TemplateComponent cv={tailoredCv} lang={cvLang} />).toBlob();
-      const fileName = `${fileBaseName}.pdf`;
+      const blob = await pdf(<TemplateComponent cv={activeCv} lang={cvLang} />).toBlob();
+      const fileName = fileBaseName + ".pdf";
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -85,13 +139,13 @@ export function StepExport({
       URL.revokeObjectURL(url);
 
       if (user?.id && applicationId) {
-        const storagePath = `${user.id}/${applicationId}/${fileName}`;
+        const storagePath = user.id + "/" + applicationId + "/" + fileName;
         await supabase.storage.from("cv-exports").upload(storagePath, blob, { contentType: "application/pdf", upsert: true });
         await supabase.from("tailored_cvs").update({ pdf_url: storagePath, template_id: selectedTemplate } as any).eq("application_id", applicationId);
       }
 
       toast.success("PDF scaricato!");
-      trackEvent("pdf_downloaded", { template: selectedTemplate });
+      trackEvent("pdf_downloaded", { template: selectedTemplate, formal_review: reviewStatus === "done" });
       onNext();
     } catch (e) {
       console.error("PDF generation error:", e);
@@ -110,8 +164,8 @@ export function StepExport({
     }
     setDownloadingDocx(true);
     try {
-      const blob = await generateDocx(tailoredCv as Record<string, any>, cvLang, selectedTemplate);
-      const fileName = `${fileBaseName}-${selectedTemplate}.docx`;
+      const blob = await generateDocx(activeCv as Record<string, any>, cvLang, selectedTemplate);
+      const fileName = fileBaseName + "-" + selectedTemplate + ".docx";
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -123,7 +177,7 @@ export function StepExport({
       URL.revokeObjectURL(url);
 
       if (user?.id && applicationId) {
-        const storagePath = `${user.id}/${applicationId}/${fileName}`;
+        const storagePath = user.id + "/" + applicationId + "/" + fileName;
         await supabase.storage.from("cv-exports").upload(storagePath, blob, {
           contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
           upsert: true,
@@ -131,7 +185,7 @@ export function StepExport({
       }
 
       toast.success("DOCX scaricato!");
-      trackEvent("docx_downloaded", { template: selectedTemplate });
+      trackEvent("docx_downloaded", { template: selectedTemplate, formal_review: reviewStatus === "done" });
     } catch (e) {
       console.error("DOCX generation error:", e);
       toast.error("Errore durante la generazione del DOCX.");
@@ -161,13 +215,13 @@ export function StepExport({
               <button
                 key={t.id}
                 onClick={() => handleTemplateSelect(t.id)}
-                className={`relative rounded-xl border-2 p-6 text-center transition-all ${
+                className={[
+                  "relative rounded-xl border-2 p-6 text-center transition-all",
                   isLocked ? "border-border/30 opacity-70"
                   : isSelected ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
                   : "border-border/50 hover:border-primary/40"
-                }`}
+                ].join(" ")}
               >
-                {/* Pro badge + lock overlay */}
                 {isLocked && (
                   <>
                     <div className="absolute inset-0 rounded-xl backdrop-blur-[2px] bg-background/40 z-10 flex items-center justify-center">
@@ -217,10 +271,75 @@ export function StepExport({
       <div className="flex gap-2 flex-wrap">
         <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary">Match {matchScore}%</span>
         <span className="rounded-full bg-info/15 px-3 py-1 font-mono text-xs text-info">ATS {atsScore}%</span>
-        <span className={`rounded-full px-3 py-1 font-mono text-xs ${stats.confidence >= 90 ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning"}`}>
+        <span className={[
+          "rounded-full px-3 py-1 font-mono text-xs",
+          stats.confidence >= 90 ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning"
+        ].join(" ")}>
           Confidence {stats.confidence}%
         </span>
+
+        {/* Formal review badge */}
+        {reviewStatus === "reviewing" && (
+          <span className="rounded-full bg-info/15 px-3 py-1 font-mono text-xs text-info flex items-center gap-1.5">
+            <SpinnerGap size={12} className="animate-spin" /> Revisione...
+          </span>
+        )}
+        {reviewStatus === "done" && reviewFixes.length === 0 && (
+          <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary flex items-center gap-1.5">
+            <CheckCircle size={12} weight="fill" /> Revisione OK
+          </span>
+        )}
+        {reviewStatus === "done" && reviewFixes.length > 0 && (
+          <span className="rounded-full bg-warning/15 px-3 py-1 font-mono text-xs text-warning flex items-center gap-1.5">
+            <Pencil size={12} /> {reviewFixes.length} correzioni
+          </span>
+        )}
+        {reviewStatus === "error" && (
+          <span className="rounded-full bg-destructive/15 px-3 py-1 font-mono text-xs text-destructive">
+            Revisione non disponibile
+          </span>
+        )}
       </div>
+
+      {/* Formal review fixes panel */}
+      {reviewStatus === "done" && reviewFixes.length > 0 && (
+        <Collapsible open={fixesOpen} onOpenChange={setFixesOpen}>
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center gap-2 w-full rounded-lg border border-border/50 bg-card px-4 py-3 text-sm font-medium text-foreground hover:border-primary/30 transition-colors">
+              <Pencil size={16} className="text-warning" />
+              <span>{reviewFixes.length} correzioni formali applicate</span>
+              <span className="ml-auto">
+                {fixesOpen ? <CaretUp size={14} /> : <CaretDown size={14} />}
+              </span>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 space-y-2">
+              {reviewFixes.map((fix, i) => (
+                <div key={i} className="rounded-lg border border-border/30 bg-card/50 px-4 py-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 font-mono text-[10px] text-warning uppercase">
+                      {fix.section}
+                    </span>
+                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                      {fix.field}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-muted-foreground">{fix.problem}</p>
+                  <p className="mt-1 text-foreground">{fix.correction}</p>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {reviewStatus === "done" && reviewFixes.length === 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+          <CheckCircle size={18} weight="fill" />
+          Nessuna correzione necessaria — il tuo CV è pronto.
+        </div>
+      )}
 
       {/* Download buttons */}
       <div className="space-y-3">
