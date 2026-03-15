@@ -437,11 +437,11 @@ export default function Impostazioni() {
               <div className="space-y-3">
                 {/* T&C + Privacy */}
                 {(() => {
-                  const s = getConsentStatus("terms_and_privacy");
+                  const s = getConsentStatus("terms");
                   return (
                     <ConsentRow
-                      label={CONSENT_LABELS.terms_and_privacy.label}
-                      description={CONSENT_LABELS.terms_and_privacy.description}
+                      label={CONSENT_LABELS.terms.label}
+                      description={CONSENT_LABELS.terms.description}
                       granted={s?.granted ?? false}
                       date={s?.date}
                       revocable={false}
