@@ -292,6 +292,9 @@ async function callGoogleAI(request: AiRequest, model: string): Promise<Provider
     system_instruction: systemInstruction,
     contents,
   };
+  if (request.temperature !== undefined) {
+    body.generationConfig = { ...(body.generationConfig as Record<string, unknown> || {}), temperature: request.temperature };
+  }
 
   if (request.tools) {
     body.tools = toGoogleAITools(request.tools);
