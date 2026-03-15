@@ -191,11 +191,10 @@ If the candidate is OVERQUALIFIED for the role (more senior than required):
 
 ## TWO-LEVEL TAILORING
 
-### Level 1 — STRUCTURAL (what to keep/remove/reorder)
-- REMOVE experiences completely irrelevant to the target role
+### Level 1 — STRUCTURAL (reorder and condense, NEVER remove experiences)
 - REORDER experiences by relevance to the job
 - CONDENSE verbose bullet lists (max 4-5 bullets per experience)
-- REMOVE irrelevant projects, certifications, or extra sections
+- REMOVE irrelevant projects, certifications, or extra sections (but NEVER experiences)
 
 ### Level 2 — CONTENT (how to rewrite what remains)
 - Summary: 2-3 sentences maximum, specific to this role
