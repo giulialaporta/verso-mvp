@@ -745,6 +745,29 @@ Deno.serve(async (req) => {
 
     if (photoBase64) (tailoredCV as any).photo_base64 = photoBase64;
 
+    // --- INTEGRITY CHECK: validate tailored CV against original ---
+    const integrityResult = checkIntegrity(originalCV, tailoredCV as Record<string, unknown>);
+    
+    if (integrityResult.warnings.length > 0) {
+      console.warn(`[ai-tailor] Integrity check: ${integrityResult.warnings.length} issues corrected`);
+      result.integrity_warnings = integrityResult.warnings;
+    }
+
+    // Replace self-reported honest_score with server-computed values
+    result.honest_score = {
+      ...((result.honest_score as Record<string, unknown>) || {}),
+      // Override with server-computed values (AI self-reports are unreliable)
+      dates_modified: integrityResult.computed_honesty.dates_modified,
+      roles_changed: integrityResult.computed_honesty.roles_changed,
+      companies_changed: integrityResult.computed_honesty.companies_changed,
+      degrees_changed: integrityResult.computed_honesty.degrees_changed,
+      metrics_fabricated: integrityResult.computed_honesty.metrics_fabricated,
+      certs_invented: integrityResult.computed_honesty.certs_invented,
+      certs_removed: integrityResult.computed_honesty.certs_removed,
+      server_validated: true,
+      reverts: integrityResult.reverts,
+    };
+
     result.tailored_cv = tailoredCV;
     result.master_cv_id = masterCV.id;
     const originalCvClean = JSON.parse(JSON.stringify(originalCV));
