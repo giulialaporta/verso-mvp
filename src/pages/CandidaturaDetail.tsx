@@ -257,9 +257,9 @@ export default function CandidaturaDetail() {
 
       {/* Score Note */}
       {scoreNote && (
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="py-4">
-            <p className="text-sm text-muted-foreground">{scoreNote}</p>
+         <Card className="border-border/50 bg-card/80 overflow-hidden">
+           <CardContent className="py-4">
+             <p className="text-sm text-muted-foreground break-words">{scoreNote}</p>
           </CardContent>
         </Card>
       )}
