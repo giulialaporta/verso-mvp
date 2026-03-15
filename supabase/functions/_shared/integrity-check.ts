@@ -186,6 +186,58 @@ export function checkIntegrity(
       }
     }
 
+    // Check for qualitative claims not in original
+    for (let b = 0; b < tailBullets.length; b++) {
+      const bullet = tailBullets[b];
+      if (typeof bullet !== "string") continue;
+      const origBullet = origBullets[b];
+
+      const qualClaims = QUALITATIVE_CLAIM_PATTERNS.filter(p => p.test(bullet));
+      if (qualClaims.length > 0) {
+        const hasInOriginal = qualClaims.some(p => p.test(origBulletsJoined));
+        if (!hasInOriginal && origBullet) {
+          warnings.push(
+            `Experience[${i}].bullets[${b}]: qualitative claim detected not in original, reverted`
+          );
+          tailBullets[b] = origBullet;
+          reverts.bullets_reverted++;
+        }
+      }
+
+      // Check for completely rewritten bullets (no shared significant words)
+      if (origBullet && typeof origBullet === "string" && origBullet.length > 10) {
+        const currentBullet = tailBullets[b];
+        if (typeof currentBullet === "string") {
+          const origWords = new Set(
+            origBullet.toLowerCase().split(/\s+/).filter(w => w.length > 4)
+          );
+          const tailWords = currentBullet.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+          const shared = tailWords.filter(w => origWords.has(w));
+
+          if (origWords.size > 3 && shared.length / Math.max(tailWords.length, 1) < 0.15) {
+            warnings.push(
+              `Experience[${i}].bullets[${b}]: completely rewritten with no connection to original, reverted`
+            );
+            tailBullets[b] = origBullet;
+            reverts.bullets_reverted++;
+          }
+        }
+      }
+    }
+
+    // Validate bullet length — remove too-short or placeholder bullets
+    if (Array.isArray(tExp.bullets)) {
+      const beforeCount = tExp.bullets.length;
+      tExp.bullets = tExp.bullets.filter((b: string) =>
+        typeof b === "string" && b.trim().length >= 10 && !/^[•\-…\.·\s]+$/.test(b.trim())
+      );
+      // If all bullets were removed, restore originals
+      if (tExp.bullets.length === 0 && origBullets.length > 0) {
+        tExp.bullets = [...origBullets];
+        warnings.push(`Experience[${i}]: all bullets invalid, restored originals`);
+      }
+    }
+
     // Also check description for fabricated metrics
     if (tExp.description && typeof tExp.description === "string") {
       const descMetrics = extractMetrics(tExp.description);
