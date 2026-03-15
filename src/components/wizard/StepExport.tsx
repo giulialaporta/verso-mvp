@@ -110,7 +110,7 @@ export function StepExport({
     }
     setDownloadingDocx(true);
     try {
-      const blob = await generateDocx(tailoredCv as Record<string, any>, cvLang);
+      const blob = await generateDocx(tailoredCv as Record<string, any>, cvLang, selectedTemplate);
       const fileName = `${fileBaseName}.docx`;
 
       const url = URL.createObjectURL(blob);
