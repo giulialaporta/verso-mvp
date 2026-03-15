@@ -161,14 +161,10 @@ function compileTemplate(template: string, data: Record<string, any>): string {
     var arr = resolveValue(data, key);
     if (!Array.isArray(arr) || arr.length === 0) return "";
     return arr.map(function(item: any) {
-      var result = body.replace(/\{\{this\}\}/g, escapeHtml(String(item)));
-      result = result.replace(/\{\{this\.([\w]+)\}\}/g, function(_: string, prop: string) {
-        return escapeHtml(String(item != null ? (item[prop] != null ? item[prop] : "") : ""));
-      });
       var ctx = typeof item === "object"
         ? Object.assign({}, data, item, {"this": item, ".": item})
-        : Object.assign({}, data, {"this": item, ".": item});
-      return compileTemplate(result, ctx);
+        : Object.assign({}, data, {"this": String(item), ".": item});
+      return compileTemplate(body, ctx);
     }).join("");
   });
 
