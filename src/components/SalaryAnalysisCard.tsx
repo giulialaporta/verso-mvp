@@ -131,7 +131,7 @@ export function SalaryAnalysisCard({ data, delay = 0.5 }: { data: SalaryAnalysis
 
           <div className="flex items-start gap-1.5 pt-1 border-t border-border/30">
             <Info size={12} className="text-muted-foreground shrink-0 mt-0.5" />
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {data.position_estimate.source === "benchmark"
                 ? "Range basato su dati retributivi reali raccolti dal web. I valori restano indicativi."
                 : "I dati retributivi sono indicativi. Il range della posizione potrebbe essere stimato dall'AI quando non esplicitato nell'annuncio."}
