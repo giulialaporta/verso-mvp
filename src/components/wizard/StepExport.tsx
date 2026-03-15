@@ -4,15 +4,14 @@ import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { pdf } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap,
-  Lock, Crown, FileDoc, CheckCircle, CaretDown, CaretUp, Pencil
+  Lock, Crown, FileDoc, CheckCircle, CaretDown, CaretUp, Pencil, Printer
 } from "@phosphor-icons/react";
-import { ClassicoTemplate, MinimalTemplate, ExecutiveTemplate, ModernoTemplate, TEMPLATES, type TemplateId } from "@/components/cv-templates";
+import { TEMPLATES, type TemplateId } from "@/components/cv-templates";
 import { generateDocx } from "@/components/cv-templates/docx-generator";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
@@ -47,7 +46,6 @@ function CVPreview({ cv, templateId, lang }: { cv: Record<string, unknown>; temp
           setLoading(false);
           return;
         }
-        // data is the HTML string
         const htmlStr = typeof data === "string" ? data : "";
         setHtml(htmlStr);
         setLoading(false);
@@ -86,6 +84,37 @@ function CVPreview({ cv, templateId, lang }: { cv: Record<string, unknown>; temp
       />
     </div>
   );
+}
+
+/** Fetch rendered HTML from render-cv and open print dialog for PDF save */
+async function printCvAsPdf(
+  cv: Record<string, unknown>,
+  templateId: string,
+  lang: string
+): Promise<void> {
+  const { data, error } = await supabase.functions.invoke("render-cv", {
+    body: { cv, template_id: templateId, format: "html", lang },
+  });
+  if (error || !data) throw new Error("Errore nel rendering del CV");
+
+  const htmlStr = typeof data === "string" ? data : "";
+  const printWindow = window.open("", "_blank", "width=800,height=1100");
+  if (!printWindow) throw new Error("Popup bloccato dal browser");
+
+  printWindow.document.open();
+  printWindow.document.write(htmlStr);
+  printWindow.document.close();
+
+  // Wait for fonts/styles to load, then trigger print
+  printWindow.onload = () => {
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
+  };
+  // Fallback if onload doesn't fire
+  setTimeout(() => {
+    printWindow.print();
+  }, 1500);
 }
 
 export function StepExport({
@@ -177,41 +206,20 @@ export function StepExport({
   );
 
   const fileBaseName = "CV-" + personalName.replace(/\s+/g, "-") + "-" + jobData.company_name.replace(/\s+/g, "-");
+  const effectiveLang = cvLang || "it";
 
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const templateMap: Record<string, typeof ClassicoTemplate> = {
-        classico: ClassicoTemplate,
-        minimal: MinimalTemplate,
-        executive: ExecutiveTemplate,
-        moderno: ModernoTemplate,
-      };
-      const TemplateComponent = templateMap[selectedTemplate] || ClassicoTemplate;
-      const blob = await pdf(<TemplateComponent cv={activeCv} lang={cvLang} />).toBlob();
-      const fileName = fileBaseName + ".pdf";
+      await printCvAsPdf(activeCv, selectedTemplate, effectiveLang);
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Track event (PDF saved via print dialog)
+      trackEvent("pdf_downloaded", { template: selectedTemplate, formal_review: reviewStatus === "done", method: "print" });
 
-      if (user?.id && applicationId) {
-        const storagePath = user.id + "/" + applicationId + "/" + fileName;
-        await supabase.storage.from("cv-exports").upload(storagePath, blob, { contentType: "application/pdf", upsert: true });
-        await supabase.from("tailored_cvs").update({ pdf_url: storagePath, template_id: selectedTemplate } as any).eq("application_id", applicationId);
-      }
-
-      toast.success("PDF scaricato!");
-      trackEvent("pdf_downloaded", { template: selectedTemplate, formal_review: reviewStatus === "done" });
-      onNext();
+      toast.success("Finestra di stampa aperta — salva come PDF.");
     } catch (e) {
       console.error("PDF generation error:", e);
-      toast.error("Errore durante la generazione del PDF.");
+      toast.error("Errore durante la generazione del PDF. Verifica che i popup non siano bloccati.");
     } finally {
       setDownloading(false);
     }
@@ -226,7 +234,7 @@ export function StepExport({
     }
     setDownloadingDocx(true);
     try {
-      const blob = await generateDocx(activeCv as Record<string, any>, cvLang, selectedTemplate);
+      const blob = await generateDocx(activeCv as Record<string, any>, effectiveLang, selectedTemplate);
       const fileName = fileBaseName + "-" + selectedTemplate + ".docx";
 
       const url = URL.createObjectURL(blob);
@@ -255,8 +263,6 @@ export function StepExport({
       setDownloadingDocx(false);
     }
   };
-
-  const effectiveLang = cvLang || "it";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4">
@@ -377,7 +383,7 @@ export function StepExport({
       {/* Download buttons */}
       <div className="space-y-3">
         <Button onClick={handleDownload} disabled={downloading} className="w-full gap-2 h-12 text-base active:scale-[0.98] transition-transform">
-          {downloading ? <><SpinnerGap size={18} className="animate-spin" /> Generazione...</> : <><DownloadSimple size={18} /> Scarica PDF</>}
+          {downloading ? <><SpinnerGap size={18} className="animate-spin" /> Generazione...</> : <><Printer size={18} /> Stampa / Salva PDF</>}
         </Button>
 
         <Button
