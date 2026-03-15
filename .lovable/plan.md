@@ -32,3 +32,37 @@ DOPO:   Step 0→1: 4s  | Step 1→2: 0s  | Step 2→3: 12s = ~16s  (−65%)
 3. **Review automatica in background** — Si attiva con `useEffect` all'ingresso nello step Export, senza click dell'utente
 4. **Download non bloccato** — L'utente può scaricare subito; se la review è pronta, il CV revisionato viene usato automaticamente
 5. **UI correzioni** — Badge nel pannello score (reviewing/OK/N correzioni) + pannello collapsible con dettaglio fix (sezione → campo → problema → correzione)
+
+# Anti-Hallucination & Integrity Check ✅
+
+## Implementato
+
+### 1. Prompt Hardening (`ai-tailor/index.ts`)
+- Aggiunta sezione **ANTI-HALLUCINATION — ABSOLUTE RULES** con 11 regole esplicite
+- Vietato inventare metriche, percentuali, importi, dimensioni team
+- Vietato modificare ruoli, aziende, location, date — copia carattere-per-carattere
+- Vietato modificare titoli di studio, voti, honors
+- Vietato aggiungere/rimuovere certificazioni
+- Bullet riformulato: "action verb + impact, metriche SOLO se presenti nell'originale"
+- Summary: preservare identità professionale reale
+
+### 2. Integrity Check server-side (`_shared/integrity-check.ts`)
+- Validazione post-patch che confronta CV tailored con originale
+- **Campi immutabili experience**: role, company, location, start, end → revert automatico
+- **Campi immutabili education**: institution, degree, field, grade, honors, program, publication → revert automatico
+- **Certificazioni**: inventate rimosse, rimosse ripristinate (match fuzzy per nome)
+- **Metriche fabbricate**: regex scan per `\d+%`, `€\d+`, `\d+[KMB]+`, `team of \d+` — revert bullet se metrica assente nell'originale
+- **Dati personali**: name, email, phone, location, linkedin protetti
+- **Education inventate**: rimosse; education rimosse: ripristinate
+
+### 3. Honest Score server-computed
+- L'AI non si auto-valuta più — i contatori sono calcolati server-side
+- Nuovi campi: `dates_modified`, `roles_changed`, `companies_changed`, `degrees_changed`, `metrics_fabricated`, `certs_invented`, `certs_removed`
+- Flag `server_validated: true` per distinguere dal vecchio self-report
+- Conteggio `reverts` con dettaglio per categoria
+
+## Root cause risolte
+- ✅ "action verb + measurable result" → non incentiva più l'invenzione di metriche
+- ✅ Nessuna enforcement server-side → integrity-check.ts valida ogni campo
+- ✅ honest_score self-reported → calcolato server-side
+- ✅ validate-output solo tipi → integrity check confronta contenuto
