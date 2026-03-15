@@ -439,6 +439,9 @@ export default function Nuova() {
             <StepCompleta
               jobData={jobData}
               applicationId={applicationId}
+              matchScore={analyzeResult?.match_score ?? null}
+              atsScore={analyzeResult?.ats_score ?? null}
+              honestScore={tailorResult?.honest_score?.confidence ?? null}
               onMarkSent={handleMarkSent}
               onKeepDraft={handleKeepDraft}
               onNewApplication={handleNewApplication}
