@@ -25,6 +25,7 @@ export default function Nuova() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const trackEvent = useTrackEvent();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isPro, loading } = useSubscription();
   const checkCanCreate = useProGate();
