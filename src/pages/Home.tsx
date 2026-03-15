@@ -164,7 +164,7 @@ function PlanCard({ isPro, loading, cancelAtPeriodEnd, subscriptionEnd }: { isPr
             <p className="text-sm font-medium">Verso Pro</p>
             <p className="text-xs text-muted-foreground">Candidature illimitate</p>
           </div>
-          <Badge variant="outline" className="border-primary/40 text-primary font-mono text-[10px]">
+          <Badge variant="outline" className="border-primary/40 text-primary font-mono text-[11px]">
             ATTIVO
           </Badge>
         </CardContent>
