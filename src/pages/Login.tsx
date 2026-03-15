@@ -236,16 +236,37 @@ export default function Login() {
             Il tuo CV, su misura
           </p>
           {isPro && isSignUp && (
-            <div className="mt-3 inline-flex items-center gap-2">
-              <span className="font-mono text-[11px] uppercase tracking-widest bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full">
-                Piano Pro · €9,90/mese
-              </span>
+            <div className="mt-4 space-y-3">
+              <div className="inline-flex items-center gap-2">
+                <span className="font-mono text-[11px] uppercase tracking-widest bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full">
+                  Piano Pro · €9,90/mese
+                </span>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-4 text-left max-w-sm mx-auto">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Incluso nel Pro</p>
+                <ul className="space-y-2">
+                  {[
+                    "Candidature illimitate",
+                    "Tutti i template CV (Executive, Moderno)",
+                    "Export DOCX",
+                    "Score compatibilità + ATS",
+                    "Pre-screening di fattibilità",
+                    "Analisi stipendio",
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-[13px] text-foreground/80">
+                      <span className="w-1 h-1 rounded-full bg-primary shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-[11px] text-muted-foreground mt-3">Annulla quando vuoi · Nessun vincolo</p>
+              </div>
               <button
                 type="button"
                 className="text-[11px] text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
                 onClick={() => navigate("/login?plan=free", { replace: true })}
               >
-                Oppure inizia gratis
+                Oppure inizia gratis →
               </button>
             </div>
           )}
