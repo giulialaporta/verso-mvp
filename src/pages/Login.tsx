@@ -235,6 +235,20 @@ export default function Login() {
           <p className="mt-2 text-sm text-muted-foreground">
             Il tuo CV, su misura
           </p>
+          {isPro && isSignUp && (
+            <div className="mt-3 inline-flex items-center gap-2">
+              <span className="font-mono text-[11px] uppercase tracking-widest bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full">
+                Piano Pro · €9,90/mese
+              </span>
+              <button
+                type="button"
+                className="text-[11px] text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+                onClick={() => navigate("/login?plan=free", { replace: true })}
+              >
+                Oppure inizia gratis
+              </button>
+            </div>
+          )}
         </div>
 
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
