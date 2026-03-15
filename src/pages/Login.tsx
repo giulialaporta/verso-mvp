@@ -94,6 +94,7 @@ export default function Login() {
           await saveRegistrationConsents(data.user.id, email);
         }
         toast.success("Controlla la tua email per confermare la registrazione!");
+        trackEvent("signup_completed", { method: "email" });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
