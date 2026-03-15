@@ -101,6 +101,7 @@ export default function Onboarding() {
       setParsedData(data.parsed_data);
       setPhotoUrl(data.photo_url || null);
       setRawText(data.raw_text || null);
+      trackEvent("cv_uploaded", { file_type: file.type || "pdf" });
       setStep("preview");
     } catch (e: any) {
       console.error("Parse error:", e);

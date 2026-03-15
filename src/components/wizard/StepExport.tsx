@@ -72,6 +72,7 @@ export function StepExport({
       }
 
       toast.success("PDF scaricato!");
+      trackEvent("pdf_downloaded", { template: selectedTemplate });
       onNext();
     } catch (e) {
       console.error("PDF generation error:", e);

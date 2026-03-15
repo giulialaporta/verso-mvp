@@ -15,6 +15,11 @@ export default function Upgrade() {
   const navigate = useNavigate();
   const { data: apps } = useApplications(1);
   const [loading, setLoading] = useState(false);
+  const trackEvent = useTrackEvent();
+
+  useEffect(() => {
+    trackEvent("upgrade_page_viewed");
+  }, [trackEvent]);
 
   const firstApp = apps?.[0];
 
