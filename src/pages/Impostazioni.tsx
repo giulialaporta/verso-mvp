@@ -35,7 +35,7 @@ interface ConsentRecord {
 }
 
 const CONSENT_LABELS: Record<string, { label: string; description: string; revocable: boolean; consequence: string }> = {
-  terms_and_privacy: {
+  terms: {
     label: "Termini di Servizio e Privacy Policy",
     description: "Accettazione obbligatoria per utilizzare il servizio.",
     revocable: false,

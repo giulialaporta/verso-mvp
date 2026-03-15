@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useTrackEvent } from "@/hooks/useTrackEvent";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label as CheckLabel } from "@/components/ui/label";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
