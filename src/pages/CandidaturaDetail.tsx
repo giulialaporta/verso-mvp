@@ -274,7 +274,7 @@ export default function CandidaturaDetail() {
             <div className="space-y-2">
               {learningSuggestions.map((s: any, i: number) => (
                 <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors group">
-                  <span className="font-mono text-[10px] uppercase text-muted-foreground bg-muted px-2 py-0.5 rounded">{s.type}</span>
+                  <span className="font-mono text-[11px] uppercase text-muted-foreground bg-muted px-2 py-0.5 rounded">{s.type}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm group-hover:text-primary transition-colors truncate">{s.resource_name}</p>
                     <p className="text-xs text-muted-foreground">{s.skill}{s.duration ? ` · ${s.duration}` : ""}</p>
