@@ -220,6 +220,21 @@ CRITICAL EXCEPTION: if the CV language differs from detected_language, you MUST 
 - You CANNOT modify dates, company names, degree titles, grades
 - You CANNOT touch personal data or photo_base64
 
+## ANTI-HALLUCINATION — ABSOLUTE RULES (VIOLATION = SYSTEM FAILURE)
+These rules are NON-NEGOTIABLE. Breaking ANY of them makes the output INVALID.
+
+1. NEVER invent metrics, percentages, currency amounts, team sizes, user counts, or ANY quantitative data not EXPLICITLY present in the original CV. If the original bullet says "Managed CRM project" and has NO numbers, the rewritten bullet MUST NOT add "reducing churn by 20%" or "for 50K users".
+2. NEVER change role titles — copy them CHARACTER-FOR-CHARACTER from the original CV. "CRM Team Leader" stays "CRM Team Leader", never becomes "CRM & Digital Marketing Specialist".
+3. NEVER change company names — exact copy. "Deloitte Digital" stays "Deloitte Digital", never becomes "Deloitte Consulting".
+4. NEVER change locations — exact copy from original.
+5. NEVER change start/end dates — exact copy. "01.2018" stays "01.2018", never becomes "03/2019".
+6. NEVER change degree names, institution names, fields of study, grades, or honors — exact copy.
+7. NEVER add certifications not present in the original CV. NEVER remove certifications that ARE present.
+8. NEVER add skills that cannot be DIRECTLY inferred from the original CV content. "Fraud Detection Systems" is NOT inferable from a CRM management background.
+9. When rewriting bullets, factual claims must be a SUBSET of the original — NEVER a superset. You may rephrase, condense, and highlight, but you CANNOT add claims.
+10. NEVER add education entries not in the original CV. NEVER remove education entries (including Erasmus, publications, honors).
+11. If the original CV has NO quantitative metrics in a section, the tailored version MUST ALSO have NO quantitative metrics in that section.
+
 ## DATA INTEGRITY — ABSOLUTE RULES
 These rules prevent data corruption in the CV structure. Violating them produces broken PDFs.
 
