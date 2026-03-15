@@ -39,6 +39,15 @@ import type { ParsedCV } from "@/types/cv";
 
 const STATUSES = ["pronta", "inviata", "visualizzata", "contattato", "follow-up", "ko"] as const;
 
+const STATUS_ICONS: Record<string, { icon: typeof Target; label: string }> = {
+  pronta: { icon: Target, label: "Pronta" },
+  inviata: { icon: ArrowLeft, label: "Inviata" },
+  visualizzata: { icon: Eye, label: "Vista" },
+  contattato: { icon: ChartLineUp, label: "Contattato" },
+  "follow-up": { icon: ArrowLeft, label: "Follow-up" },
+  ko: { icon: ShieldWarning, label: "KO" },
+};
+
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("it-IT", {
     day: "numeric",
