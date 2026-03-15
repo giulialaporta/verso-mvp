@@ -117,7 +117,7 @@ export function VersoScoreLarge({
             <span className="font-mono text-lg font-bold text-foreground">
               {item.value != null ? `${item.value}%` : "—"}
             </span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">
+            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-mono">
               {item.label}
             </span>
           </div>
