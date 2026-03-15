@@ -217,12 +217,11 @@ Detect the language of the job posting text. ALL extracted fields (role_title, d
 - German job posting → German output
 This rule is ABSOLUTE. No exceptions. Never translate content.
 
-## IMPLICIT REQUIREMENTS
-Beyond explicitly stated requirements, infer implicit ones:
-- If the posting mentions "team lead" or "mentor junior developers", infer leadership skills
-- If it mentions specific methodologies (Agile, Scrum), infer familiarity with those
-- If it mentions client-facing work, infer communication and presentation skills
-Add these as nice_to_have unless explicitly required.`;
+## EXTRACTION RULES
+- Extract ONLY requirements EXPLICITLY stated in the job posting text
+- Do NOT infer, assume, or add requirements not written in the text
+- nice_to_have: ONLY if the posting uses explicit words like "nice to have", "preferred", "bonus", "plus", "ideale", "gradito", "preferibile"
+- If a requirement is ambiguous (not clearly mandatory or optional), classify as "preferred" in key_requirements, do NOT add to required_skills`;
 
   const toolSchema = {
     type: "function" as const,
@@ -258,10 +257,35 @@ Add these as nice_to_have unless explicitly required.`;
     toolChoice: { type: "function", function: { name: "extract_job_data" } },
   });
 
-  const result = aiResult.content;
+  const result = aiResult.content as Record<string, unknown>;
   if (!result) throw new Error("Impossibile analizzare l'annuncio. Riprova.");
 
   validateOutput("scrape-job", result);
+
+  // --- Post-AI normalization ---
+  // Deduplicate required_skills
+  if (Array.isArray(result.required_skills)) {
+    result.required_skills = [...new Set((result.required_skills as string[]).map(s => s.trim()))];
+  }
+  // Deduplicate nice_to_have and remove overlap with required_skills
+  if (Array.isArray(result.nice_to_have)) {
+    const reqLower = Array.isArray(result.required_skills)
+      ? (result.required_skills as string[]).map(s => s.toLowerCase())
+      : [];
+    result.nice_to_have = [...new Set(
+      (result.nice_to_have as string[])
+        .map(s => s.trim())
+        .filter(s => !reqLower.some(r => r === s.toLowerCase()))
+    )];
+  }
+  // Clean HTML artifacts from description
+  if (typeof result.description === "string") {
+    result.description = (result.description as string)
+      .replace(/<[^>]+>/g, "")
+      .replace(/&[a-z]+;/gi, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
 
   return result;
 }
