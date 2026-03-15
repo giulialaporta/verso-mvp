@@ -757,6 +757,16 @@ Deno.serve(async (req) => {
 
     if (photoBase64) (tailoredCV as any).photo_base64 = photoBase64;
 
+    // --- Translation coverage warning ---
+    if (analyze_context?.detected_language) {
+      const patchedPaths = patches.map((p: { path: string }) => p.path);
+      const summaryPatched = patchedPaths.some((p: string) => p === "summary");
+      const expPatched = patchedPaths.some((p: string) => p.startsWith("experience"));
+      if (summaryPatched && !expPatched && originalExperience.length > 0) {
+        console.warn("[ai-tailor] Translation coverage: summary patched but no experience patches. Possible incomplete translation.");
+      }
+    }
+
     // --- INTEGRITY CHECK: validate tailored CV against original ---
     const integrityResult = checkIntegrity(originalCV, tailoredCV as Record<string, unknown>);
     
