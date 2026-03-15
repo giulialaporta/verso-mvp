@@ -167,6 +167,7 @@ export default function Login() {
       }
     } catch {
       localStorage.removeItem("verso_pending_oauth_consents");
+      localStorage.removeItem("verso_pending_plan");
       toast.error("Errore durante l'autenticazione. Riprova.");
     } finally {
       setOauthLoading(false);
