@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Trash, User, Warning, Lock, SignOut, ShieldCheck,
   Cookie, ArrowSquareOut, CheckCircle, XCircle, DownloadSimple, Headset, EnvelopeSimple,
-  Crown, ArrowRight, Question,
+  Crown, ArrowRight, Question, CurrencyEur, PencilSimple, Check, X,
 } from "@phosphor-icons/react";
 import { resetCookieConsent, getCookieConsent } from "@/components/CookieBanner";
 import { hashEmail } from "@/lib/hash-email";
