@@ -297,9 +297,9 @@ export default function CandidaturaDetail() {
               <span className="text-sm font-medium">Seniority</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded uppercase">{seniorityMatch.candidate_level}</span>
+              <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded uppercase truncate max-w-[120px]">{seniorityMatch.candidate_level}</span>
               <span className="text-muted-foreground">→</span>
-              <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded uppercase">{seniorityMatch.role_level}</span>
+              <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded uppercase truncate max-w-[120px]">{seniorityMatch.role_level}</span>
               <span className={`ml-auto font-mono text-xs ${seniorityMatch.match ? "text-primary" : "text-warning"}`}>
                 {seniorityMatch.match ? "Match" : "Gap"}
               </span>
