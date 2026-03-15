@@ -213,6 +213,7 @@ async function callAnthropic(request: AiRequest, model: string): Promise<Provide
     system: request.systemPrompt,
     messages: [{ role: "user", content: userContent }],
   };
+  if (request.temperature !== undefined) body.temperature = request.temperature;
 
   if (request.tools) {
     body.tools = toAnthropicTools(request.tools);
