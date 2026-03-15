@@ -555,15 +555,17 @@ export default function Home() {
   }, [apps]);
   const recentApps = useMemo(() => (apps ?? []).filter((a) => !["draft"].includes(a.status.toLowerCase())).slice(0, 5), [apps]);
 
-  // Build headline from CV data
+  // Build headline from CV data (AI-powered)
   const parsedData = cv?.parsed_data as any;
-  const headline = useMemo(() => {
+  const heroRole = useMemo(() => {
     const exp = parsedData?.experience?.[0];
-    if (!exp) return "";
-    const role = exp.role || exp.title || "";
-    const company = exp.company || "";
-    return compactHeadline(role, company);
+    return exp?.role || exp?.title || "";
   }, [parsedData]);
+  const heroCompany = useMemo(() => {
+    const exp = parsedData?.experience?.[0];
+    return exp?.company || "";
+  }, [parsedData]);
+  const headline = useCompactHeadline(heroRole, heroCompany);
 
   // Redirect to onboarding if user has apps but no CV
   useEffect(() => {
