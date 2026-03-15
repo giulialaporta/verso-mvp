@@ -247,11 +247,12 @@ export default function Nuova() {
     }
   };
 
-  // Step 2 → Step 3
+  // Step 2 → Step 3 (advance immediately, show loading on step 3)
   const handleGenerateCv = async () => {
     if (!user || !jobData || !analyzeResult) return;
     setTailoring(true);
     setTailorResult(null);
+    updateStep(3); // Advance to step 3 immediately — loading shown there
 
     try {
       const { data: result, error } = await supabase.functions.invoke("ai-tailor", {
@@ -265,7 +266,6 @@ export default function Nuova() {
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
 
-      // cv-review rules are now integrated into ai-tailor prompt — no separate call needed
       setTailorResult(result);
 
       if (result.original_cv) {
@@ -308,7 +308,7 @@ export default function Nuova() {
       }
 
       trackEvent("wizard_step_completed", { step: 3, step_name: "tailoring" });
-      updateStep(3);
+      // Stay on step 3 — tailoring loading will disappear and results will show
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Errore durante la generazione del CV";
       if (msg === "UPGRADE_REQUIRED" || (typeof msg === "string" && msg.includes("UPGRADE_REQUIRED"))) {
@@ -316,6 +316,7 @@ export default function Nuova() {
         return;
       }
       toast.error(msg);
+      updateStep(2); // Go back to analysis on error
     } finally {
       setTailoring(false);
     }
