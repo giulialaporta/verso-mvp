@@ -438,7 +438,12 @@ export default function Nuova() {
               applicationId={applicationId}
               cvLang={languageOverride || analyzeResult?.detected_language}
               onBack={() => updateStep(3)}
-              onNext={() => updateStep(5)}
+              onNext={async () => {
+                // Auto-transition draft → pronta when reaching step 5
+                await supabase.from("applications").update({ status: "pronta" } as any).eq("id", applicationId);
+                queryClient.invalidateQueries({ queryKey: ["applications"] });
+                updateStep(5);
+              }}
             />
           )}
           {step === 5 && jobData && applicationId && (
