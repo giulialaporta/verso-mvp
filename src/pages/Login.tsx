@@ -345,7 +345,7 @@ export default function Login() {
               <button
                 type="button"
                 className="text-primary underline-offset-4 hover:underline"
-                onClick={() => setIsSignUp(!isSignUp)}
+                onClick={() => { setIsSignUp(!isSignUp); setAcceptedTerms(false); }}
               >
                 {isSignUp ? "Accedi" : "Registrati"}
               </button>
