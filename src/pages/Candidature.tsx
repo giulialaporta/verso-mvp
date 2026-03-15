@@ -48,14 +48,15 @@ function formatDate(dateStr: string) {
 }
 
 // Status order for grouping
-const STATUS_ORDER = ["draft", "pronta", "inviata", "visualizzata", "contattato", "follow-up", "ko"];
+const STATUS_ORDER = ["draft", "pronta", "inviata", "visualizzata", "contattato", "colloquio", "offerta", "ko"];
 const STATUS_LABELS: Record<string, string> = {
   draft: "Bozze",
   pronta: "Pronte",
   inviata: "Inviate",
   visualizzata: "Visualizzate",
   contattato: "Contattato",
-  "follow-up": "Follow-up",
+  colloquio: "Colloquio",
+  offerta: "Offerta",
   ko: "KO",
 };
 

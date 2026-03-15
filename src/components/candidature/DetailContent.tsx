@@ -25,7 +25,7 @@ import { toast } from "sonner";
 
 import type { AppRowWithAts } from "@/types/application";
 
-const STATUSES = ["pronta", "inviata", "visualizzata", "contattato", "follow-up", "ko"] as const;
+const STATUSES = ["pronta", "inviata", "visualizzata", "contattato", "colloquio", "offerta", "ko"] as const;
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("it-IT", {

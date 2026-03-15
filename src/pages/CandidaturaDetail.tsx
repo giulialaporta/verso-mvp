@@ -121,6 +121,8 @@ export default function CandidaturaDetail() {
       .eq("id", app.id);
     if (error) {
       toast.error("Errore nel salvataggio note.");
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
     }
   };
 
