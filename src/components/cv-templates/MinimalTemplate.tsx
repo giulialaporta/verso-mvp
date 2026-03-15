@@ -19,11 +19,13 @@ const BODY_TEXT = "#1a1a1a";
 const BODY_MUTED = "#666";
 const BORDER = "#E0E0E0";
 const SECTION_TITLE = "#111";
+const SIDEBAR_WIDTH = "26%";
 
 const baseStyles = StyleSheet.create({
-  page: { fontFamily: "Inter", flexDirection: "row" },
-  sidebar: { width: "26%", paddingHorizontal: 18, paddingVertical: 32, color: SIDEBAR_TEXT, borderRightWidth: 0.5, borderRightColor: BORDER },
-  main: { width: "74%", paddingHorizontal: 36, paddingVertical: 32, paddingBottom: 60, color: BODY_TEXT },
+  page: { fontFamily: "Inter", flexDirection: "row", paddingTop: 32, paddingBottom: 40 },
+  sidebarBorder: { position: "absolute", left: SIDEBAR_WIDTH, top: 0, bottom: 0, width: 0.5, backgroundColor: BORDER },
+  sidebar: { width: SIDEBAR_WIDTH, paddingHorizontal: 18, color: SIDEBAR_TEXT },
+  main: { width: "74%", paddingHorizontal: 36, color: BODY_TEXT },
   photo: { width: 68, height: 68, borderRadius: 34, marginBottom: 16, alignSelf: "center" },
   contactItem: { fontSize: 8, color: SIDEBAR_MUTED, marginBottom: 4, lineHeight: 1.5 },
   contactLink: { fontSize: 8, color: LINK_COLOR, marginBottom: 4, lineHeight: 1.5 },
@@ -83,6 +85,9 @@ export function MinimalTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
   return (
     <Document>
       <Page size="A4" style={ds.page}>
+        {/* Fixed sidebar border for all pages */}
+        <View fixed style={baseStyles.sidebarBorder} />
+
         <View style={baseStyles.sidebar}>
           {photoUrl && <Image src={photoUrl} style={baseStyles.photo} />}
 
@@ -143,8 +148,9 @@ export function MinimalTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
                   (Array.isArray(exp.bullets) ? exp.bullets : []).filter((b: string) => clean(b)),
                   i, d
                 );
+                const hasManyBullets = bullets.length > 3;
                 return (
-                  <View key={i} style={ds.expBlock} wrap={false}>
+                  <View key={i} style={ds.expBlock} wrap={hasManyBullets ? true : false} {...(hasManyBullets ? { minPresenceAhead: 40 } : {})}>
                     <Text style={ds.expRole}>{clean(exp.role) || clean(exp.title)}</Text>
                     <Text style={ds.expCompany}>{exp.company}</Text>
                     <Text style={ds.expMeta}>

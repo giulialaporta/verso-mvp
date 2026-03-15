@@ -19,7 +19,7 @@ const BODY_MUTED = "#6B7280";
 const BORDER = "#E5E7EB";
 
 const baseStyles = StyleSheet.create({
-  page: { fontFamily: "DM Sans", paddingHorizontal: 48, paddingVertical: 44, paddingBottom: 56, color: BODY_TEXT },
+  page: { fontFamily: "DM Sans", paddingHorizontal: 48, paddingTop: 44, paddingBottom: 48, color: BODY_TEXT },
   header: { marginBottom: 20 },
   name: { fontSize: 26, fontWeight: 700, letterSpacing: 0.3, marginBottom: 3 },
   title: { fontSize: 11, fontWeight: 500, color: ACCENT, marginBottom: 8 },
@@ -126,8 +126,9 @@ export function ExecutiveTemplate({ cv, lang }: { cv: Record<string, any>; lang?
                 (Array.isArray(exp.bullets) ? exp.bullets : []).filter((b: string) => clean(b)),
                 i, d
               );
+              const hasManyBullets = bullets.length > 3;
               return (
-                <View key={i} style={ds.expBlock} wrap={false}>
+                <View key={i} style={ds.expBlock} wrap={hasManyBullets ? true : false} {...(hasManyBullets ? { minPresenceAhead: 40 } : {})}>
                   <Text style={ds.expRole}>{clean(exp.role) || clean(exp.title)}</Text>
                   <Text style={ds.expCompany}>{exp.company}</Text>
                   <Text style={ds.expMeta}>
