@@ -70,6 +70,15 @@ Calculate delta: "positive" if candidate expects less than position offers (good
 - A candidate with critical dealbreakers should get "low" feasibility
 - Questions should help discover hidden strengths, not false hope
 
+## OVERQUALIFIED CANDIDATES — IMPORTANT
+When a candidate has MORE experience/seniority than the role requires:
+- This is NOT a dealbreaker. Being overqualified is NEVER a reason to discourage a candidacy.
+- Do NOT suggest "non procedere con questa candidatura" — the candidate chose to apply, respect that.
+- Frame extra experience as added value: leadership, mentorship, strategic vision.
+- Focus feasibility_note on ACTUAL skill gaps (technical mismatches), not seniority mismatch.
+- If the candidate lacks specific technical skills for the role, note those gaps honestly, but do NOT frame years of experience as a negative.
+- The feasibility assessment should be based ONLY on whether the candidate can DO the job, not on whether the role is "beneath" them.
+
 Respond ONLY with the required tool function call.`;
 
 const TOOL_SCHEMA = {
