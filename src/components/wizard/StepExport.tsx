@@ -32,9 +32,22 @@ export function StepExport({
   onNext: () => void;
 }) {
   const { user } = useAuth();
+  const { isPro } = useSubscription();
+  const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState<string>("classico");
   const [downloading, setDownloading] = useState(false);
   const trackEvent = useTrackEvent();
+
+  const handleTemplateSelect = (templateId: string) => {
+    const tpl = TEMPLATES.find(t => t.id === templateId);
+    if (tpl && !tpl.free && !isPro) {
+      toast("Sblocca questo template con Verso Pro", {
+        action: { label: "Upgrade", onClick: () => navigate("/upgrade") },
+      });
+      return;
+    }
+    setSelectedTemplate(templateId);
+  };
 
   const personalName = (tailoredCv?.personal as any)?.name || "CV";
   const matchScore = analyzeResult?.match_score ?? 0;
