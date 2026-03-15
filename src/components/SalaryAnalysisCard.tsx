@@ -43,7 +43,7 @@ function SourceBadge({ source }: { source: string }) {
       ? "bg-warning/15 text-warning"
       : "bg-info/15 text-info";
   return (
-    <span className={`font-mono text-[10px] uppercase px-1.5 py-0.5 rounded-full ${colorClass}`}>
+    <span className={`font-mono text-[11px] uppercase px-1.5 py-0.5 rounded-full ${colorClass}`}>
       {label}
     </span>
   );
