@@ -187,7 +187,7 @@ export default function CandidaturaDetail() {
           {matchScore !== null && (
             <Card className="border-border/50 bg-card/80">
               <CardContent className="py-4 text-center space-y-1">
-                <p className="text-[10px] font-mono text-muted-foreground uppercase">Match</p>
+                <p className="text-[11px] font-mono text-muted-foreground uppercase">Match</p>
                 <p className="font-mono text-2xl font-bold text-primary">{matchScore}%</p>
                 <div className="h-2 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={matchScore} aria-valuemin={0} aria-valuemax={100} aria-label={`Match score ${matchScore}%`}>
                   <div className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary" style={{ width: `${matchScore}%` }} />
