@@ -67,6 +67,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useProGate } from "@/hooks/useProGate";
 
 import { StatusChip } from "@/components/StatusChip";
+import { VersoScoreCompact, calcVersoScore } from "@/components/VersoScore";
 
 // ─── Stats Bar ───────────────────────────────────────────────
 function StatsBar({
