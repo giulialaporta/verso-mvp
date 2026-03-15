@@ -154,6 +154,7 @@ export default function Nuova() {
     if (!user) return;
     setJobData(data);
     setJobUrl(url);
+    trackEvent("wizard_started", { is_draft_resume: !!searchParams.get("draft") });
     updateStep(1);
     setPrescreening(true);
     setPrescreenResult(null);
