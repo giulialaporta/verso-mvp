@@ -68,9 +68,9 @@ function HeroSection({
   name,
   headline,
   avatarUrl,
-  photoUrl,
-  photoBase64,
   avgMatchScore,
+  activeCount,
+  totalCount,
   isPro,
   cancelAtPeriodEnd,
   onAvatarClick,
@@ -79,9 +79,9 @@ function HeroSection({
   name: string;
   headline: string;
   avatarUrl: string | null;
-  photoUrl: string | null;
-  photoBase64: string | null;
   avgMatchScore: number | null;
+  activeCount: number;
+  totalCount: number;
   isPro: boolean;
   cancelAtPeriodEnd: boolean;
   onAvatarClick: () => void;
@@ -94,7 +94,7 @@ function HeroSection({
     .slice(0, 2)
     .toUpperCase();
 
-  const imgSrc = avatarUrl || photoUrl || (photoBase64 ? `data:image/jpeg;base64,${photoBase64}` : null);
+  const imgSrc = avatarUrl || null;
 
   return (
     <div className="relative rounded-2xl bg-gradient-to-br from-card via-card to-secondary/30 p-6 sm:p-8 overflow-hidden">
