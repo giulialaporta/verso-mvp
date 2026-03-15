@@ -38,14 +38,15 @@ import { ExportDrawer } from "@/components/ExportDrawer";
 import { toast } from "sonner";
 import type { ParsedCV } from "@/types/cv";
 
-const STATUSES = ["pronta", "inviata", "visualizzata", "contattato", "follow-up", "ko"] as const;
+const STATUSES = ["pronta", "inviata", "visualizzata", "contattato", "colloquio", "offerta", "ko"] as const;
 
 const STATUS_ICONS: Record<string, { icon: typeof Target; label: string }> = {
   pronta: { icon: Target, label: "Pronta" },
   inviata: { icon: ArrowLeft, label: "Inviata" },
   visualizzata: { icon: Eye, label: "Vista" },
   contattato: { icon: ChartLineUp, label: "Contattato" },
-  "follow-up": { icon: ArrowLeft, label: "Follow-up" },
+  colloquio: { icon: ArrowLeft, label: "Colloquio" },
+  offerta: { icon: ChartLineUp, label: "Offerta" },
   ko: { icon: ShieldWarning, label: "KO" },
 };
 
