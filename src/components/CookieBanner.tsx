@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { X } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { hashEmail } from "@/lib/hash-email";
+import { motion, AnimatePresence } from "framer-motion";
 
 const STORAGE_KEY = "verso_cookie_consent";
 
@@ -26,22 +25,26 @@ function getSavedPrefs(): CookiePrefs | null {
 export function CookieBanner() {
   const { user } = useAuth();
   const [visible, setVisible] = useState(false);
+  const dismissedRef = useRef(false);
 
   useEffect(() => {
     const prefs = getSavedPrefs();
     if (!prefs) setVisible(true);
   }, []);
 
-  const saveChoice = async (analytics: boolean) => {
+  const dismiss = async () => {
+    if (dismissedRef.current) return;
+    dismissedRef.current = true;
+
     const prefs: CookiePrefs = {
       technical: true,
-      analytics,
+      analytics: false,
       timestamp: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
     setVisible(false);
 
-    // If authenticated, also log to consent_logs
+    // If authenticated, log to consent_logs
     if (user) {
       const userHash = user.email ? await hashEmail(user.email) : undefined;
       await supabase.from("consent_logs" as any).insert({
@@ -49,44 +52,52 @@ export function CookieBanner() {
         user_hash: userHash,
         consent_type: "analytics_cookies",
         consent_version: "1.0",
-        granted: analytics,
+        granted: false,
         user_agent: navigator.userAgent,
-        method: "cookie_banner",
-        metadata: { technical: true, analytics },
+        method: "auto_dismiss",
+        metadata: { technical: true, analytics: false },
       });
     }
   };
 
-  if (!visible) return null;
+  // Auto-dismiss after 5s or on first scroll/click
+  useEffect(() => {
+    if (!visible) return;
+
+    const timer = setTimeout(dismiss, 5000);
+    const handler = () => dismiss();
+
+    document.addEventListener("scroll", handler, { once: true, passive: true });
+    document.addEventListener("click", handler, { once: true });
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("scroll", handler);
+      document.removeEventListener("click", handler);
+    };
+  }, [visible]);
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-50 flex justify-center p-4 pointer-events-none">
-      <div className="pointer-events-auto w-full max-w-[560px] rounded-xl border border-border bg-card/95 backdrop-blur-md p-4 shadow-2xl">
-        <div className="flex items-start gap-3">
-          <div className="flex-1 space-y-2">
-            <p className="text-[13px] text-muted-foreground leading-relaxed">
-              Questo sito usa cookie tecnici necessari al funzionamento.
-              Per saperne di più, consulta la{" "}
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.3 }}
+          className="fixed bottom-0 inset-x-0 z-50 flex justify-center p-4 pointer-events-none"
+        >
+          <div className="pointer-events-auto w-full max-w-[480px] rounded-xl border border-border bg-card/90 backdrop-blur-md px-4 py-3 shadow-lg">
+            <p className="text-xs text-muted-foreground leading-relaxed text-center">
+              Questo sito usa solo cookie tecnici necessari al funzionamento.{" "}
               <Link to="/cookie-policy" target="_blank" className="text-primary underline underline-offset-4 hover:text-primary/80">
                 Cookie Policy
-              </Link>.
+              </Link>
             </p>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => saveChoice(false)}>
-                Accetta necessari
-              </Button>
-            </div>
           </div>
-          <button
-            onClick={() => saveChoice(false)}
-            className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
-            aria-label="Chiudi"
-          >
-            <X size={18} />
-          </button>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

@@ -45,10 +45,10 @@ export function StepRevisione({
       <AiLabel text="Punteggi calcolati con AI — valore indicativo" />
 
       {/* Compact scores */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Card className="border-border/50 bg-card/80">
           <CardContent className="py-4 text-center space-y-1">
-            <p className="text-[10px] font-mono text-muted-foreground uppercase">Match</p>
+            <p className="text-[11px] font-mono text-muted-foreground uppercase">Match</p>
             <p className="font-mono text-xl font-bold text-primary">{matchScore}%</p>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary" style={{ width: `${matchScore}%` }} />
@@ -57,16 +57,16 @@ export function StepRevisione({
         </Card>
         <Card className="border-border/50 bg-card/80">
           <CardContent className="py-4 text-center space-y-1">
-            <p className="text-[10px] font-mono text-muted-foreground uppercase">ATS</p>
+            <p className="text-[11px] font-mono text-muted-foreground uppercase">ATS</p>
             <p className="font-mono text-xl font-bold text-info">{atsScore}%</p>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div className="h-full rounded-full bg-info" style={{ width: `${atsScore}%` }} />
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border/50 bg-card/80">
+        <Card className="border-border/50 bg-card/80 col-span-2 md:col-span-1">
           <CardContent className="py-4 text-center space-y-1">
-            <p className="text-[10px] font-mono text-muted-foreground uppercase">Confidence</p>
+            <p className="text-[11px] font-mono text-muted-foreground uppercase">Confidence</p>
             <p className={`font-mono text-xl font-bold ${stats.confidence >= 90 ? "text-primary" : stats.confidence >= 70 ? "text-warning" : "text-destructive"}`}>{stats.confidence}%</p>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div className={`h-full rounded-full ${stats.confidence >= 90 ? "bg-primary" : stats.confidence >= 70 ? "bg-warning" : "bg-destructive"}`} style={{ width: `${stats.confidence}%` }} />
@@ -82,30 +82,30 @@ export function StepRevisione({
             <ListChecks size={18} className="text-primary" />
             <span className="text-sm font-medium">Cosa ho cambiato</span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div className="rounded-lg border border-border/30 p-3 text-center">
               <p className="font-mono text-lg font-bold text-foreground">{stats.bulletsRewritten}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Bullet riscritti</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Bullet riscritti</p>
             </div>
             <div className="rounded-lg border border-border/30 p-3 text-center">
               <p className="font-mono text-lg font-bold text-foreground">{stats.bulletsAdded}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Bullet aggiunti</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Bullet aggiunti</p>
             </div>
             <div className="rounded-lg border border-border/30 p-3 text-center">
               <p className="font-mono text-lg font-bold text-foreground">{stats.sectionsRemoved}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Esperienze rimosse</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Esperienze rimosse</p>
             </div>
             <div className="rounded-lg border border-border/30 p-3 text-center">
               <p className="font-mono text-lg font-bold text-foreground">{structChanges}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Modifiche strutturali</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Modifiche strutturali</p>
             </div>
             <div className="rounded-lg border border-border/30 p-3 text-center">
               <p className="font-mono text-lg font-bold text-foreground">{stats.experiencesKept}/{stats.experiencesOriginal}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Esperienze mantenute</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Esperienze mantenute</p>
             </div>
             <div className="rounded-lg border border-border/30 p-3 text-center">
               <p className="font-mono text-lg font-bold text-foreground">{totalDiffs}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Modifiche contenuto</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Modifiche contenuto</p>
             </div>
           </div>
         </CardContent>
@@ -120,7 +120,7 @@ export function StepRevisione({
                 <div className="flex items-center gap-2">
                   <Eye size={16} className="text-primary" />
                   <span className="text-sm font-medium">Dettaglio modifiche</span>
-                  <span className="font-mono text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{totalDiffs}</span>
+                  <span className="font-mono text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{totalDiffs}</span>
                 </div>
                 <CaretDown size={14} className={`text-muted-foreground transition-transform ${diffOpen ? "rotate-180" : ""}`} />
               </CollapsibleTrigger>
@@ -128,7 +128,7 @@ export function StepRevisione({
                 <div className="space-y-3 mt-4">
                   {tailorResult.diff.map((ch, i) => (
                     <div key={i} className="rounded-lg border border-border/30 p-3 space-y-1.5">
-                      <p className="font-mono text-[10px] text-muted-foreground uppercase">{ch.section}</p>
+                      <p className="font-mono text-[11px] text-muted-foreground uppercase">{ch.section}</p>
                       <p className="text-sm line-through text-muted-foreground">{ch.original}</p>
                       <p className="text-sm text-primary border-l-2 border-primary/40 pl-2">{ch.suggested}</p>
                       {ch.reason && <p className="text-xs text-muted-foreground italic">{ch.reason}</p>}

@@ -43,7 +43,7 @@ function SourceBadge({ source }: { source: string }) {
       ? "bg-warning/15 text-warning"
       : "bg-info/15 text-info";
   return (
-    <span className={`font-mono text-[10px] uppercase px-1.5 py-0.5 rounded-full ${colorClass}`}>
+    <span className={`font-mono text-[11px] uppercase px-1.5 py-0.5 rounded-full ${colorClass}`}>
       {label}
     </span>
   );
@@ -131,7 +131,7 @@ export function SalaryAnalysisCard({ data, delay = 0.5 }: { data: SalaryAnalysis
 
           <div className="flex items-start gap-1.5 pt-1 border-t border-border/30">
             <Info size={12} className="text-muted-foreground shrink-0 mt-0.5" />
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {data.position_estimate.source === "benchmark"
                 ? "Range basato su dati retributivi reali raccolti dal web. I valori restano indicativi."
                 : "I dati retributivi sono indicativi. Il range della posizione potrebbe essere stimato dall'AI quando non esplicitato nell'annuncio."}
@@ -145,7 +145,7 @@ export function SalaryAnalysisCard({ data, delay = 0.5 }: { data: SalaryAnalysis
                   href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[10px] text-info/70 hover:text-info underline truncate max-w-[180px]"
+                  className="text-[11px] text-info/70 hover:text-info underline truncate max-w-[180px]"
                 >
                   {s.title}
                 </a>

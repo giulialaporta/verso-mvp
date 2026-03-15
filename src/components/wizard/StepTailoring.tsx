@@ -91,7 +91,7 @@ export function StepTailoring({
             <div className="flex items-center gap-2"><ChartLineUp size={20} className="text-primary" /><span className="text-sm font-medium">Match Score</span></div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-3xl font-bold text-primary">{animatedScore}%</span>
-              {scoreBadge && <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-medium ${scoreBadge.className}`}>{scoreBadge.label}</span>}
+              {scoreBadge && <span className={`rounded-full px-2 py-0.5 text-[11px] font-mono font-medium ${scoreBadge.className}`}>{scoreBadge.label}</span>}
             </div>
           </div>
           <div className="h-3 rounded-full bg-muted overflow-hidden">
@@ -162,7 +162,7 @@ export function StepTailoring({
                 ))}
             </div>
             {analyzeResult.skills_missing.length > 0 && (
-              <p className="text-[10px] text-muted-foreground italic">Clicca su una skill per dire che ce l'hai</p>
+              <p className="text-[11px] text-muted-foreground italic">Clicca su una skill per dire che ce l'hai</p>
             )}
           </CardContent></Card>
         </motion.div>
@@ -180,10 +180,10 @@ export function StepTailoring({
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium group-hover:text-info transition-colors">{ls.resource_name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="font-mono text-[10px] uppercase text-muted-foreground">{ls.skill}</span>
+                      <span className="font-mono text-[11px] uppercase text-muted-foreground">{ls.skill}</span>
                       <span className="text-border">·</span>
-                      <span className="font-mono text-[10px] uppercase text-muted-foreground">{ls.type}</span>
-                      {ls.duration && <><span className="text-border">·</span><span className="font-mono text-[10px] text-muted-foreground">{ls.duration}</span></>}
+                      <span className="font-mono text-[11px] uppercase text-muted-foreground">{ls.type}</span>
+                      {ls.duration && <><span className="text-border">·</span><span className="font-mono text-[11px] text-muted-foreground">{ls.duration}</span></>}
                     </div>
                   </div>
                   <ArrowRight size={14} className="text-muted-foreground group-hover:text-info mt-1 shrink-0 transition-colors" />
@@ -237,7 +237,7 @@ export function StepTailoring({
             <div className="flex items-center gap-2">
               <Globe size={18} className="text-info" />
               <span className="text-sm font-medium">Lingua del CV</span>
-              <span className="font-mono text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              <span className="font-mono text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                 Rilevata: {analyzeResult.detected_language === "en" ? "English" : "Italiano"}
               </span>
             </div>

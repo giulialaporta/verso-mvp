@@ -79,9 +79,9 @@ function DesktopSidebar() {
         <div className="border-t border-border">
           {!collapsed && (
             <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 pt-2 pb-1">
-              <Link to="/termini" target="_blank" className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground">T&C</Link>
-              <Link to="/privacy" target="_blank" className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground">Privacy</Link>
-              <Link to="/cookie-policy" target="_blank" className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground">Cookie</Link>
+              <Link to="/termini" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground py-1">T&C</Link>
+              <Link to="/privacy" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground py-1">Privacy</Link>
+              <Link to="/cookie-policy" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground py-1">Cookie</Link>
             </div>
           )}
           <div className="p-2">
@@ -114,24 +114,34 @@ function MobileTabBar() {
     if (canCreate) navigate("/app/nuova");
   };
 
-  const TabButton = ({ path, icon: Icon, label }: { path: string; icon: typeof House; label: string }) => (
-    <button
-      onClick={() => navigate(path)}
-      className="relative flex flex-col items-center justify-center gap-0.5 py-2"
-    >
-      <Icon
-        size={22}
-        weight={isActive(path) ? "fill" : "regular"}
-        className={isActive(path) ? "text-primary" : "text-muted-foreground"}
-      />
-      <span className={`text-[10px] font-medium ${isActive(path) ? "text-primary" : "text-muted-foreground"}`}>
-        {label}
-      </span>
-      {isActive(path) && (
-        <span className="absolute -bottom-1 h-1 w-1 rounded-full bg-primary" />
-      )}
-    </button>
-  );
+  const TabButton = ({ path, icon: Icon, label }: { path: string; icon: typeof House; label: string }) => {
+    const active = isActive(path);
+    const handleClick = () => {
+      if (active) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        navigate(path);
+      }
+    };
+    return (
+      <button
+        onClick={handleClick}
+        className="relative flex flex-col items-center justify-center gap-0.5 py-2 min-h-[44px]"
+      >
+        <Icon
+          size={22}
+          weight={active ? "fill" : "regular"}
+          className={active ? "text-primary" : "text-muted-foreground"}
+        />
+        <span className={`text-[11px] font-medium ${active ? "text-primary" : "text-muted-foreground"}`}>
+          {label}
+        </span>
+        {active && (
+          <span className="absolute -bottom-1 h-1 w-1 rounded-full bg-primary" />
+        )}
+      </button>
+    );
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
@@ -143,7 +153,7 @@ function MobileTabBar() {
         <div className="flex items-center justify-center">
           <button
             onClick={handleNewApp}
-            className="relative -top-3 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-105 active:scale-95"
+            className="relative -top-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-105 active:scale-95"
             aria-label="Nuova candidatura"
           >
             <Plus size={22} weight="bold" />

@@ -48,7 +48,7 @@ export function ConsentCheckboxes({ acceptedTerms, acceptedPrivacy, onTermsChang
 }
 
 /** Save consent records after successful signup */
-export async function saveRegistrationConsents(userId: string, email: string) {
+export async function saveRegistrationConsents(userId: string, email: string, method: string = "registration") {
   const now = new Date().toISOString();
   const userHash = await hashEmail(email);
   const common = {
@@ -57,7 +57,7 @@ export async function saveRegistrationConsents(userId: string, email: string) {
     granted: true,
     granted_at: now,
     user_agent: navigator.userAgent,
-    method: "registration",
+    method,
     metadata: { screen: "login_signup" },
     consent_version: "1.0",
   };

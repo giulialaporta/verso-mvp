@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ConsentCheckboxes, saveRegistrationConsents } from "@/components/ConsentCheckboxes";
+import { saveRegistrationConsents } from "@/components/ConsentCheckboxes";
 
 /** Map Supabase error messages to user-friendly Italian strings (non-revealing). */
 function mapAuthError(msg: string): string {
@@ -37,8 +37,6 @@ export default function Login() {
   const [fullName, setFullName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   // US-S10: Sanitize redirect — only allow internal /app/ paths
   const rawPath = (location.state as any)?.from?.pathname;
@@ -50,7 +48,7 @@ export default function Login() {
     const pending = localStorage.getItem("verso_pending_oauth_consents");
     if (!pending) return;
     localStorage.removeItem("verso_pending_oauth_consents");
-    saveRegistrationConsents(user.id, user.email ?? "").catch(() => {});
+    saveRegistrationConsents(user.id, user.email ?? "", "oauth_by_action").catch(() => {});
   }, [user]);
 
   // Redirect authenticated users imperatively (avoids Navigate ref warning)
@@ -68,10 +66,9 @@ export default function Login() {
     );
   }
 
-  // Compute whether form is valid for submit
-  const consentsAccepted = acceptedTerms && acceptedPrivacy;
+  // Form validity: no consent checkboxes needed
   const isFormValid = isSignUp
-    ? email.trim() !== "" && password.trim() !== "" && fullName.trim() !== "" && consentsAccepted
+    ? email.trim() !== "" && password.trim() !== "" && fullName.trim() !== ""
     : email.trim() !== "" && password.trim() !== "";
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,9 +86,9 @@ export default function Login() {
           },
         });
         if (error) throw error;
-        // Save consent records
+        // Save consent records (by-action: registering = accepting T&C)
         if (data.user) {
-          await saveRegistrationConsents(data.user.id, email);
+          await saveRegistrationConsents(data.user.id, email, "registration_by_action");
         }
         toast.success("Controlla la tua email per confermare la registrazione!");
         trackEvent("signup_completed", { method: "email" });
@@ -126,12 +123,8 @@ export default function Login() {
 
   const handleOAuth = async (provider: "google" | "apple") => {
     if (oauthLoading) return;
-    if (isSignUp && !consentsAccepted) {
-      toast.error("Accetta i Termini e l'Informativa Privacy per continuare");
-      return;
-    }
     try {
-      // Save pending consent flag before redirect so we can persist after OAuth return
+      // Save pending consent flag before redirect
       if (isSignUp) {
         localStorage.setItem("verso_pending_oauth_consents", "true");
       }
@@ -179,7 +172,7 @@ export default function Login() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" disabled={submitting || email.trim() === ""}>
+                <Button type="submit" className="w-full active:scale-[0.98] transition-transform" disabled={submitting || email.trim() === ""}>
                   {submitting ? "Invio in corso..." : "Invia link di recupero"}
                 </Button>
               </form>
@@ -267,22 +260,27 @@ export default function Login() {
                 />
               </div>
 
-              {isSignUp && (
-                <ConsentCheckboxes
-                  acceptedTerms={acceptedTerms}
-                  acceptedPrivacy={acceptedPrivacy}
-                  onTermsChange={setAcceptedTerms}
-                  onPrivacyChange={setAcceptedPrivacy}
-                />
-              )}
-
-              <Button type="submit" className="w-full" disabled={submitting || !isFormValid}>
+              <Button type="submit" className="w-full active:scale-[0.98] transition-transform" disabled={submitting || !isFormValid}>
                 {submitting
                   ? "Caricamento..."
                   : isSignUp
                     ? "Registrati"
                     : "Accedi"}
               </Button>
+
+              {/* Informative legal text for signup (replaces checkboxes) */}
+              {isSignUp && (
+                <p className="text-xs text-muted-foreground text-center leading-relaxed">
+                  Creando un account accetti i{" "}
+                  <Link to="/termini" target="_blank" className="text-primary underline underline-offset-4 hover:text-primary/80">
+                    Termini e Condizioni
+                  </Link>{" "}
+                  e confermi di aver letto l'
+                  <Link to="/privacy" target="_blank" className="text-primary underline underline-offset-4 hover:text-primary/80">
+                    Informativa Privacy
+                  </Link>.
+                </p>
+              )}
             </form>
 
             <div className="relative my-6">
@@ -296,7 +294,7 @@ export default function Login() {
 
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full active:scale-[0.98] transition-transform"
               disabled={oauthLoading}
               onClick={() => handleOAuth("apple")}
             >
@@ -306,7 +304,7 @@ export default function Login() {
 
             <Button
               variant="outline"
-              className="w-full mt-3"
+              className="w-full mt-3 active:scale-[0.98] transition-transform"
               disabled={oauthLoading}
               onClick={() => handleOAuth("google")}
             >
@@ -329,9 +327,9 @@ export default function Login() {
 
         {/* Legal footer */}
         <div className="flex justify-center gap-4 mt-4">
-          <Link to="/termini" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground underline-offset-4 hover:underline">Termini</Link>
-          <Link to="/privacy" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground underline-offset-4 hover:underline">Privacy</Link>
-          <Link to="/cookie-policy" target="_blank" className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground underline-offset-4 hover:underline">Cookie</Link>
+          <Link to="/termini" target="_blank" className="text-xs text-muted-foreground/50 hover:text-muted-foreground underline-offset-4 hover:underline py-2">Termini</Link>
+          <Link to="/privacy" target="_blank" className="text-xs text-muted-foreground/50 hover:text-muted-foreground underline-offset-4 hover:underline py-2">Privacy</Link>
+          <Link to="/cookie-policy" target="_blank" className="text-xs text-muted-foreground/50 hover:text-muted-foreground underline-offset-4 hover:underline py-2">Cookie</Link>
         </div>
       </div>
     </div>

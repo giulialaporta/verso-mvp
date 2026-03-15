@@ -129,7 +129,7 @@ export function StepVerifica({
                   )}
                   <div className="flex-1 min-w-0">
                     <span>{req.requirement}</span>
-                    <span className={`ml-2 font-mono text-[10px] uppercase px-1.5 py-0.5 rounded-full ${
+                    <span className={`ml-2 font-mono text-[11px] uppercase px-1.5 py-0.5 rounded-full ${
                       req.priority === "mandatory" ? "bg-destructive/10 text-destructive"
                       : req.priority === "preferred" ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"
                     }`}>{req.priority === "mandatory" ? "obbligatorio" : req.priority === "preferred" ? "preferito" : "gradito"}</span>

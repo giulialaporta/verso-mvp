@@ -100,7 +100,7 @@ export function StepAnnuncio({
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="w-full">
                 <TabsTrigger value="text" className="flex-1 gap-2"><TextAa size={16} /> Testo</TabsTrigger>
-                <TabsTrigger value="url" className="flex-1 gap-2 text-xs"><LinkIcon size={16} /> URL <span className="text-[10px] text-muted-foreground hidden sm:inline">(solo alcuni siti)</span></TabsTrigger>
+                <TabsTrigger value="url" className="flex-1 gap-2 text-xs"><LinkIcon size={16} /> URL <span className="text-[11px] text-muted-foreground hidden sm:inline">(solo alcuni siti)</span></TabsTrigger>
               </TabsList>
               <TabsContent value="text" className="mt-4 space-y-3">
                 <Textarea placeholder="Incolla qui il testo completo dell'annuncio..." value={text} onChange={(e) => setText(e.target.value)} disabled={loading} rows={10} className="resize-none" />
@@ -137,7 +137,7 @@ export function StepAnnuncio({
               </TabsContent>
               <TabsContent value="url" className="mt-4">
                 <Input placeholder="https://www.linkedin.com/jobs/view/..." value={url} onChange={(e) => setUrl(e.target.value)} disabled={loading} />
-                <p className="text-[10px] text-muted-foreground mt-2">Se l'URL non funziona, copia il testo dell'annuncio e usa il tab Testo.</p>
+                <p className="text-[11px] text-muted-foreground mt-2">Se l'URL non funziona, copia il testo dell'annuncio e usa il tab Testo.</p>
               </TabsContent>
             </Tabs>
             {loading ? (

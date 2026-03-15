@@ -7,7 +7,7 @@ export function StepIndicator({ current }: { current: number }) {
       {steps.map((label, i) => (
         <div key={label} className="flex items-center gap-1 sm:gap-1.5" role="listitem">
           <div
-            className={`flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full font-mono text-[10px] sm:text-xs font-medium transition-colors ${
+            className={`flex h-7 w-7 items-center justify-center rounded-full font-mono text-[11px] font-medium transition-colors ${
               i < current
                 ? "bg-primary text-primary-foreground"
                 : i === current

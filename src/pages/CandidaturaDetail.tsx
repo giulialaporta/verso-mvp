@@ -187,7 +187,7 @@ export default function CandidaturaDetail() {
           {matchScore !== null && (
             <Card className="border-border/50 bg-card/80">
               <CardContent className="py-4 text-center space-y-1">
-                <p className="text-[10px] font-mono text-muted-foreground uppercase">Match</p>
+                <p className="text-[11px] font-mono text-muted-foreground uppercase">Match</p>
                 <p className="font-mono text-2xl font-bold text-primary">{matchScore}%</p>
                 <div className="h-2 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={matchScore} aria-valuemin={0} aria-valuemax={100} aria-label={`Match score ${matchScore}%`}>
                   <div className="h-full rounded-full bg-gradient-to-r from-destructive via-warning to-primary" style={{ width: `${matchScore}%` }} />
@@ -198,7 +198,7 @@ export default function CandidaturaDetail() {
           {atsScore !== null && (
             <Card className="border-border/50 bg-card/80">
               <CardContent className="py-4 text-center space-y-1">
-                <p className="text-[10px] font-mono text-muted-foreground uppercase">ATS</p>
+                <p className="text-[11px] font-mono text-muted-foreground uppercase">ATS</p>
                 <p className="font-mono text-2xl font-bold text-info">{atsScore}%</p>
                 <div className="h-2 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={atsScore} aria-valuemin={0} aria-valuemax={100} aria-label={`ATS score ${atsScore}%`}>
                   <div className="h-full rounded-full bg-info" style={{ width: `${atsScore}%` }} />
@@ -274,7 +274,7 @@ export default function CandidaturaDetail() {
             <div className="space-y-2">
               {learningSuggestions.map((s: any, i: number) => (
                 <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors group">
-                  <span className="font-mono text-[10px] uppercase text-muted-foreground bg-muted px-2 py-0.5 rounded">{s.type}</span>
+                  <span className="font-mono text-[11px] uppercase text-muted-foreground bg-muted px-2 py-0.5 rounded">{s.type}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm group-hover:text-primary transition-colors truncate">{s.resource_name}</p>
                     <p className="text-xs text-muted-foreground">{s.skill}{s.duration ? ` · ${s.duration}` : ""}</p>
@@ -294,7 +294,7 @@ export default function CandidaturaDetail() {
                 <div className="flex items-center gap-2">
                   <Eye size={16} className="text-primary" />
                   <span className="text-sm font-medium">Modifiche AI</span>
-                  <span className="font-mono text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{diff.length}</span>
+                  <span className="font-mono text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{diff.length}</span>
                 </div>
                 <CaretDown size={14} className={`text-muted-foreground transition-transform ${diffOpen ? "rotate-180" : ""}`} />
               </CollapsibleTrigger>
@@ -302,7 +302,7 @@ export default function CandidaturaDetail() {
                 <div className="space-y-3 mt-4">
                   {diff.map((ch: any, i: number) => (
                     <div key={i} className="rounded-lg border border-border/30 p-3 space-y-1.5">
-                      <p className="font-mono text-[10px] text-muted-foreground uppercase">{ch.section}</p>
+                      <p className="font-mono text-[11px] text-muted-foreground uppercase">{ch.section}</p>
                       <p className="text-sm line-through text-muted-foreground">{ch.original}</p>
                       <p className="text-sm text-primary border-l-2 border-primary/40 pl-2">{ch.suggested}</p>
                       {ch.reason && <p className="text-xs text-muted-foreground italic">{ch.reason}</p>}

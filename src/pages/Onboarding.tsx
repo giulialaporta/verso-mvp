@@ -4,12 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { SensitiveDataConsent, hasSensitiveDataConsent } from "@/components/SensitiveDataConsent";
+import { hasSensitiveDataConsent } from "@/components/SensitiveDataConsent";
+import { hashEmail } from "@/lib/hash-email";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -46,13 +48,12 @@ export default function Onboarding() {
   const [currentRal, setCurrentRal] = useState<string>("");
   const [desiredRal, setDesiredRal] = useState<string>("");
 
-  // Sensitive data consent
-  const [showConsentModal, setShowConsentModal] = useState(false);
-  const [hasConsent, setHasConsent] = useState(false);
+  // Sensitive data consent (inline checkbox)
+  const [sensitiveConsent, setSensitiveConsent] = useState(false);
 
   useEffect(() => {
     if (user) {
-      hasSensitiveDataConsent(user.id).then(setHasConsent);
+      hasSensitiveDataConsent(user.id).then((v) => setSensitiveConsent(v));
     }
   }, [user]);
 
@@ -110,18 +111,25 @@ export default function Onboarding() {
     }
   };
 
-  const handleUploadAndParse = () => {
+  const handleUploadAndParse = async () => {
     if (!file || !user) return;
-    if (!hasConsent) {
-      setShowConsentModal(true);
-      return;
+    // Save consent inline if not already saved
+    if (sensitiveConsent) {
+      const alreadyConsented = await hasSensitiveDataConsent(user.id);
+      if (!alreadyConsented) {
+        const userHash = user.email ? await hashEmail(user.email) : undefined;
+        await supabase.from("consent_logs" as any).insert({
+          user_id: user.id,
+          user_hash: userHash,
+          consent_type: "sensitive_data",
+          consent_version: "1.0",
+          granted: true,
+          user_agent: navigator.userAgent,
+          method: "inline_upload",
+          metadata: { screen: "onboarding_upload" },
+        });
+      }
     }
-    doUploadAndParse();
-  };
-
-  const handleConsentGranted = () => {
-    setShowConsentModal(false);
-    setHasConsent(true);
     doUploadAndParse();
   };
 
@@ -192,11 +200,6 @@ export default function Onboarding() {
 
   return (
     <>
-    <SensitiveDataConsent
-      open={showConsentModal}
-      onConsent={handleConsentGranted}
-      onCancel={() => setShowConsentModal(false)}
-    />
     <div className="flex min-h-[100dvh] items-start justify-center bg-background px-3 py-6 sm:px-4 sm:py-12 sm:items-center">
       <div className="w-full max-w-xl space-y-4 sm:space-y-6">
         <div className="text-center">
@@ -279,7 +282,23 @@ export default function Onboarding() {
                     </motion.div>
                   )}
 
-                  <Button onClick={handleUploadAndParse} disabled={!file} className="w-full gap-2">
+                  {/* Art. 9 GDPR inline consent */}
+                  <div className="flex items-start gap-3 min-h-[44px]">
+                    <Checkbox
+                      id="sensitive-consent-inline"
+                      checked={sensitiveConsent}
+                      onCheckedChange={(v) => setSensitiveConsent(v === true)}
+                      className="mt-1"
+                    />
+                    <Label htmlFor="sensitive-consent-inline" className="text-xs font-normal leading-relaxed text-muted-foreground cursor-pointer">
+                      Il mio CV potrebbe contenere dati sensibili (salute, convinzioni, origine). Acconsento al trattamento per adattare il CV.{" "}
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4 hover:text-primary/80">
+                        Dettagli nell'Informativa Privacy
+                      </a>.
+                    </Label>
+                  </div>
+
+                  <Button onClick={handleUploadAndParse} disabled={!file || !sensitiveConsent} className="w-full gap-2 active:scale-[0.98] transition-transform">
                     Analizza CV <ArrowRight size={16} />
                   </Button>
                 </CardContent>
