@@ -88,6 +88,12 @@ const TASK_ROUTING: Record<AiTask, ModelConfig> = {
     fallbackProvider: "google",
     fallbackModel: "gemini-2.5-flash",
   },
+  "cv-formal-review": {
+    provider: "anthropic",
+    model: "claude-haiku-4-5-20251001",
+    fallbackProvider: "google",
+    fallbackModel: "gemini-2.5-flash",
+  },
 };
 
 // ==================== COST RATES (per 1M tokens) ====================
