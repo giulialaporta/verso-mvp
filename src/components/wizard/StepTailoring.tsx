@@ -180,10 +180,10 @@ export function StepTailoring({
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium group-hover:text-info transition-colors">{ls.resource_name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="font-mono text-[10px] uppercase text-muted-foreground">{ls.skill}</span>
+                      <span className="font-mono text-[11px] uppercase text-muted-foreground">{ls.skill}</span>
                       <span className="text-border">·</span>
-                      <span className="font-mono text-[10px] uppercase text-muted-foreground">{ls.type}</span>
-                      {ls.duration && <><span className="text-border">·</span><span className="font-mono text-[10px] text-muted-foreground">{ls.duration}</span></>}
+                      <span className="font-mono text-[11px] uppercase text-muted-foreground">{ls.type}</span>
+                      {ls.duration && <><span className="text-border">·</span><span className="font-mono text-[11px] text-muted-foreground">{ls.duration}</span></>}
                     </div>
                   </div>
                   <ArrowRight size={14} className="text-muted-foreground group-hover:text-info mt-1 shrink-0 transition-colors" />
