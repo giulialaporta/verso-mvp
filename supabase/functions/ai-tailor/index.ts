@@ -302,7 +302,7 @@ const TOOL_SCHEMA_ANALYZE = {
             candidate_level: { type: "string", enum: ["junior", "mid", "senior", "lead", "executive"] },
             role_level: { type: "string", enum: ["junior", "mid", "senior", "lead", "executive"] },
             match: { type: "boolean" },
-            note: { type: "string", description: "ALWAYS in Italian" },
+            note: { type: "string", description: "ALWAYS in Italian. If candidate is more senior than the role, frame extra experience as a strength and added value, never as a penalty." },
           },
           required: ["candidate_level", "role_level", "match", "note"],
         },
