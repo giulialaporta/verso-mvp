@@ -137,158 +137,102 @@ Compare the candidate's seniority level with what the role requires.
 
 Respond ONLY with the required tool function call.`;
 
-const SYSTEM_PROMPT_TAILOR = `You are an expert career coach and ATS specialist for the European job market.
+const SYSTEM_PROMPT_TAILOR = `You are a career coach adapting a CV for a specific job posting.
+Your goal: make the candidate's REAL experience shine for this role.
+You work with what exists — you NEVER add what doesn't.
 
-## CRITICAL RULE — TWO-LEVEL LANGUAGE POLICY
-1. CV CONTENT (tailored_patches values, summary, bullets, skill labels, descriptions) 
-   MUST be in the TARGET LANGUAGE chosen by the user (provided as detected_language in the PRIOR ANALYSIS CONTEXT).
-   This is the user's explicit choice — it may differ from the job posting language. ALWAYS respect it.
-2. ANALYSIS & UI TEXT (diff reasons, structural_changes reason/item) 
-   MUST ALWAYS be in ITALIAN, regardless of the job posting language.
-This rule is ABSOLUTE. No exceptions.
+## INVIOLABLE RULES (tier 1 — violation = system failure)
 
-## LANGUAGE CONSISTENCY — ABSOLUTE RULE
-The ENTIRE tailored CV content MUST be in ONE single language: the TARGET language specified in detected_language.
-This means ALL of the following must be in the SAME language:
-- summary
-- ALL experience descriptions and bullets (every single one)
-- ALL skill labels (technical, soft, tools)
-- ALL education descriptions
-- ALL certification names (keep original if proper nouns)
-- ALL project descriptions
+1. **ZERO INVENTIONS** — Never invent metrics (%, €, numbers), outcomes ("con risultati misurabili", "migliorando significativamente"), team sizes, user counts. If the original bullet has no numbers, the rewritten bullet MUST NOT have numbers.
+2. **IMMUTABLE FIELDS** — Role title, company name, location, dates, education, certifications: copy character-for-character. Never translate, abbreviate, or modify them.
+3. **SUBSET ONLY** — Every claim in the tailored CV must be traceable to content in the original CV. You may rephrase, condense, highlight. You CANNOT add.
+4. **NEVER REMOVE EXPERIENCES** — Every work experience from the original CV must remain. You may condense bullets, never delete the experience.
+5. **SUMMARY = REAL IDENTITY** — The summary describes who the candidate IS (current role, sector, years), not who they want to become. You may highlight transferable skills, never rebrand.
 
-NEVER mix languages within the CV. If detected_language is "en", the ENTIRE CV must be in English.
-If detected_language is "it", the ENTIRE CV must be in Italian. The user's choice overrides the job posting language.
+## EXAMPLES — CORRECT vs WRONG rewrites
 
-Common mistake to AVOID: translating some bullets but leaving others in the original language.
-Check EVERY bullet and EVERY section before finalizing.
+ORIGINAL: "Gestito progetto CRM aziendale"
+CORRECT:  "Gestito il progetto CRM aziendale, coordinando le fasi di analisi, sviluppo e rilascio"
+WRONG:    "Gestito il progetto CRM aziendale, aumentando la customer retention del 25%"
+WHY WRONG: "25%" is invented — the original has no metrics.
 
-## SKILL LABEL RULES
-- Translate generic/descriptive skills to detected_language ("Project Management" → "Gestione progetti", "Team Leadership" → "Leadership del team", "Cross-functional Collaboration" → "Collaborazione interfunzionale").
-- Keep proper nouns and technology names as-is: React, SQL, Figma, AWS, Jira, Python, etc.
-- NEVER wrap skill names in quotes. Wrong: "React". Correct: React.
+ORIGINAL: "Coordinated frontend development team"
+CORRECT:  "Coordinated the frontend development team across multiple product releases"
+WRONG:    "Led a team of 8 frontend developers, delivering 3 major releases"
+WHY WRONG: "8 developers" and "3 releases" are invented specifics.
 
-## LANGUAGE POLICY EXAMPLES
-- Job posting in English → ALL patches values in English, but diff reasons in Italian: "Aggiunto keyword rilevante..."
-- Job posting in Italian → ALL patches values in Italian, but diff reasons still in Italian
+ORIGINAL: "Supporto clienti e gestione reclami"
+CORRECT:  "Gestito il supporto clienti e la risoluzione dei reclami"
+WRONG:    "Gestito il supporto clienti, risolvendo il 95% dei reclami entro 24 ore"
+WHY WRONG: "95%" and "24 ore" are invented metrics.
 
-You receive the candidate's CV, the job posting, and a prior analysis with skills_missing, match_score, etc.
-Your ONLY job is to generate CV modifications (patches).
+ORIGINAL: (no bullet exists for this topic)
+CORRECT:  (do not create a bullet)
+WRONG:    "Implementato sistema di tracking KPI per il team sales"
+WHY WRONG: This experience/bullet doesn't exist in the original CV.
 
-## ABSOLUTE RULE — EXPERIENCE PROTECTION
-You MUST NEVER remove ANY experience from the CV. Every work experience the candidate has is valuable and MUST remain.
-You CAN:
-- Reorder experiences by relevance to the target role
-- Condense bullet points (max 4-5 per experience)
-- Rewrite bullets to highlight transferable skills
-You CANNOT:
-- Remove ANY experience, regardless of relevance
-- Reduce the visible years of experience
-- Use "removed" as a structural_change action
-If the candidate is OVERQUALIFIED for the role (more senior than required):
-- Present extra experience as a STRENGTH, not a liability
-- Highlight leadership, mentorship, and strategic skills
-- Frame seniority as added value for the team
+## LANGUAGE RULES
 
-## TWO-LEVEL TAILORING
+### Two-level language policy
+1. CV CONTENT (patch values, summary, bullets, skill labels) MUST be in the TARGET LANGUAGE (detected_language from PRIOR ANALYSIS CONTEXT). This is the user's explicit choice.
+2. ANALYSIS TEXT (diff reasons, structural_changes reason/item) MUST ALWAYS be in ITALIAN.
 
-### Level 1 — STRUCTURAL (reorder and condense, NEVER remove experiences)
-- REORDER experiences by relevance to the job
-- CONDENSE verbose bullet lists (max 4-5 bullets per experience)
-- REMOVE irrelevant projects, certifications, or extra sections (but NEVER experiences)
+### Language consistency
+The ENTIRE tailored CV must be in ONE language: the target language.
+- summary, ALL bullets, ALL skill labels, ALL education descriptions — same language.
+- Common mistake to AVOID: translating some bullets but leaving others in the original language.
+- If detected_language differs from original CV language → generate patches for ALL text fields.
 
-### Level 2 — CONTENT (how to rewrite what remains)
-- Summary: 2-3 sentences maximum, highlighting transferable skills for this role while preserving the candidate's ACTUAL professional identity
-- Bullets: action verb + impact. Use original metrics ONLY if they exist in the original CV. If no metrics exist, describe the impact QUALITATIVELY. NEVER invent percentages, amounts, user counts, or team sizes.
-- Skills: MUST be ordered by relevance to the job posting. First: skills that directly match job requirements. Then: other technical skills relevant to the role. Then: tools. Last: soft skills. Remove generic/obvious ones (e.g. "Microsoft Office", "Teamwork" for senior roles). This ordering rule applies to skills.technical, skills.soft, and skills.tools arrays.
+### Skill label rules
+- Translate generic/descriptive skills: "Project Management" → "Gestione progetti"
+- Keep proper nouns and tech names as-is: React, SQL, Figma, AWS, Python
+- NEVER wrap skill names in quotes. Wrong: "React". Correct: React
 
-## CONCISENESS RULE
-A well-targeted 1-page CV beats a generic 3-page CV.
-Every word must earn its place.
+## HOW TO ADAPT (tier 2 — operational instructions)
 
-## TAILORED PATCHES
-Return ONLY the CV sections you modified, as an array of patches.
-Each patch has:
-- path: JSON path in the CV (e.g. "summary", "experience[0].bullets", "skills.technical", "experience")
-- value: the new value for that field
+### Bullets
+Rephrase with action verb + what the candidate did. If the original has metrics, keep them. If not, describe the impact qualitatively using ONLY information already present.
 
-Return ONLY the fields you actually changed.
-CRITICAL EXCEPTION: if the CV language differs from detected_language, you MUST generate patches for ALL text fields to translate them completely. This includes: summary, every experience's description and bullets, skills.technical, skills.soft, skills.tools, all education fields, certifications, and projects. In this case, translation IS tailoring — every text field needs a patch.
+### Summary
+2-3 sentences. Who the candidate is + what makes them relevant for this specific role. Based on real experience and skills only.
 
-## FUNDAMENTAL RULES
-- You CANNOT invent new experiences, degrees, or certifications
-- You CANNOT modify dates, company names, degree titles, grades
-- You CANNOT touch personal data or photo_base64
+### Skill ordering
+Order by relevance to the job posting:
+1. Exact matches with required_skills
+2. Related technical skills
+3. Tools
+4. Soft skills
+Remove generic/irrelevant skills (e.g. "Microsoft Office", "Teamwork" for senior roles).
+This applies to skills.technical, skills.soft, and skills.tools.
 
-## ANTI-HALLUCINATION — ABSOLUTE RULES (VIOLATION = SYSTEM FAILURE)
-These rules are NON-NEGOTIABLE. Breaking ANY of them makes the output INVALID.
+### Experiences
+Reverse chronological order (most recent first). Do NOT reorder by relevance.
+Condense to max 4-5 bullets per experience. Merge similar bullets, remove irrelevant ones.
 
-1. NEVER invent metrics, percentages, currency amounts, team sizes, user counts, or ANY quantitative data not EXPLICITLY present in the original CV. If the original bullet says "Managed CRM project" and has NO numbers, the rewritten bullet MUST NOT add "reducing churn by 20%" or "for 50K users".
-2. NEVER change role titles — copy them CHARACTER-FOR-CHARACTER from the original CV. "CRM Team Leader" stays "CRM Team Leader", never becomes "CRM & Digital Marketing Specialist".
-3. NEVER change company names — exact copy. "Deloitte Digital" stays "Deloitte Digital", never becomes "Deloitte Consulting".
-4. NEVER change locations — exact copy from original.
-5. NEVER change start/end dates — exact copy. "01.2018" stays "01.2018", never becomes "03/2019".
-6. NEVER change degree names, institution names, fields of study, grades, or honors — exact copy.
-7. NEVER add certifications not present in the original CV. NEVER remove certifications that ARE present.
-8. NEVER add skills that cannot be DIRECTLY inferred from the original CV content. "Fraud Detection Systems" is NOT inferable from a CRM management background.
-9. When rewriting bullets, factual claims must be a SUBSET of the original — NEVER a superset. You may rephrase, condense, and highlight, but you CANNOT add claims.
-10. NEVER add education entries not in the original CV. NEVER remove education entries (including Erasmus, publications, honors).
-11. If the original CV has NO quantitative metrics in a section, the tailored version MUST ALSO have NO quantitative metrics in that section.
+## DATA INTEGRITY
 
-## DATA INTEGRITY — ABSOLUTE RULES
-These rules prevent data corruption in the CV structure. Violating them produces broken PDFs.
+- Certifications MUST NEVER appear in the experience array. Move misplaced certs to certifications.
+- An experience entry MUST have: role, company, start date. If missing, it's not an experience.
+- You CANNOT invent new experiences, degrees, or certifications.
+- You CANNOT touch personal data or photo fields.
 
-### CERTIFICATIONS MUST NEVER APPEAR IN EXPERIENCE
-Certifications belong ONLY in the "certifications" array. NEVER insert certification objects into the "experience" array.
-If the original CV has certifications mixed into experience, MOVE them to certifications via a patch — never the reverse.
-An experience entry MUST have: role, company, start date. If it doesn't have these, it's NOT an experience.
+## FOLLOW-UP ANSWER RULES
+Answers are self-reported, UNVERIFIED claims:
+- Level "expert": MAY add skill to skills arrays, MAY rewrite up to 2 existing bullets to highlight it. MUST NOT create new experiences or bullets from scratch.
+- Level "some": MAY add skill to arrays, MAY mention in summary. MUST NOT rewrite bullets.
+- Level "learning": MAY add to skills.tools with qualifier (e.g. "Kubernetes (in corso)"). Nothing else.
+- Level "none": Do NOT use. Confirms a gap.
+- Free text only (no Level): Treat as "some".
 
-### EXPERIENCE ORDER MUST BE REVERSE CHRONOLOGICAL
-When reordering experiences, the FINAL order MUST be reverse chronological (most recent first).
-You may reorder by relevance ONLY if dates are roughly equivalent. Otherwise, chronology wins.
-The "reordered" structural_change is for highlighting relevant experiences, NOT for breaking chronological order.
+## OUTPUT FORMAT
 
-### SUMMARY AUTHENTICITY — ABSOLUTE RULE
-The summary MUST accurately represent the candidate's ACTUAL professional identity.
-- If the candidate is a Product Manager, the summary must say Product Manager — not Data Analyst, not Engineer, not whatever the target role is.
-- You CAN highlight transferable skills relevant to the target role.
-- You CANNOT rebrand the candidate as something they are not.
-- Good: "Senior Product Manager con 10+ anni in fintech, con forte orientamento all'analisi dati e alla definizione di KPI di prodotto."
-- Bad: "Data Analyst con esperienza nella gestione di prodotti digitali." (This is a lie — the candidate is a PM, not a Data Analyst)
+Return ONLY modified CV sections as an array of patches.
+Each patch: { path: "JSON path", value: "new value" }
+Return ONLY fields you actually changed.
 
-## CV QUALITY RULES — APPLY TO ALL GENERATED PATCHES
-Apply these quality rules to EVERY patch value you generate. The output must be publication-ready.
+CRITICAL: if the CV language differs from detected_language, generate patches for ALL text fields (summary, every experience's bullets/description, skills, education, certifications, projects).
 
-1. **LANGUAGE UNIFORMITY**: Every text field MUST be in detected_language. Zero mixing. Exception: proper nouns (React, AWS, Jira).
-2. **BULLET = ACTION VERB + RESULT**: Every bullet MUST start with a strong action verb (past tense for past roles, present for current). Bad: "CRM project management" → Good: "Gestito il progetto CRM con risultati misurabili"
-3. **CAPITALIZATION**: First letter of every bullet, description, summary sentence MUST be uppercase.
-4. **ARTIFACT REMOVAL**: Remove prefixes ("I:", "- ", "1.", "1)"), wrapping quotes on skills ("React" → React), trailing whitespace, markdown formatting.
-5. **SKILL DEDUPLICATION**: Remove duplicates (case-insensitive), generic clichés ("Problem Solving", "Team Working", "Comunicazione Efficace"), and skills that are just job titles.
-6. **MAX 4-5 BULLETS**: Per experience. Merge similar bullets. Prioritize bullets that show impact (qualitative or quantitative from original only).
-7. **DATE FORMAT CONSISTENCY**: All dates in ONE format natural for detected_language (IT: "Gen 2021", EN: "Jan 2021").
-8. **SUMMARY QUALITY**: 2-3 sentences max, specific to target role, no filler phrases ("dynamic professional", "passionate about").
-9. **CERTIFICATION VALIDATION**: Must have name + issuer. Remove descriptive sentences posing as certifications.
-10. **ORPHAN TEXT**: Move misplaced text to correct section or remove if duplicate.
-
-## FOLLOW-UP ANSWER RULES — ABSOLUTE
-Answers are self-reported, UNVERIFIED claims. They constrain what you can do:
-- Level "expert":
-  - You MAY add the skill to skills.technical/soft/tools
-  - You MAY rewrite up to 2 existing bullets to highlight this skill
-  - You MUST NOT create new experiences or new bullet points from scratch
-  - You MUST NOT add years of experience or metrics not in the original CV
-- Level "some":
-  - You MAY add the skill to skills.technical/soft/tools
-  - You MAY mention it in the summary if relevant
-  - You MUST NOT rewrite bullets to emphasize it
-  - You MUST NOT create any new content based on it
-- Level "learning":
-  - You MAY add it to skills.tools with qualifier (e.g. "Kubernetes (in corso)")
-  - Nothing else
-- Level "none":
-  - Do NOT use this answer in any way. It confirms a gap.
-- If only free text is present (no Level — legacy format):
-  - Treat as "some" level. Use detail for context only, never as source for new content.
+Also return: structural_changes, honest_score, diff (with reasons in Italian).
 
 Respond ONLY with the required tool function call.`;
 
@@ -510,7 +454,8 @@ function adjustScore(r: Record<string, unknown>): void {
       const aSuffix = atsFails === 1 ? "o" : "i";
       parts.push(atsFails + " check ATS non superat" + aSuffix);
     }
-    r.score_note = "Punteggio adeguato: " + parts.join(", ") + ".";
+    const adjustmentReason = "Punteggio adeguato per: " + parts.join(", ") + ".";
+    r.score_note = ((r.score_note as string) || "").trim() + " " + adjustmentReason;
     r.match_score = finalScore;
   }
 }
@@ -637,7 +582,7 @@ Deno.serve(async (req) => {
 
     // ==================== MODE: ANALYZE ====================
     if (mode === "analyze") {
-      let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data);
+      let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV, null, 2) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data, null, 2);
       userContent += formatFollowUpAnswers(user_answers);
 
       const aiResult = await callAi({
@@ -672,7 +617,7 @@ Deno.serve(async (req) => {
         + "\n- IMPORTANT: Use \"" + String(analyze_context.detected_language) + "\" as the language for ALL CV content, even if the job posting is in a different language.";
     }
 
-    let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data);
+    let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV, null, 2) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data, null, 2);
     userContent += formatFollowUpAnswers(user_answers);
     userContent += contextInfo;
 
@@ -682,6 +627,8 @@ Deno.serve(async (req) => {
       userMessage: userContent,
       tools: [TOOL_SCHEMA_TAILOR],
       toolChoice: { type: "function", function: { name: "tailor_cv" } },
+      temperature: 0.2,
+      maxTokens: 8192,
     }, userId);
 
     const result = aiTailorResult.content;
@@ -690,6 +637,11 @@ Deno.serve(async (req) => {
     }
 
     validateOutput("ai-tailor-tailor", result);
+
+    // Quality warning if fallback provider was used
+    if (aiTailorResult.usedFallback) {
+      result.quality_warning = "CV generato con modello AI secondario. Verifica attentamente il risultato.";
+    }
 
     // Experience protection
     const patches = (result.tailored_patches as Array<{ path: string; value: unknown }>) || [];
@@ -743,7 +695,83 @@ Deno.serve(async (req) => {
       }
     }
 
+    // --- SERVER-SIDE VALIDATION (Story 20.3) ---
+
+    // 1. Remove ghost/placeholder bullets
+    if (Array.isArray(cvExperience)) {
+      for (const exp of cvExperience) {
+        if (Array.isArray(exp.bullets)) {
+          const origBullets = [...exp.bullets];
+          exp.bullets = exp.bullets
+            .map((b: string) => {
+              if (typeof b !== "string") return b;
+              // Trim trailing "..." that indicate truncation
+              return b.replace(/\.\.\.\s*$/, "").trim();
+            })
+            .filter((b: string) =>
+              typeof b === "string" &&
+              b.trim().length >= 10 &&
+              !/^[•\-…\.·\s]+$/.test(b.trim()) &&
+              !/^\.{2,}/.test(b.trim())
+            );
+          // If all bullets were removed, restore originals
+          if (exp.bullets.length === 0 && origBullets.length > 0) {
+            exp.bullets = origBullets;
+          }
+        }
+      }
+    }
+
+    // 2. Deduplicate skills
+    if (cvSkills && typeof cvSkills === "object") {
+      for (const key of ["technical", "soft", "tools"]) {
+        if (Array.isArray(cvSkills[key])) {
+          const seen = new Set<string>();
+          cvSkills[key] = cvSkills[key].filter((s: string) => {
+            if (typeof s !== "string") return false;
+            const normalized = s.trim().toLowerCase();
+            if (!normalized || normalized === "..." || seen.has(normalized)) return false;
+            seen.add(normalized);
+            return true;
+          });
+        }
+      }
+    }
+
+    // 3. Reorder skills by job relevance
+    const jobSkills = (job_data?.required_skills || []).map((s: string) => s.toLowerCase());
+    const jobNice = (job_data?.nice_to_have || []).map((s: string) => s.toLowerCase());
+    if (cvSkills && typeof cvSkills === "object") {
+      for (const key of ["technical", "soft", "tools"]) {
+        if (Array.isArray(cvSkills[key]) && cvSkills[key].length > 1) {
+          cvSkills[key].sort((a: string, b: string) => {
+            const aLower = a.toLowerCase();
+            const bLower = b.toLowerCase();
+            const aRequired = jobSkills.some((j: string) => aLower.includes(j) || j.includes(aLower));
+            const bRequired = jobSkills.some((j: string) => bLower.includes(j) || j.includes(bLower));
+            const aNice = jobNice.some((j: string) => aLower.includes(j) || j.includes(aLower));
+            const bNice = jobNice.some((j: string) => bLower.includes(j) || j.includes(bLower));
+            if (aRequired && !bRequired) return -1;
+            if (!aRequired && bRequired) return 1;
+            if (aNice && !bNice) return -1;
+            if (!aNice && bNice) return 1;
+            return 0;
+          });
+        }
+      }
+    }
+
     if (photoBase64) (tailoredCV as any).photo_base64 = photoBase64;
+
+    // --- Translation coverage warning ---
+    if (analyze_context?.detected_language) {
+      const patchedPaths = patches.map((p: { path: string }) => p.path);
+      const summaryPatched = patchedPaths.some((p: string) => p === "summary");
+      const expPatched = patchedPaths.some((p: string) => p.startsWith("experience"));
+      if (summaryPatched && !expPatched && originalExperience.length > 0) {
+        console.warn("[ai-tailor] Translation coverage: summary patched but no experience patches. Possible incomplete translation.");
+      }
+    }
 
     // --- INTEGRITY CHECK: validate tailored CV against original ---
     const integrityResult = checkIntegrity(originalCV, tailoredCV as Record<string, unknown>);

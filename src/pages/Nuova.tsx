@@ -270,6 +270,12 @@ export default function Nuova() {
 
       setTailorResult(result);
 
+      // Show quality warning if AI used fallback model
+      if (result.quality_warning) {
+        const { toast } = await import("sonner");
+        toast.warning(result.quality_warning);
+      }
+
       if (result.original_cv) {
         setOriginalCv(result.original_cv);
       } else if (result.master_cv_id) {

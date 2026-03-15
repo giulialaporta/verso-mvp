@@ -31,6 +31,7 @@ export interface AiRequest {
   tools?: OpenAITool[];
   toolChoice?: { type: "function"; function: { name: string } };
   maxTokens?: number;
+  temperature?: number;
 }
 
 export interface AiResponse {
@@ -212,6 +213,7 @@ async function callAnthropic(request: AiRequest, model: string): Promise<Provide
     system: request.systemPrompt,
     messages: [{ role: "user", content: userContent }],
   };
+  if (request.temperature !== undefined) body.temperature = request.temperature;
 
   if (request.tools) {
     body.tools = toAnthropicTools(request.tools);
@@ -290,6 +292,9 @@ async function callGoogleAI(request: AiRequest, model: string): Promise<Provider
     system_instruction: systemInstruction,
     contents,
   };
+  if (request.temperature !== undefined) {
+    body.generationConfig = { ...(body.generationConfig as Record<string, unknown> || {}), temperature: request.temperature };
+  }
 
   if (request.tools) {
     body.tools = toGoogleAITools(request.tools);
@@ -382,6 +387,7 @@ async function callLovableGateway(request: AiRequest, model: string): Promise<Pr
       },
     ],
   };
+  if (request.temperature !== undefined) body.temperature = request.temperature;
 
   if (request.tools) body.tools = request.tools;
   if (request.toolChoice) body.tool_choice = request.toolChoice;
