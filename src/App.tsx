@@ -70,7 +70,7 @@ const App = () => (
                   </ProtectedRoute>
                 }
               >
-                <Route path="home" element={<Home />} />
+                <Route path="home" element={<Suspense fallback={<PageSkeleton />}><Home /></Suspense>} />
                 <Route path="nuova" element={<Suspense fallback={<PageSkeleton />}><Nuova /></Suspense>} />
                 <Route path="candidature" element={<Suspense fallback={<PageSkeleton />}><Candidature /></Suspense>} />
                 <Route path="impostazioni" element={<Suspense fallback={<PageSkeleton />}><Impostazioni /></Suspense>} />

@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { pdf } from "@react-pdf/renderer";
-import { ClassicoTemplate } from "@/components/cv-templates";
+// Dynamic import for heavy PDF library — loaded only when user clicks "Download PDF"
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
