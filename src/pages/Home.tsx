@@ -156,7 +156,7 @@ function HeroSection({
             </h1>
             {/* Plan badge */}
             <span
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider ${
                 isPro
                   ? cancelAtPeriodEnd
                     ? "bg-warning/15 text-warning"
@@ -201,7 +201,7 @@ function HeroSection({
       >
         <Button
           onClick={onNewApp}
-          className="w-full gap-2 h-12 text-base rounded-full"
+          className="w-full gap-2 h-12 text-base rounded-full active:scale-[0.98] transition-transform"
         >
           <Plus size={18} weight="bold" /> Nuova candidatura <ArrowRight size={18} />
         </Button>
@@ -343,7 +343,7 @@ function CVSnapshot({
             {skills.map((skill) => (
               <span
                 key={skill}
-                className="rounded-full bg-muted px-2.5 py-0.5 font-mono text-[10px] text-muted-foreground uppercase tracking-wider"
+                className="rounded-full bg-muted px-2.5 py-0.5 font-mono text-[11px] text-muted-foreground uppercase tracking-wider"
               >
                 {skill}
               </span>
@@ -445,7 +445,7 @@ function VirginState() {
         ))}
       </div>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.3 }}>
-        <Button onClick={() => navigate("/onboarding")} className="w-full gap-2 h-12 text-base rounded-full">
+        <Button onClick={() => navigate("/onboarding")} className="w-full gap-2 h-12 text-base rounded-full active:scale-[0.98] transition-transform">
           Carica il tuo CV <ArrowRight size={18} />
         </Button>
       </motion.div>

@@ -14,7 +14,7 @@ interface ConsentCheckboxesProps {
 export function ConsentCheckboxes({ acceptedTerms, acceptedPrivacy, onTermsChange, onPrivacyChange }: ConsentCheckboxesProps) {
   return (
     <div className="space-y-2 pt-4">
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-2 min-h-[44px]">
         <Checkbox
           id="terms"
           checked={acceptedTerms}
@@ -28,7 +28,7 @@ export function ConsentCheckboxes({ acceptedTerms, acceptedPrivacy, onTermsChang
           </a>
         </Label>
       </div>
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-2 min-h-[44px]">
         <Checkbox
           id="privacy"
           checked={acceptedPrivacy}

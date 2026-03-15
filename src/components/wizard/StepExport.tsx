@@ -318,10 +318,10 @@ export function StepExport({
               {reviewFixes.map((fix, i) => (
                 <div key={i} className="rounded-lg border border-border/30 bg-card/50 px-4 py-3 text-sm">
                   <div className="flex items-start gap-2">
-                    <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 font-mono text-[10px] text-warning uppercase">
+                    <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 font-mono text-[11px] text-warning uppercase">
                       {fix.section}
                     </span>
-                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
                       {fix.field}
                     </span>
                   </div>
@@ -343,7 +343,7 @@ export function StepExport({
 
       {/* Download buttons */}
       <div className="space-y-3">
-        <Button onClick={handleDownload} disabled={downloading} className="w-full gap-2 h-12 text-base">
+        <Button onClick={handleDownload} disabled={downloading} className="w-full gap-2 h-12 text-base active:scale-[0.98] transition-transform">
           {downloading ? <><SpinnerGap size={18} className="animate-spin" /> Generazione...</> : <><DownloadSimple size={18} /> Scarica PDF</>}
         </Button>
 
@@ -351,7 +351,7 @@ export function StepExport({
           variant="outline"
           onClick={handleDownloadDocx}
           disabled={downloadingDocx}
-          className="w-full gap-2 h-11 relative"
+          className="w-full gap-2 h-11 relative active:scale-[0.98] transition-transform"
         >
           {!isPro && <Lock size={14} className="text-muted-foreground" />}
           {downloadingDocx ? (
@@ -360,7 +360,7 @@ export function StepExport({
             <><FileDoc size={16} /> Scarica DOCX</>
           )}
           {!isPro && (
-            <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] text-primary font-bold">
+            <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[11px] text-primary font-bold">
               <Crown size={8} weight="fill" /> Pro
             </span>
           )}

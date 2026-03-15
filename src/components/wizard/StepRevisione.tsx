@@ -204,7 +204,7 @@ export function StepRevisione({
         </div>
       )}
 
-      <Button onClick={onNext} className="w-full gap-2">
+      <Button onClick={onNext} className="w-full gap-2 active:scale-[0.98] transition-transform">
         Procedi al download <ArrowRight size={16} />
       </Button>
     </div>

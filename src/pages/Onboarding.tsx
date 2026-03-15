@@ -200,7 +200,7 @@ export default function Onboarding() {
 
   return (
     <>
-    <div className="flex min-h-[100dvh] items-start justify-center bg-background px-3 py-6 sm:px-4 sm:py-12 sm:items-center">
+    <div className="flex min-h-[100dvh] items-start justify-center bg-background px-4 py-6 sm:py-12 sm:items-center">
       <div className="w-full max-w-xl space-y-4 sm:space-y-6">
         <div className="text-center">
           <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
@@ -370,7 +370,7 @@ export default function Onboarding() {
                     Verso conosce solo quello che hai scritto nel tuo CV. Nessuna informazione inventata.
                   </p>
 
-                  <Button onClick={() => setStep("salary")} className="w-full gap-2">
+                  <Button onClick={() => setStep("salary")} className="w-full gap-2 active:scale-[0.98] transition-transform">
                     Continua <ArrowRight size={16} />
                   </Button>
                 </CardContent>
@@ -450,14 +450,14 @@ export default function Onboarding() {
                     <Button
                       variant="outline"
                       onClick={() => setStep("preview")}
-                      className="gap-2"
+                      className="gap-2 active:scale-[0.98] transition-transform"
                     >
                       <ArrowLeft size={16} /> Indietro
                     </Button>
                     <Button
                       onClick={handleSave}
                       disabled={saving}
-                      className="flex-1 gap-2"
+                      className="flex-1 gap-2 active:scale-[0.98] transition-transform"
                     >
                       {saving ? "Salvataggio..." : "Salva e continua"}
                       <ArrowRight size={16} />
