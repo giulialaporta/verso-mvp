@@ -28,7 +28,7 @@ import {
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ExportDrawer } from "@/components/ExportDrawer";
-import { VersoScoreCompact } from "@/components/VersoScore";
+import { MatchScoreCompact } from "@/components/MatchScore";
 import { DetailContent } from "@/components/candidature/DetailContent";
 import { ResponsiveDetailPanel } from "@/components/candidature/ResponsiveDetailPanel";
 
@@ -168,10 +168,9 @@ export default function Candidature() {
         </div>
       </div>
       <div className="flex items-center gap-2 mt-2 ml-12">
-        <VersoScoreCompact
+        <MatchScoreCompact
           matchScore={app.match_score}
-          atsScore={app.ats_score}
-          honestScore={app.honest_score}
+          isHonest={(app.honest_score ?? 0) >= 85}
         />
         <StatusChip status={app.status} />
       </div>

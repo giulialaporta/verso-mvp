@@ -67,16 +67,16 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useProGate } from "@/hooks/useProGate";
 
 import { StatusChip } from "@/components/StatusChip";
-import { VersoScoreCompact, calcVersoScore } from "@/components/VersoScore";
+import { MatchScoreCompact } from "@/components/MatchScore";
 
 // ─── Stats Bar ───────────────────────────────────────────────
 function StatsBar({
   activeCount,
-  avgVersoScore,
+  avgMatchScore,
   hasCV,
 }: {
   activeCount: number;
-  avgVersoScore: number | null;
+  avgMatchScore: number | null;
   hasCV: boolean;
 }) {
   return (
@@ -90,9 +90,9 @@ function StatsBar({
         },
         {
           icon: ChartLineUp,
-          label: "Verso Score",
-          value: avgVersoScore !== null ? `${avgVersoScore}` : "—",
-          accent: avgVersoScore !== null && avgVersoScore >= 66,
+          label: "Match",
+          value: avgMatchScore !== null ? `${avgMatchScore}` : "—",
+          accent: avgMatchScore !== null && avgMatchScore >= 66,
         },
         {
           icon: FileText,
@@ -328,10 +328,9 @@ function RecentApplications({ apps }: { apps: AppRowWithAts[] }) {
               </div>
             </div>
             <div className="flex items-center gap-2 mt-2 ml-11">
-              <VersoScoreCompact
+              <MatchScoreCompact
                 matchScore={app.match_score}
-                atsScore={(app as any).ats_score}
-                honestScore={(app as any).honest_score}
+                isHonest={((app as any).honest_score ?? 0) >= 85}
               />
               <StatusChip status={app.status} />
             </div>
@@ -673,9 +672,9 @@ export default function Home() {
     [apps]
   );
   const hasApplications = activeApps.length > 0;
-  const avgVersoScore = useMemo(() => {
+  const avgMatchScore = useMemo(() => {
     const scores = (apps ?? [])
-      .map((a) => calcVersoScore({ match_score: a.match_score, ats_score: a.ats_score, honest_score: (a as any).honest_score }))
+      .map((a) => a.match_score)
       .filter((s): s is number => s !== null);
     if (scores.length === 0) return null;
     return Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);
@@ -743,7 +742,7 @@ export default function Home() {
       >
         <StatsBar
           activeCount={activeApps.length}
-          avgVersoScore={avgVersoScore}
+          avgMatchScore={avgMatchScore}
           hasCV={hasCV}
         />
       </motion.div>

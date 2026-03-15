@@ -7,21 +7,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type VersoScoreInput = {
-  match_score: number | null;
-  ats_score: number | null;
-  honest_score: number | null; // confidence value 0-100
-};
-
-export function calcVersoScore(input: VersoScoreInput): number | null {
-  const { match_score, ats_score, honest_score } = input;
-  if (match_score == null && ats_score == null) return null;
-  const m = match_score ?? 0;
-  const a = ats_score ?? 0;
-  const h = honest_score ?? 100;
-  return Math.round(m * 0.4 + a * 0.35 + h * 0.25);
-}
-
 function getScoreConfig(score: number) {
   if (score >= 86) return { label: "Eccellente", colorClass: "text-primary", strokeClass: "stroke-primary" };
   if (score >= 66) return { label: "Forte", colorClass: "text-success", strokeClass: "stroke-success" };
@@ -29,23 +14,21 @@ function getScoreConfig(score: number) {
   return { label: "Da migliorare", colorClass: "text-destructive", strokeClass: "stroke-destructive" };
 }
 
-// ─── Large version (StepCompleta) ──────────────────────────
-export function VersoScoreLarge({
+// ─── Large ring (StepCompleta) ─────────────────────────────
+export function MatchScoreRing({
   matchScore,
   atsScore,
-  honestScore,
+  isHonest,
 }: {
   matchScore: number | null;
   atsScore: number | null;
-  honestScore: number | null;
+  isHonest: boolean;
 }) {
-  const score = calcVersoScore({ match_score: matchScore, ats_score: atsScore, honest_score: honestScore });
-  if (score == null) return null;
+  if (matchScore == null) return null;
 
-  const config = getScoreConfig(score);
+  const config = getScoreConfig(matchScore);
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
-  const showBadge = (honestScore ?? 0) >= 85;
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -61,7 +44,7 @@ export function VersoScoreLarge({
             strokeLinecap="round"
             strokeDasharray={circumference}
             initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset: circumference - (circumference * score) / 100 }}
+            animate={{ strokeDashoffset: circumference - (circumference * matchScore) / 100 }}
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
           />
         </svg>
@@ -72,7 +55,7 @@ export function VersoScoreLarge({
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            {score}
+            {matchScore}
           </motion.span>
           <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-mono mt-0.5">
             {config.label}
@@ -80,8 +63,20 @@ export function VersoScoreLarge({
         </div>
       </div>
 
+      {/* ATS secondary */}
+      {atsScore != null && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-xs text-muted-foreground font-mono"
+        >
+          ATS {atsScore}%
+        </motion.p>
+      )}
+
       {/* Honest Badge */}
-      {showBadge && (
+      {isHonest && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -105,45 +100,23 @@ export function VersoScoreLarge({
           </Tooltip>
         </TooltipProvider>
       )}
-
-      {/* Breakdown */}
-      <div className="flex gap-4 text-center">
-        {[
-          { label: "Match", value: matchScore },
-          { label: "ATS", value: atsScore },
-          { label: "Onestà", value: honestScore },
-        ].map((item) => (
-          <div key={item.label} className="flex flex-col items-center gap-0.5">
-            <span className="font-mono text-lg font-bold text-foreground">
-              {item.value != null ? `${item.value}%` : "—"}
-            </span>
-            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-mono">
-              {item.label}
-            </span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
 
 // ─── Compact version (cards) ───────────────────────────────
-export function VersoScoreCompact({
+export function MatchScoreCompact({
   matchScore,
-  atsScore,
-  honestScore,
+  isHonest,
 }: {
   matchScore: number | null;
-  atsScore: number | null;
-  honestScore: number | null;
+  isHonest: boolean;
 }) {
-  const score = calcVersoScore({ match_score: matchScore, ats_score: atsScore, honest_score: honestScore });
-  if (score == null) return null;
+  if (matchScore == null) return null;
 
-  const config = getScoreConfig(score);
+  const config = getScoreConfig(matchScore);
   const radius = 12;
   const circumference = 2 * Math.PI * radius;
-  const showBadge = (honestScore ?? 0) >= 85;
 
   return (
     <TooltipProvider>
@@ -159,26 +132,19 @@ export function VersoScoreCompact({
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeDasharray={circumference}
-                strokeDashoffset={circumference - (circumference * score) / 100}
+                strokeDashoffset={circumference - (circumference * matchScore) / 100}
               />
             </svg>
             <span className={`font-mono text-sm font-bold ${config.colorClass}`}>
-              {score}
+              {matchScore}
             </span>
-            {showBadge && (
+            {isHonest && (
               <ShieldCheck size={14} className="text-primary" weight="fill" />
             )}
           </div>
         </TooltipTrigger>
         <TooltipContent side="top">
-          <div className="space-y-1 text-xs">
-            <p className="font-medium">Verso Score: {score} — {config.label}</p>
-            <div className="flex gap-3 text-muted-foreground">
-              <span>Match {matchScore ?? "—"}%</span>
-              <span>ATS {atsScore ?? "—"}%</span>
-              <span>Onestà {honestScore ?? "—"}%</span>
-            </div>
-          </div>
+          <p className="text-xs font-medium">Match: {matchScore}% — {config.label}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { PaperPlaneTilt, Clock, Plus, Crown } from "@phosphor-icons/react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useProGate } from "@/hooks/useProGate";
-import { VersoScoreLarge } from "@/components/VersoScore";
+import { MatchScoreRing } from "@/components/MatchScore";
 import type { JobData } from "./wizard-types";
 
 export function StepCompleta({
@@ -29,6 +29,7 @@ export function StepCompleta({
   const checkCanCreate = useProGate();
 
   const showFreeBanner = !isPro;
+  const isHonest = (honestScore ?? 0) >= 85;
 
   const handleNewApp = async () => {
     const canCreate = await checkCanCreate(isPro);
@@ -44,16 +45,16 @@ export function StepCompleta({
         </p>
       </motion.div>
 
-      {/* Verso Score */}
+      {/* Match Score Ring */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.15, duration: 0.5 }}
       >
-        <VersoScoreLarge
+        <MatchScoreRing
           matchScore={matchScore}
           atsScore={atsScore}
-          honestScore={honestScore}
+          isHonest={isHonest}
         />
       </motion.div>
 
