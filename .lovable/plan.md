@@ -1,36 +1,25 @@
 
+# Riduzione Latenza AI ✅
 
-## Problema
+## Implementato
 
-L'AI rimuove esperienze lavorative dal CV quando la posizione target è più junior, riducendo di fatto gli anni di esperienza visibili del candidato. Questo è controproducente: un candidato senior che si candida per una posizione junior deve comunque mostrare tutta la sua esperienza.
+1. **Parallelizzazione prescreen + analyze** — `Promise.all` in `handleAnnuncioConfirm`, risultato analyze cachato in ref e usato istantaneamente allo Step 2 (−8-15s)
+2. **cv-review integrato nel prompt tailor** — Le 10 regole di qualità ora sono nel `SYSTEM_PROMPT_TAILOR`, eliminata la chiamata separata (−5-8s)  
+3. **Downgrade modelli** — `ai-prescreen` e `ai-tailor-analyze` ora usano Claude Haiku 4.5 (−40-60% latenza, −60% costi)
+4. **Progress indicator** — Già presente con animazioni staggered in StepVerifica e StepTailoring
 
-## Piano
+## Risultato atteso
 
-### 1. Modificare il prompt di `ai-tailor` (SYSTEM_PROMPT_TAILOR)
+```
+PRIMA:  Step 0→1: 12s | Step 1→2: 12s | Step 2→3: 20s = ~44s
+DOPO:   Step 0→1: 4s  | Step 1→2: 0s  | Step 2→3: 12s = ~16s  (−65%)
+```
 
-Nella sezione "EXPERIENCE PROTECTION", sostituire le regole attuali con:
+# Protezione Esperienze CV ✅
 
-- **MAI rimuovere esperienze** — tutte le esperienze del candidato devono restare nel CV
-- **MAI ridurre gli anni di esperienza** visibili
-- Rimuovere l'azione "removed" dallo structural_changes enum
-- Consentire solo: riordino per rilevanza, condensazione bullet, riscrittura contenuto
-- Se il candidato è overqualified: valorizzare l'esperienza come punto di forza, non nasconderla
+## Implementato
 
-### 2. Rimuovere "removed" dal tool schema tailor
-
-Nel `TOOL_SCHEMA_TAILOR`, cambiare l'enum di `structural_changes.action` da `["removed", "reordered", "condensed"]` a `["reordered", "condensed"]`.
-
-### 3. Aggiornare il prompt di analisi (SYSTEM_PROMPT_ANALYZE)
-
-Nella sezione seniority_match: se il candidato è più senior del ruolo, il `note` deve suggerire di valorizzare l'esperienza extra, non penalizzarla.
-
-### 4. Rimuovere `limitExperiences` dai template di rendering
-
-La funzione `limitExperiences` nel display (template-utils) taglia esperienze per ragioni di spazio PDF. Questo va mantenuto solo come ultima risorsa visiva ma **non** deve confondersi con il taglio AI. Il comportamento attuale è corretto (taglia solo in tier "extreme" per fitting), lo lascio invariato.
-
-### File coinvolti
-
-| File | Modifica |
-|------|----------|
-| `supabase/functions/ai-tailor/index.ts` | Riscrivere EXPERIENCE PROTECTION nel prompt tailor, rimuovere "removed" dall'enum structural_changes |
-
+1. **Prompt EXPERIENCE PROTECTION riscritto** — L'AI non può MAI rimuovere esperienze, solo riordinare e condensare
+2. **Enum structural_changes aggiornato** — Rimossa l'azione "removed", ammesse solo "reordered" e "condensed"
+3. **Seniority overqualified** — Se il candidato è più senior del ruolo, l'esperienza extra viene valorizzata come punto di forza
+4. **Level 1 tailoring aggiornato** — Le esperienze non vengono mai rimosse, solo progetti/certificazioni irrilevanti

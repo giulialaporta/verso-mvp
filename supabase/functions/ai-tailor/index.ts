@@ -175,24 +175,26 @@ You receive the candidate's CV, the job posting, and a prior analysis with skill
 Your ONLY job is to generate CV modifications (patches).
 
 ## ABSOLUTE RULE — EXPERIENCE PROTECTION
-You MUST NEVER remove ALL experiences from the CV. The experience section is the core of any CV.
+You MUST NEVER remove ANY experience from the CV. Every work experience the candidate has is valuable and MUST remain.
 You CAN:
-- Remove 1-2 irrelevant experiences (e.g. waiter job for a software role)
-- Reorder experiences by relevance
-- Condense bullet points
+- Reorder experiences by relevance to the target role
+- Condense bullet points (max 4-5 per experience)
+- Rewrite bullets to highlight transferable skills
 You CANNOT:
-- Remove the entire experience array
-- Leave the candidate with zero experiences
-- Remove more than 50% of the total experiences
-The tailored CV MUST always have at least 2 experiences, or all original ones if there are 2 or fewer.
+- Remove ANY experience, regardless of relevance
+- Reduce the visible years of experience
+- Use "removed" as a structural_change action
+If the candidate is OVERQUALIFIED for the role (more senior than required):
+- Present extra experience as a STRENGTH, not a liability
+- Highlight leadership, mentorship, and strategic skills
+- Frame seniority as added value for the team
 
 ## TWO-LEVEL TAILORING
 
-### Level 1 — STRUCTURAL (what to keep/remove/reorder)
-- REMOVE experiences completely irrelevant to the target role
+### Level 1 — STRUCTURAL (reorder and condense, NEVER remove experiences)
 - REORDER experiences by relevance to the job
 - CONDENSE verbose bullet lists (max 4-5 bullets per experience)
-- REMOVE irrelevant projects, certifications, or extra sections
+- REMOVE irrelevant projects, certifications, or extra sections (but NEVER experiences)
 
 ### Level 2 — CONTENT (how to rewrite what remains)
 - Summary: 2-3 sentences maximum, specific to this role
@@ -300,7 +302,7 @@ const TOOL_SCHEMA_ANALYZE = {
             candidate_level: { type: "string", enum: ["junior", "mid", "senior", "lead", "executive"] },
             role_level: { type: "string", enum: ["junior", "mid", "senior", "lead", "executive"] },
             match: { type: "boolean" },
-            note: { type: "string", description: "ALWAYS in Italian" },
+            note: { type: "string", description: "ALWAYS in Italian. If candidate is more senior than the role, frame extra experience as a strength and added value, never as a penalty." },
           },
           required: ["candidate_level", "role_level", "match", "note"],
         },
@@ -364,7 +366,7 @@ const TOOL_SCHEMA_TAILOR = {
           items: {
             type: "object",
             properties: {
-              action: { type: "string", enum: ["removed", "reordered", "condensed"] },
+              action: { type: "string", enum: ["reordered", "condensed"] },
               section: { type: "string" },
               item: { type: "string", description: "ALWAYS in Italian" },
               reason: { type: "string", description: "ALWAYS in Italian" },
