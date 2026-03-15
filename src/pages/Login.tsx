@@ -162,6 +162,7 @@ export default function Login() {
       });
       if (error) {
         localStorage.removeItem("verso_pending_oauth_consents");
+        localStorage.removeItem("verso_pending_plan");
         toast.error(mapAuthError((error as any).message || ""));
       }
     } catch {
