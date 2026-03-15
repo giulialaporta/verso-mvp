@@ -265,7 +265,7 @@ export default function CandidaturaDetail() {
       )}
 
       {atsChecks && atsChecks.length > 0 && (
-        <Card className="border-border/50 bg-card/80">
+        <Card className="border-border/50 bg-card/80 overflow-hidden">
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center gap-2">
               <ShieldWarning size={16} className="text-info" />
