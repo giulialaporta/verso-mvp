@@ -48,7 +48,7 @@ export function ExecutiveTemplate({ cv, lang }: { cv: Record<string, any>; lang?
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
   const projects = Array.isArray(cv.projects) ? cv.projects : [];
   const extraSections = Array.isArray(cv.extra_sections) ? cv.extra_sections : [];
-  const photoUrl = clean(cv.photo_url) || clean(personal.photo_url);
+  const photoUrl = clean(cv.photo_url) || clean(cv.photo_base64) || clean(personal.photo_url);
 
   const contactParts = [clean(personal.email), clean(personal.phone), clean(personal.location)].filter(Boolean) as string[];
   const links = [clean(personal.linkedin), clean(personal.website)].filter(Boolean) as string[];
