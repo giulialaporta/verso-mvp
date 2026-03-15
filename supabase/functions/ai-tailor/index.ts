@@ -638,6 +638,11 @@ Deno.serve(async (req) => {
 
     validateOutput("ai-tailor-tailor", result);
 
+    // Quality warning if fallback provider was used
+    if (aiTailorResult.usedFallback) {
+      result.quality_warning = "CV generato con modello AI secondario. Verifica attentamente il risultato.";
+    }
+
     // Experience protection
     const patches = (result.tailored_patches as Array<{ path: string; value: unknown }>) || [];
     const originalExperience = Array.isArray((originalCV as any).experience) ? (originalCV as any).experience : [];
