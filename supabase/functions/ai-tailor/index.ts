@@ -264,7 +264,7 @@ Apply these quality rules to EVERY patch value you generate. The output must be 
 3. **CAPITALIZATION**: First letter of every bullet, description, summary sentence MUST be uppercase.
 4. **ARTIFACT REMOVAL**: Remove prefixes ("I:", "- ", "1.", "1)"), wrapping quotes on skills ("React" → React), trailing whitespace, markdown formatting.
 5. **SKILL DEDUPLICATION**: Remove duplicates (case-insensitive), generic clichés ("Problem Solving", "Team Working", "Comunicazione Efficace"), and skills that are just job titles.
-6. **MAX 4-5 BULLETS**: Per experience. Merge similar bullets. Prioritize measurable results.
+6. **MAX 4-5 BULLETS**: Per experience. Merge similar bullets. Prioritize bullets that show impact (qualitative or quantitative from original only).
 7. **DATE FORMAT CONSISTENCY**: All dates in ONE format natural for detected_language (IT: "Gen 2021", EN: "Jan 2021").
 8. **SUMMARY QUALITY**: 2-3 sentences max, specific to target role, no filler phrases ("dynamic professional", "passionate about").
 9. **CERTIFICATION VALIDATION**: Must have name + issuer. Remove descriptive sentences posing as certifications.
