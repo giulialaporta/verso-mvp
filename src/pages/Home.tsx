@@ -457,6 +457,10 @@ function CVCard({
     if (!cv.parsed_data) return;
     setDownloadingPdf(true);
     try {
+      const [{ pdf }, { ClassicoTemplate }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/components/cv-templates"),
+      ]);
       const blob = await pdf(<ClassicoTemplate cv={cv.parsed_data} />).toBlob();
       const name = cv.parsed_data?.personal?.name || "CV";
       const fileName = `CV-${name.replace(/\s+/g, "-")}.pdf`;
