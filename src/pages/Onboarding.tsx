@@ -370,7 +370,7 @@ export default function Onboarding() {
                     Verso conosce solo quello che hai scritto nel tuo CV. Nessuna informazione inventata.
                   </p>
 
-                  <Button onClick={() => setStep("salary")} className="w-full gap-2">
+                  <Button onClick={() => setStep("salary")} className="w-full gap-2 active:scale-[0.98] transition-transform">
                     Continua <ArrowRight size={16} />
                   </Button>
                 </CardContent>
