@@ -65,6 +65,20 @@ const METRIC_PATTERNS = [
   /\d+\+\s*(anni|years?|mesi|months?)/i, // 10+ anni
 ];
 
+// Qualitative claim patterns that signal invented outcomes
+const QUALITATIVE_CLAIM_PATTERNS = [
+  /risultat[io]\s+(eccellent|misurabili|significativ|straordinari|ottim)/i,
+  /migliorand[eo]\s+(significativamente|notevolmente|drasticamente|sensibilmente)/i,
+  /ottimizzand[eo]\s+(i\s+processi|le\s+performance|l['']efficienza)/i,
+  /leading\s+to\s+(significant|measurable|substantial)/i,
+  /resulting\s+in\s+(improved|increased|decreased|reduced)/i,
+  /achieving\s+(significant|outstanding|exceptional)/i,
+  /con\s+successo\b/i,
+  /with\s+outstanding\s+results/i,
+  /driving\s+(significant|substantial)\s+(growth|improvement|results)/i,
+  /contribu[a-z]+\s+(significativamente|in\s+modo\s+determinante)/i,
+];
+
 function extractMetrics(text: string): string[] {
   if (!text) return [];
   const found: string[] = [];
