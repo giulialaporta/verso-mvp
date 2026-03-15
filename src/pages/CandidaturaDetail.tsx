@@ -347,11 +347,11 @@ export default function CandidaturaDetail() {
               <CollapsibleContent>
                 <div className="space-y-3 mt-4">
                   {diff.map((ch: any, i: number) => (
-                    <div key={i} className="rounded-lg border border-border/30 p-3 space-y-1.5">
+                    <div key={i} className="rounded-lg border border-border/30 p-3 space-y-1.5 overflow-hidden">
                       <p className="font-mono text-[11px] text-muted-foreground uppercase">{ch.section}</p>
-                      <p className="text-sm line-through text-muted-foreground">{ch.original}</p>
-                      <p className="text-sm text-primary border-l-2 border-primary/40 pl-2">{ch.suggested}</p>
-                      {ch.reason && <p className="text-xs text-muted-foreground italic">{ch.reason}</p>}
+                      <p className="text-sm line-through text-muted-foreground break-words">{ch.original}</p>
+                      <p className="text-sm text-primary border-l-2 border-primary/40 pl-2 break-words">{ch.suggested}</p>
+                      {ch.reason && <p className="text-xs text-muted-foreground italic break-words">{ch.reason}</p>}
                     </div>
                   ))}
                 </div>
