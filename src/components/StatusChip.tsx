@@ -1,5 +1,6 @@
 export const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   draft: { bg: "bg-warning/15", text: "text-warning" },
+  pronta: { bg: "bg-primary/15", text: "text-primary" },
   inviata: { bg: "bg-info/15", text: "text-info" },
   visualizzata: { bg: "bg-warning/15", text: "text-warning" },
   contattato: { bg: "bg-primary/15", text: "text-primary" },

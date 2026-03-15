@@ -324,7 +324,7 @@ export default function Nuova() {
   const handleMarkSent = async () => {
     if (applicationId) {
       await supabase.from("applications").update({ status: "inviata" } as any).eq("id", applicationId);
-      trackEvent("application_status_changed", { from: "draft", to: "inviata" });
+      trackEvent("application_status_changed", { from: "pronta", to: "inviata" });
     }
     queryClient.invalidateQueries({ queryKey: ["applications"] });
     toast.success("Candidatura segnata come inviata!");
@@ -333,7 +333,7 @@ export default function Nuova() {
 
   const handleKeepDraft = () => {
     queryClient.invalidateQueries({ queryKey: ["applications"] });
-    toast.success("Bozza salvata.");
+    toast.success("CV pronto! Lo trovi nelle candidature.");
     navigate("/app/home");
   };
 
