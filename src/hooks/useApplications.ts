@@ -11,7 +11,7 @@ export function useApplications(limit?: number) {
     queryFn: async () => {
       let query = supabase
         .from("applications")
-        .select("id, company_name, role_title, match_score, status, created_at, notes, tailored_cvs(ats_score)")
+        .select("id, company_name, role_title, match_score, status, created_at, notes, tailored_cvs(ats_score, honest_score)")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
 
