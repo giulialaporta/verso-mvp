@@ -417,13 +417,14 @@ export default function Nuova() {
               })}
             />
           )}
-          {step === 3 && tailorResult && (
+          {step === 3 && (
             <StepRevisione
               tailorResult={tailorResult}
               analyzeResult={analyzeResult}
               originalCv={originalCv}
+              tailoring={tailoring}
               onNext={() => updateStep(4)}
-              onBack={() => updateStep(2)}
+              onBack={() => { if (!tailoring) updateStep(2); }}
               onUpdateSkills={(skills) => {
                 setTailorResult(prev => prev ? {
                   ...prev,
