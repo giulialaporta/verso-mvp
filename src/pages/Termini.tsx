@@ -11,17 +11,19 @@ const toc = [
   { id: "disponibilita", label: "8. Disponibilità" },
   { id: "responsabilita", label: "9. Responsabilità" },
   { id: "legge", label: "10. Legge applicabile" },
+  { id: "recesso", label: "11. Recesso" },
 ];
 
 export default function Termini() {
   return (
-    <LegalLayout title="Termini e Condizioni d'Uso" version="1.0" lastUpdated="8 marzo 2026" toc={toc}>
+    <LegalLayout title="Termini e Condizioni d'Uso" version="1.1" lastUpdated="15 marzo 2026" toc={toc}>
       <section id="oggetto">
         <h2>Art. 1 — Oggetto e Accettazione</h2>
         <p>
-          Verso è una piattaforma web gratuita per l'adattamento del curriculum vitae tramite intelligenza artificiale.
-          Il servizio è rivolto a persone fisiche maggiorenni (18+). L'accettazione dei presenti Termini avviene
-          tramite la spunta dell'apposita checkbox in fase di registrazione.
+          Verso è una piattaforma web per l'adattamento del curriculum vitae tramite intelligenza artificiale,
+          disponibile in versione gratuita (Free) e in abbonamento (Pro, €9,90/mese).
+          Il servizio è rivolto a persone fisiche maggiorenni (18+). L'accettazione dei presenti Termini e
+          dell'Informativa Privacy avviene proseguendo con la registrazione dell'account.
         </p>
       </section>
 
@@ -34,9 +36,20 @@ export default function Termini() {
           <li>Pre-screening: analisi di compatibilità tra CV e annuncio, con identificazione gap e dealbreaker</li>
           <li>Adattamento automatizzato del CV (tailoring) per specifici annunci, valorizzando esperienze realmente possedute senza aggiungere informazioni non veritiere</li>
           <li>Calcolo di punteggi di compatibilità (match score) e ottimizzazione ATS (ATS score), indicativi e non vincolanti</li>
+          <li>Analisi retributiva indicativa basata su dati di mercato</li>
           <li>Tracciamento delle candidature con gestione stati e note</li>
-          <li>Export del CV adattato in formato PDF</li>
+          <li>Export del CV adattato in formato PDF e DOCX (Pro)</li>
         </ul>
+
+        <h3>Piani disponibili</h3>
+        <p>
+          Il piano <strong>Free</strong> consente di completare 1 candidatura e di utilizzare 2 template CV (Classico, Minimal).
+        </p>
+        <p>
+          Il piano <strong>Pro</strong> (€9,90/mese, annullabile in qualsiasi momento) include candidature illimitate,
+          accesso a tutti i template CV (inclusi Executive e Moderno), export in formato DOCX,
+          pre-screening di fattibilità e analisi stipendio.
+        </p>
         <p>
           Verso <strong>non è</strong> un'agenzia per il lavoro, non intermedia rapporti di lavoro e non garantisce l'esito di alcuna candidatura.
         </p>
@@ -45,7 +58,7 @@ export default function Termini() {
       <section id="ai">
         <h2>Art. 3 — Natura e Limiti dell'Intelligenza Artificiale</h2>
         <ul>
-          <li>Le funzionalità AI utilizzano modelli di terze parti (Google Gemini) tramite infrastruttura cloud</li>
+          <li>Le funzionalità AI utilizzano modelli di terze parti (Anthropic Claude come provider primario, Google Gemini come fallback) tramite infrastruttura cloud</li>
           <li>L'AI può produrre output imprecisi o incompleti ("allucinazioni")</li>
           <li>Il punteggio di compatibilità è un indicatore orientativo, non una valutazione professionale</li>
           <li>L'utente è responsabile della revisione integrale di tutti i documenti generati prima del loro utilizzo</li>
@@ -132,6 +145,11 @@ export default function Termini() {
         <p>
           L'utente può recedere dal contratto e cessare l'utilizzo del Servizio in qualsiasi momento,
           eliminando il proprio account dalla sezione <strong>Impostazioni → Zona pericolosa</strong>.
+        </p>
+        <p>
+          La disdetta dell'abbonamento Pro può essere effettuata dalla sezione{" "}
+          <strong>Impostazioni → Account → Piano</strong>. La cancellazione dell'abbonamento ha effetto
+          al termine del periodo di fatturazione in corso.
         </p>
         <p>
           La cancellazione dell'account comporta l'eliminazione permanente e irreversibile di tutti i
