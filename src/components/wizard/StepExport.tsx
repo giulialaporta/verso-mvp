@@ -351,7 +351,7 @@ export function StepExport({
           variant="outline"
           onClick={handleDownloadDocx}
           disabled={downloadingDocx}
-          className="w-full gap-2 h-11 relative"
+          className="w-full gap-2 h-11 relative active:scale-[0.98] transition-transform"
         >
           {!isPro && <Lock size={14} className="text-muted-foreground" />}
           {downloadingDocx ? (
