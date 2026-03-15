@@ -31,6 +31,7 @@ export interface AiRequest {
   tools?: OpenAITool[];
   toolChoice?: { type: "function"; function: { name: string } };
   maxTokens?: number;
+  temperature?: number;
 }
 
 export interface AiResponse {
