@@ -454,7 +454,8 @@ function adjustScore(r: Record<string, unknown>): void {
       const aSuffix = atsFails === 1 ? "o" : "i";
       parts.push(atsFails + " check ATS non superat" + aSuffix);
     }
-    r.score_note = "Punteggio adeguato: " + parts.join(", ") + ".";
+    const adjustmentReason = "Punteggio adeguato per: " + parts.join(", ") + ".";
+    r.score_note = ((r.score_note as string) || "").trim() + " " + adjustmentReason;
     r.match_score = finalScore;
   }
 }
