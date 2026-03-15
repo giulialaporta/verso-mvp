@@ -3,6 +3,7 @@ import { compactCV } from "../_shared/compact-cv.ts";
 import { callAi } from "../_shared/ai-provider.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { checkIntegrity } from "../_shared/integrity-check.ts";
 
 // --- Utility: apply patches to original CV with validation ---
 function applyPatches(
@@ -197,8 +198,8 @@ If the candidate is OVERQUALIFIED for the role (more senior than required):
 - REMOVE irrelevant projects, certifications, or extra sections (but NEVER experiences)
 
 ### Level 2 — CONTENT (how to rewrite what remains)
-- Summary: 2-3 sentences maximum, specific to this role
-- Bullets: action verb + measurable result, one line each
+- Summary: 2-3 sentences maximum, highlighting transferable skills for this role while preserving the candidate's ACTUAL professional identity
+- Bullets: action verb + impact. Use original metrics ONLY if they exist in the original CV. If no metrics exist, describe the impact QUALITATIVELY. NEVER invent percentages, amounts, user counts, or team sizes.
 - Skills: MUST be ordered by relevance to the job posting. First: skills that directly match job requirements. Then: other technical skills relevant to the role. Then: tools. Last: soft skills. Remove generic/obvious ones (e.g. "Microsoft Office", "Teamwork" for senior roles). This ordering rule applies to skills.technical, skills.soft, and skills.tools arrays.
 
 ## CONCISENESS RULE
@@ -218,6 +219,21 @@ CRITICAL EXCEPTION: if the CV language differs from detected_language, you MUST 
 - You CANNOT invent new experiences, degrees, or certifications
 - You CANNOT modify dates, company names, degree titles, grades
 - You CANNOT touch personal data or photo_base64
+
+## ANTI-HALLUCINATION — ABSOLUTE RULES (VIOLATION = SYSTEM FAILURE)
+These rules are NON-NEGOTIABLE. Breaking ANY of them makes the output INVALID.
+
+1. NEVER invent metrics, percentages, currency amounts, team sizes, user counts, or ANY quantitative data not EXPLICITLY present in the original CV. If the original bullet says "Managed CRM project" and has NO numbers, the rewritten bullet MUST NOT add "reducing churn by 20%" or "for 50K users".
+2. NEVER change role titles — copy them CHARACTER-FOR-CHARACTER from the original CV. "CRM Team Leader" stays "CRM Team Leader", never becomes "CRM & Digital Marketing Specialist".
+3. NEVER change company names — exact copy. "Deloitte Digital" stays "Deloitte Digital", never becomes "Deloitte Consulting".
+4. NEVER change locations — exact copy from original.
+5. NEVER change start/end dates — exact copy. "01.2018" stays "01.2018", never becomes "03/2019".
+6. NEVER change degree names, institution names, fields of study, grades, or honors — exact copy.
+7. NEVER add certifications not present in the original CV. NEVER remove certifications that ARE present.
+8. NEVER add skills that cannot be DIRECTLY inferred from the original CV content. "Fraud Detection Systems" is NOT inferable from a CRM management background.
+9. When rewriting bullets, factual claims must be a SUBSET of the original — NEVER a superset. You may rephrase, condense, and highlight, but you CANNOT add claims.
+10. NEVER add education entries not in the original CV. NEVER remove education entries (including Erasmus, publications, honors).
+11. If the original CV has NO quantitative metrics in a section, the tailored version MUST ALSO have NO quantitative metrics in that section.
 
 ## DATA INTEGRITY — ABSOLUTE RULES
 These rules prevent data corruption in the CV structure. Violating them produces broken PDFs.
@@ -248,7 +264,7 @@ Apply these quality rules to EVERY patch value you generate. The output must be 
 3. **CAPITALIZATION**: First letter of every bullet, description, summary sentence MUST be uppercase.
 4. **ARTIFACT REMOVAL**: Remove prefixes ("I:", "- ", "1.", "1)"), wrapping quotes on skills ("React" → React), trailing whitespace, markdown formatting.
 5. **SKILL DEDUPLICATION**: Remove duplicates (case-insensitive), generic clichés ("Problem Solving", "Team Working", "Comunicazione Efficace"), and skills that are just job titles.
-6. **MAX 4-5 BULLETS**: Per experience. Merge similar bullets. Prioritize measurable results.
+6. **MAX 4-5 BULLETS**: Per experience. Merge similar bullets. Prioritize bullets that show impact (qualitative or quantitative from original only).
 7. **DATE FORMAT CONSISTENCY**: All dates in ONE format natural for detected_language (IT: "Gen 2021", EN: "Jan 2021").
 8. **SUMMARY QUALITY**: 2-3 sentences max, specific to target role, no filler phrases ("dynamic professional", "passionate about").
 9. **CERTIFICATION VALIDATION**: Must have name + issuer. Remove descriptive sentences posing as certifications.
@@ -728,6 +744,29 @@ Deno.serve(async (req) => {
     }
 
     if (photoBase64) (tailoredCV as any).photo_base64 = photoBase64;
+
+    // --- INTEGRITY CHECK: validate tailored CV against original ---
+    const integrityResult = checkIntegrity(originalCV, tailoredCV as Record<string, unknown>);
+    
+    if (integrityResult.warnings.length > 0) {
+      console.warn(`[ai-tailor] Integrity check: ${integrityResult.warnings.length} issues corrected`);
+      result.integrity_warnings = integrityResult.warnings;
+    }
+
+    // Replace self-reported honest_score with server-computed values
+    result.honest_score = {
+      ...((result.honest_score as Record<string, unknown>) || {}),
+      // Override with server-computed values (AI self-reports are unreliable)
+      dates_modified: integrityResult.computed_honesty.dates_modified,
+      roles_changed: integrityResult.computed_honesty.roles_changed,
+      companies_changed: integrityResult.computed_honesty.companies_changed,
+      degrees_changed: integrityResult.computed_honesty.degrees_changed,
+      metrics_fabricated: integrityResult.computed_honesty.metrics_fabricated,
+      certs_invented: integrityResult.computed_honesty.certs_invented,
+      certs_removed: integrityResult.computed_honesty.certs_removed,
+      server_validated: true,
+      reverts: integrityResult.reverts,
+    };
 
     result.tailored_cv = tailoredCV;
     result.master_cv_id = masterCV.id;
