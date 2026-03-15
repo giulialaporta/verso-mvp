@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Warning, Eye, CaretDown, ListChecks } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, Warning, Eye, CaretDown, ListChecks, Wrench } from "@phosphor-icons/react";
 import { AiLabel } from "@/components/AiLabel";
 import { computeConfidence } from "./wizard-utils";
+import { SkillManager, skillsToManaged, managedToSkills, type ManagedSkill } from "./SkillManager";
 import type { TailorResult, AnalyzeResult } from "./wizard-types";
 
 export function StepRevisione({
@@ -14,14 +15,31 @@ export function StepRevisione({
   originalCv,
   onNext,
   onBack,
+  onUpdateSkills,
 }: {
   tailorResult: TailorResult;
   analyzeResult: AnalyzeResult | null;
   originalCv: Record<string, unknown> | null;
   onNext: () => void;
   onBack: () => void;
+  onUpdateSkills?: (skills: any) => void;
 }) {
   const [diffOpen, setDiffOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
+
+  const initialManaged = useMemo(
+    () => skillsToManaged((tailorResult.tailored_cv as any)?.skills),
+    [tailorResult.tailored_cv]
+  );
+  const [managedSkills, setManagedSkills] = useState<ManagedSkill[]>(initialManaged);
+
+  const handleSkillsChange = (updated: ManagedSkill[]) => {
+    setManagedSkills(updated);
+    if (onUpdateSkills) {
+      const originalSkills = (tailorResult.tailored_cv as any)?.skills;
+      onUpdateSkills(managedToSkills(updated, originalSkills));
+    }
+  };
 
   const stats = useMemo(() =>
     computeConfidence(originalCv, tailorResult.tailored_cv, tailorResult.diff),
@@ -110,6 +128,31 @@ export function StepRevisione({
           </div>
         </CardContent>
       </Card>
+
+      {/* Skill manager */}
+      {managedSkills.length > 0 && (
+        <Collapsible open={skillsOpen} onOpenChange={setSkillsOpen}>
+          <Card className="border-border/50 bg-card/80">
+            <CardContent className="py-4">
+              <CollapsibleTrigger className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <Wrench size={16} className="text-primary" />
+                  <span className="text-sm font-medium">Gestisci competenze</span>
+                  <span className="font-mono text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {managedSkills.filter(s => s.visible).length}/{managedSkills.length}
+                  </span>
+                </div>
+                <CaretDown size={14} className={`text-muted-foreground transition-transform ${skillsOpen ? "rotate-180" : ""}`} />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-4">
+                  <SkillManager skills={managedSkills} onChange={handleSkillsChange} />
+                </div>
+              </CollapsibleContent>
+            </CardContent>
+          </Card>
+        </Collapsible>
+      )}
 
       {/* Collapsible diff */}
       {totalDiffs > 0 && (

@@ -20,11 +20,13 @@ const SIDEBAR_ACCENT = "#60A5FA";
 const SIDEBAR_BORDER = "#333842";
 const BODY_TEXT = "#1a1a1a";
 const BODY_MUTED = "#555";
+const SIDEBAR_WIDTH = "28%";
 
 const baseStyles = StyleSheet.create({
-  page: { fontFamily: "DM Sans", flexDirection: "row" },
-  sidebar: { width: "28%", backgroundColor: SIDEBAR_BG, paddingHorizontal: 20, paddingVertical: 32, color: SIDEBAR_TEXT },
-  main: { width: "72%", paddingHorizontal: 36, paddingVertical: 32, paddingBottom: 60, color: BODY_TEXT },
+  page: { fontFamily: "DM Sans", flexDirection: "row", paddingTop: 32, paddingBottom: 40 },
+  sidebarBg: { position: "absolute", left: 0, top: 0, bottom: 0, width: SIDEBAR_WIDTH, backgroundColor: SIDEBAR_BG },
+  sidebar: { width: SIDEBAR_WIDTH, paddingHorizontal: 20, color: SIDEBAR_TEXT },
+  main: { width: "72%", paddingHorizontal: 36, color: BODY_TEXT },
   photo: { width: 72, height: 72, borderRadius: 36, marginBottom: 16, alignSelf: "center" },
   contactItem: { fontSize: 8, color: SIDEBAR_MUTED, marginBottom: 4, lineHeight: 1.5 },
   contactLink: { fontSize: 8, color: SIDEBAR_ACCENT, marginBottom: 4, lineHeight: 1.5 },
@@ -48,7 +50,7 @@ export function ClassicoTemplate({ cv, lang }: { cv: Record<string, any>; lang?:
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
   const projects = Array.isArray(cv.projects) ? cv.projects : [];
   const extraSections = Array.isArray(cv.extra_sections) ? cv.extra_sections : [];
-  const photoUrl = clean(cv.photo_url) || clean(personal.photo_url);
+  const photoUrl = clean(cv.photo_url) || clean(cv.photo_base64) || clean(personal.photo_url);
 
   const contactParts = [clean(personal.email), clean(personal.phone), clean(personal.location)].filter(Boolean) as string[];
 
@@ -60,7 +62,6 @@ export function ClassicoTemplate({ cv, lang }: { cv: Record<string, any>; lang?:
 
   const languages = skills?.languages && Array.isArray(skills.languages) ? skills.languages : [];
 
-  // Dynamic styles based on density
   const ds = {
     page: { ...baseStyles.page, fontSize: d.bodyFontSize },
     sectionTitle: { fontSize: d.sectionTitleFontSize, fontWeight: 700 as const, textTransform: "uppercase" as const, letterSpacing: 1.2, color: BODY_TEXT, borderBottomWidth: 2, borderBottomColor: SIDEBAR_ACCENT, paddingBottom: 4, marginBottom: d.sectionMarginBottom, marginTop: d.sectionMarginTop },
@@ -82,6 +83,9 @@ export function ClassicoTemplate({ cv, lang }: { cv: Record<string, any>; lang?:
   return (
     <Document>
       <Page size="A4" style={ds.page}>
+        {/* Fixed sidebar background for all pages */}
+        <View fixed style={baseStyles.sidebarBg} />
+
         <View style={baseStyles.sidebar}>
           {photoUrl && <Image src={photoUrl} style={baseStyles.photo} />}
 
@@ -140,8 +144,9 @@ export function ClassicoTemplate({ cv, lang }: { cv: Record<string, any>; lang?:
                   (Array.isArray(exp.bullets) ? exp.bullets : []).filter((b: string) => clean(b)),
                   i, d
                 );
+                const hasManyBullets = bullets.length > 3;
                 return (
-                  <View key={i} style={ds.expBlock} wrap={false}>
+                  <View key={i} style={ds.expBlock} wrap={hasManyBullets ? true : false} {...(hasManyBullets ? { minPresenceAhead: 40 } : {})}>
                     <Text style={ds.expRole}>{clean(exp.role) || clean(exp.title)}</Text>
                     <Text style={ds.expCompany}>{exp.company}</Text>
                     <Text style={ds.expMeta}>

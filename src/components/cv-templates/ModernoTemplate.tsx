@@ -19,11 +19,13 @@ const SIDEBAR_ACCENT = "#38BDF8";
 const SIDEBAR_BORDER = "#334155";
 const BODY_TEXT = "#0F172A";
 const BODY_MUTED = "#64748B";
+const SIDEBAR_WIDTH = "35%";
 
 const baseStyles = StyleSheet.create({
-  page: { fontFamily: "Inter", flexDirection: "row" },
-  sidebar: { width: "35%", backgroundColor: SIDEBAR_BG, paddingHorizontal: 22, paddingVertical: 36, color: SIDEBAR_TEXT },
-  main: { width: "65%", paddingHorizontal: 32, paddingVertical: 36, paddingBottom: 56, color: BODY_TEXT },
+  page: { fontFamily: "Inter", flexDirection: "row", paddingTop: 32, paddingBottom: 40 },
+  sidebarBg: { position: "absolute", left: 0, top: 0, bottom: 0, width: SIDEBAR_WIDTH, backgroundColor: SIDEBAR_BG },
+  sidebar: { width: SIDEBAR_WIDTH, paddingHorizontal: 22, color: SIDEBAR_TEXT },
+  main: { width: "65%", paddingHorizontal: 32, color: BODY_TEXT },
   photo: { width: 80, height: 80, borderRadius: 40, marginBottom: 14, alignSelf: "center", borderWidth: 2, borderColor: SIDEBAR_ACCENT },
   sidebarName: { fontSize: 16, fontWeight: 700, textAlign: "center" as const, marginBottom: 4, letterSpacing: 0.3 },
   sidebarTitle: { fontSize: 9, fontWeight: 500, color: SIDEBAR_ACCENT, textAlign: "center" as const, marginBottom: 16 },
@@ -53,7 +55,7 @@ export function ModernoTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
   const projects = Array.isArray(cv.projects) ? cv.projects : [];
   const extraSections = Array.isArray(cv.extra_sections) ? cv.extra_sections : [];
-  const photoUrl = clean(cv.photo_url) || clean(personal.photo_url);
+  const photoUrl = clean(cv.photo_url) || clean(cv.photo_base64) || clean(personal.photo_url);
 
   const contactParts = [clean(personal.email), clean(personal.phone), clean(personal.location)].filter(Boolean) as string[];
 
@@ -87,6 +89,9 @@ export function ModernoTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
   return (
     <Document>
       <Page size="A4" style={ds.page}>
+        {/* Fixed sidebar background for all pages */}
+        <View fixed style={baseStyles.sidebarBg} />
+
         {/* Sidebar */}
         <View style={baseStyles.sidebar}>
           {photoUrl && <Image src={photoUrl} style={baseStyles.photo} />}
@@ -161,8 +166,9 @@ export function ModernoTemplate({ cv, lang }: { cv: Record<string, any>; lang?: 
                   (Array.isArray(exp.bullets) ? exp.bullets : []).filter((b: string) => clean(b)),
                   i, d
                 );
+                const hasManyBullets = bullets.length > 3;
                 return (
-                  <View key={i} style={ds.expBlock} wrap={false}>
+                  <View key={i} style={ds.expBlock} wrap={hasManyBullets ? true : false} {...(hasManyBullets ? { minPresenceAhead: 40 } : {})}>
                     <Text style={ds.expRole}>{clean(exp.role) || clean(exp.title)}</Text>
                     <Text style={ds.expCompany}>{exp.company}</Text>
                     <Text style={ds.expMeta}>

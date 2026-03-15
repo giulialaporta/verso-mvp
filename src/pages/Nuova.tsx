@@ -421,6 +421,12 @@ export default function Nuova() {
               originalCv={originalCv}
               onNext={() => updateStep(4)}
               onBack={() => updateStep(2)}
+              onUpdateSkills={(skills) => {
+                setTailorResult(prev => prev ? {
+                  ...prev,
+                  tailored_cv: { ...prev.tailored_cv, skills },
+                } : prev);
+              }}
             />
           )}
           {step === 4 && tailorResult && jobData && applicationId && (
