@@ -352,7 +352,10 @@ export default function Nuova() {
     setSearchParams({}, { replace: true });
   };
 
-  const handleAbandon = () => handleNewApplication();
+  const handleAbandon = () => {
+    trackEvent("wizard_abandoned", { last_step: step });
+    handleNewApplication();
+  };
 
   if (cvCheck === "loading" || !proChecked || loading) {
     return <div className="flex items-center justify-center py-20"><SpinnerGap size={32} className="text-primary animate-spin" /></div>;
