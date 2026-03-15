@@ -285,6 +285,92 @@ export default function Impostazioni() {
         </CardContent>
       </Card>
 
+      {/* Aspettative RAL */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <CurrencyEur size={20} weight="bold" />
+            Aspettative RAL
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {editingSalary ? (
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="RAL attuale"
+                value={currentRal}
+                onChange={(e) => setCurrentRal(e.target.value.replace(/\D/g, ""))}
+                className="h-8 text-xs font-mono w-28"
+                inputMode="numeric"
+              />
+              <span className="text-muted-foreground text-xs">→</span>
+              <Input
+                placeholder="Desiderata"
+                value={desiredRal}
+                onChange={(e) => setDesiredRal(e.target.value.replace(/\D/g, ""))}
+                className="h-8 text-xs font-mono w-28"
+                inputMode="numeric"
+              />
+              <button
+                onClick={async () => {
+                  setSavingSalary(true);
+                  try {
+                    await supabase
+                      .from("profiles")
+                      .update({
+                        salary_expectations: {
+                          current_ral: currentRal ? parseInt(currentRal, 10) : null,
+                          desired_ral: desiredRal ? parseInt(desiredRal, 10) : null,
+                        },
+                      } as any)
+                      .eq("user_id", user!.id);
+                    queryClient.invalidateQueries({ queryKey: ["profile"] });
+                    setEditingSalary(false);
+                    toast({ title: "Aspettative RAL aggiornate." });
+                  } finally {
+                    setSavingSalary(false);
+                  }
+                }}
+                disabled={savingSalary}
+                className="text-primary hover:text-primary/80 p-0.5"
+              >
+                <Check size={16} weight="bold" />
+              </button>
+              <button onClick={() => setEditingSalary(false)} className="text-muted-foreground hover:text-foreground p-0.5">
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {salaryExpectations?.current_ral || salaryExpectations?.desired_ral ? (
+                <>
+                  <span className="text-xs text-muted-foreground">Attuale:</span>
+                  <span className="font-mono text-sm">
+                    {salaryExpectations.current_ral ? `€ ${salaryExpectations.current_ral.toLocaleString("it-IT")}` : "—"}
+                  </span>
+                  <span className="text-muted-foreground text-xs">→</span>
+                  <span className="font-mono text-sm text-primary">
+                    {salaryExpectations.desired_ral ? `€ ${salaryExpectations.desired_ral.toLocaleString("it-IT")}` : "—"}
+                  </span>
+                </>
+              ) : (
+                <span className="text-sm text-muted-foreground">Nessuna aspettativa impostata</span>
+              )}
+              <button
+                onClick={() => {
+                  setCurrentRal(salaryExpectations?.current_ral?.toString() || "");
+                  setDesiredRal(salaryExpectations?.desired_ral?.toString() || "");
+                  setEditingSalary(true);
+                }}
+                className="ml-auto text-muted-foreground hover:text-primary transition-colors p-0.5"
+              >
+                <PencilSimple size={14} />
+              </button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Piano */}
       <Card className={`border-border bg-card ${isPro && !cancelAtPeriodEnd ? "border-primary/30" : ""} ${cancelAtPeriodEnd ? "border-warning/30" : ""}`}>
         <CardHeader className="pb-3">
