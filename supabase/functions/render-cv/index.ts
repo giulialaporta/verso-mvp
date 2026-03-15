@@ -1,43 +1,19 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// --- Template files (embedded at deploy time) ---
-import classicoHtml from "./templates/classico.html" with { type: "text" };
-import minimalHtml from "./templates/minimal.html" with { type: "text" };
-import executiveHtml from "./templates/executive.html" with { type: "text" };
-import modernoHtml from "./templates/moderno.html" with { type: "text" };
+// --- Load templates from disk ---
+const TEMPLATE_DIR = new URL("./templates/", import.meta.url).pathname;
 
-const TEMPLATES: Record<string, string> = {
-  classico: classicoHtml,
-  minimal: minimalHtml,
-  executive: executiveHtml,
-  moderno: modernoHtml,
-};
+async function loadTemplate(templateId: string): Promise<string> {
+  const path = TEMPLATE_DIR + templateId + ".html";
+  return await Deno.readTextFile(path);
+}
 
 // --- Localized headers ---
 function getHeaders(lang: string): Record<string, string> {
   if (lang === "en") {
-    return {
-      contact: "Contact",
-      skills: "Skills",
-      languages: "Languages",
-      certifications: "Certifications",
-      profile: "Profile",
-      experience: "Experience",
-      education: "Education",
-      projects: "Projects",
-    };
+    return { contact: "Contact", skills: "Skills", languages: "Languages", certifications: "Certifications", profile: "Profile", experience: "Experience", education: "Education", projects: "Projects" };
   }
-  return {
-    contact: "Contatti",
-    skills: "Competenze",
-    languages: "Lingue",
-    certifications: "Certificazioni",
-    profile: "Profilo",
-    experience: "Esperienza",
-    education: "Formazione",
-    projects: "Progetti",
-  };
+  return { contact: "Contatti", skills: "Competenze", languages: "Lingue", certifications: "Certificazioni", profile: "Profilo", experience: "Esperienza", education: "Formazione", projects: "Progetti" };
 }
 
 // --- Data preparation ---
@@ -61,11 +37,29 @@ function mergeSkills(skills: Record<string, unknown> | undefined): string[] {
   return result;
 }
 
-function prepareData(cv: Record<string, any>, lang: string) {
-  const personal = cv.personal || {};
-  const skills = mergeSkills(cv.skills);
-  const languages = cv.skills?.languages || [];
+interface PreparedData {
+  lang: string;
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  linkedin: string;
+  website: string;
+  photoUrl: string;
+  headline: string;
+  summary: string;
+  experience: { role: string; company: string; start: string; end: string; location: string; description: string; bullets: string[] }[];
+  education: { degree: string; field: string; institution: string; period: string; grade: string; honors: string }[];
+  skills: string[];
+  languages: { language: string; level: string }[];
+  certifications: { name: string; issuer?: string; year?: string }[];
+  projects: { name: string; description?: string }[];
+  extraSections: { title: string; items: string[] }[];
+  headers: Record<string, string>;
+}
 
+function prepareData(cv: Record<string, any>, lang: string): PreparedData {
+  const personal = cv.personal || {};
   return {
     lang: lang || "it",
     name: clean(personal.name) || "Nome Cognome",
@@ -90,12 +84,12 @@ function prepareData(cv: Record<string, any>, lang: string) {
       degree: ed.degree || "",
       field: clean(ed.field),
       institution: ed.institution || "",
-      period: [ed.start, ed.end].filter(Boolean).join(" – "),
+      period: [ed.start, ed.end].filter(Boolean).join(" \u2013 "),
       grade: clean(ed.grade),
       honors: clean(ed.honors),
     })),
-    skills,
-    languages,
+    skills: mergeSkills(cv.skills),
+    languages: cv.skills?.languages || [],
     certifications: (cv.certifications || []).filter((c: any) => clean(c.name)),
     projects: (cv.projects || []).filter((p: any) => clean(p.name)),
     extraSections: (cv.extra_sections || []).filter((s: any) => s.title && s.items?.length),
@@ -103,58 +97,9 @@ function prepareData(cv: Record<string, any>, lang: string) {
   };
 }
 
-// --- Mini template engine (Handlebars-like) ---
+// --- Mini template engine ---
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-function compileTemplate(template: string, data: Record<string, any>): string {
-  let html = template;
-
-  // Process {{#each array}}...{{/each}} blocks (supports nesting)
-  let safety = 0;
-  while (html.includes("{{#each ") && safety < 50) {
-    safety++;
-    html = html.replace(
-      /\{\{#each\s+([\w.]+)\}\}([\s\S]*?)\{\{\/each\}\}/,
-      (_match, key, body) => {
-        const arr = resolveValue(data, key);
-        if (!Array.isArray(arr) || arr.length === 0) return "";
-        return arr.map((item: any) => {
-          const ctx = typeof item === "object" ? { ...data, ...item, ".": item } : { ...data, ".": item };
-          // Replace {{this}} and {{this.prop}}
-          let result = body.replace(/\{\{this\}\}/g, escapeHtml(String(item)));
-          result = result.replace(/\{\{this\.([\w]+)\}\}/g, (_: string, prop: string) => {
-            return escapeHtml(String(item?.[prop] ?? ""));
-          });
-          // Recurse for nested each/if
-          return compileTemplate(result, ctx);
-        }).join("");
-      }
-    );
-  }
-
-  // Process {{#if value}}...{{/if}} blocks
-  safety = 0;
-  while (html.includes("{{#if ") && safety < 50) {
-    safety++;
-    html = html.replace(
-      /\{\{#if\s+([\w.]+)\}\}([\s\S]*?)\{\{\/if\}\}/,
-      (_match, key, body) => {
-        const val = resolveValue(data, key);
-        const truthy = Array.isArray(val) ? val.length > 0 : Boolean(val);
-        return truthy ? body : "";
-      }
-    );
-  }
-
-  // Replace {{variable}} with escaped values
-  html = html.replace(/\{\{([\w.]+)\}\}/g, (_match, key) => {
-    const val = resolveValue(data, key);
-    return escapeHtml(String(val ?? ""));
-  });
-
-  return html;
 }
 
 function resolveValue(data: Record<string, any>, path: string): any {
@@ -167,7 +112,55 @@ function resolveValue(data: Record<string, any>, path: string): any {
   return current;
 }
 
-// --- Fit-to-2-pages algorithm ---
+function compileTemplate(template: string, data: Record<string, any>): string {
+  let html = template;
+
+  // Process {{#each array}}...{{/each}}
+  let safety = 0;
+  while (html.includes("{{#each ") && safety < 50) {
+    safety++;
+    html = html.replace(
+      /\{\{#each\s+([\w.]+)\}\}([\s\S]*?)\{\{\/each\}\}/,
+      (_match, key, body) => {
+        const arr = resolveValue(data, key);
+        if (!Array.isArray(arr) || arr.length === 0) return "";
+        return arr.map((item: any) => {
+          const ctx = typeof item === "object" ? { ...data, ...item, ".": item } : { ...data, ".": item };
+          let result = body.replace(/\{\{this\}\}/g, escapeHtml(String(item)));
+          result = result.replace(/\{\{this\.([\w]+)\}\}/g, (_: string, prop: string) => {
+            return escapeHtml(String(item?.[prop] ?? ""));
+          });
+          return compileTemplate(result, ctx);
+        }).join("");
+      }
+    );
+  }
+
+  // Process {{#if value}}...{{/if}}
+  safety = 0;
+  while (html.includes("{{#if ") && safety < 50) {
+    safety++;
+    html = html.replace(
+      /\{\{#if\s+([\w.]+)\}\}([\s\S]*?)\{\{\/if\}\}/,
+      (_match, key, body) => {
+        const val = resolveValue(data, key);
+        const truthy = Array.isArray(val) ? val.length > 0 : Boolean(val);
+        return truthy ? compileTemplate(body, data) : "";
+      }
+    );
+  }
+
+  // Replace {{variable}}
+  html = html.replace(/\{\{([\w.]+)\}\}/g, (_match, key) => {
+    const val = resolveValue(data, key);
+    if (val === undefined || val === null) return "";
+    return escapeHtml(String(val));
+  });
+
+  return html;
+}
+
+// --- Fit-to-2-pages ---
 interface FitConfig {
   bodySize: number;
   lineHeight: number;
@@ -176,22 +169,19 @@ interface FitConfig {
   maxBullets: number;
 }
 
-function estimateHeight(data: ReturnType<typeof prepareData>, config: FitConfig, templateId: string): number {
-  const pageWidth = 210 - 24; // A4 width - margins
-  const mainWidth = templateId === "executive"
-    ? pageWidth
-    : templateId === "moderno"
-      ? pageWidth * 0.65
-      : templateId === "minimal"
-        ? pageWidth * 0.74
-        : pageWidth * 0.72;
+function estimateHeight(data: PreparedData, config: FitConfig, templateId: string): number {
+  const pageWidth = 210 - 24;
+  let mainWidth: number;
+  if (templateId === "executive") mainWidth = pageWidth;
+  else if (templateId === "moderno") mainWidth = pageWidth * 0.65;
+  else if (templateId === "minimal") mainWidth = pageWidth * 0.74;
+  else mainWidth = pageWidth * 0.72;
 
   const charWidth = config.bodySize * 0.22;
   const charsPerLine = Math.floor(mainWidth / charWidth);
   const lineH = config.bodySize * config.lineHeight * 0.35;
 
-  let height = 0;
-  height += 14; // name + headline
+  let height = 14;
 
   if (data.summary) {
     height += config.sectionMargin * 0.35 + 6;
@@ -226,41 +216,22 @@ function estimateHeight(data: ReturnType<typeof prepareData>, config: FitConfig,
   return height;
 }
 
-function fitTo2Pages(data: ReturnType<typeof prepareData>, templateId: string): FitConfig {
-  const maxHeight = (297 - 30) * 2; // 2 A4 pages minus margins
-
-  const config: FitConfig = {
-    bodySize: 10,
-    lineHeight: 1.5,
-    sectionMargin: 16,
-    expMargin: 12,
-    maxBullets: 99,
-  };
+function fitTo2Pages(data: PreparedData, templateId: string): FitConfig {
+  const maxHeight = (297 - 30) * 2;
+  const config: FitConfig = { bodySize: 10, lineHeight: 1.5, sectionMargin: 16, expMargin: 12, maxBullets: 99 };
 
   let iterations = 0;
   while (estimateHeight(data, config, templateId) > maxHeight && iterations < 20) {
     iterations++;
-    if (config.bodySize > 8) {
-      config.bodySize -= 0.5;
-      config.lineHeight = Math.max(1.3, config.lineHeight - 0.03);
-      continue;
-    }
-    if (config.sectionMargin > 8) {
-      config.sectionMargin -= 2;
-      config.expMargin = Math.max(6, config.expMargin - 2);
-      continue;
-    }
-    if (config.maxBullets > 3) {
-      config.maxBullets = config.maxBullets > 4 ? 4 : 3;
-      continue;
-    }
+    if (config.bodySize > 8) { config.bodySize -= 0.5; config.lineHeight = Math.max(1.3, config.lineHeight - 0.03); continue; }
+    if (config.sectionMargin > 8) { config.sectionMargin -= 2; config.expMargin = Math.max(6, config.expMargin - 2); continue; }
+    if (config.maxBullets > 3) { config.maxBullets = config.maxBullets > 4 ? 4 : 3; continue; }
     break;
   }
-
   return config;
 }
 
-// --- Main handler ---
+// --- Main ---
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
@@ -270,36 +241,29 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const { cv, template_id, format, lang } = await req.json();
+    const body = await req.json();
+    const cv = body.cv;
+    const templateId = body.template_id || "classico";
+    const format = body.format || "html";
+    const lang = body.lang || "it";
 
-    if (!cv || !template_id) {
-      return new Response(JSON.stringify({ error: "Missing cv or template_id" }), {
-        status: 400,
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
+    if (!cv) {
+      return new Response(JSON.stringify({ error: "Missing cv" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const templateHtml = TEMPLATES[template_id];
-    if (!templateHtml) {
-      return new Response(JSON.stringify({ error: "Unknown template: " + template_id }), {
-        status: 400,
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
+    const validTemplates = ["classico", "minimal", "executive", "moderno"];
+    if (!validTemplates.includes(templateId)) {
+      return new Response(JSON.stringify({ error: "Unknown template: " + templateId }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const targetLang = lang || "it";
-    const data = prepareData(cv, targetLang);
+    const templateHtml = await loadTemplate(templateId);
+    const data = prepareData(cv, lang);
+    const fitConfig = fitTo2Pages(data, templateId);
 
-    // Fit-to-2-pages
-    const fitConfig = fitTo2Pages(data, template_id);
-
-    // Trim bullets if maxBullets was reduced
+    // Trim bullets if needed
     if (fitConfig.maxBullets < 99) {
       for (const exp of data.experience) {
         if (exp.bullets.length > fitConfig.maxBullets) {
@@ -308,10 +272,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Compile template
-    let compiled = compileTemplate(templateHtml, data);
+    let compiled = compileTemplate(templateHtml, data as any);
 
-    // Inject CSS overrides for fit-to-2-pages
+    // Inject CSS overrides
     const cssOverride = "<style>:root{" +
       "--body-size:" + fitConfig.bodySize + "pt;" +
       "--line-height:" + fitConfig.lineHeight + ";" +
@@ -320,21 +283,13 @@ Deno.serve(async (req) => {
       "}</style>";
     compiled = compiled.replace("</head>", cssOverride + "</head>");
 
-    if (format === "html" || !format) {
-      return new Response(compiled, {
-        headers: { ...cors, "Content-Type": "text/html; charset=utf-8" },
-      });
-    }
-
-    // format === "pdf" — for now return HTML with a note; PDF rendering requires external service
-    // TODO: integrate PDFShift or similar when API key is available
     return new Response(compiled, {
       headers: { ...cors, "Content-Type": "text/html; charset=utf-8" },
     });
 
   } catch (e) {
     console.error("[render-cv] Error:", e);
-    return new Response(JSON.stringify({ error: e.message }), {
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { ...cors, "Content-Type": "application/json" },
     });
