@@ -45,6 +45,14 @@ export default function Login() {
   const rawPath = (location.state as any)?.from?.pathname;
   const fromPath = rawPath && typeof rawPath === "string" && rawPath.startsWith("/app/") ? rawPath : "/app/home";
 
+  // Show toast if logged out due to inactivity
+  useEffect(() => {
+    if (sessionStorage.getItem("inactivity_logout")) {
+      sessionStorage.removeItem("inactivity_logout");
+      toast.info("Sessione scaduta per inattività. Accedi di nuovo.");
+    }
+  }, []);
+
   // Save pending OAuth consents when user lands back after OAuth signup
   useEffect(() => {
     if (!user) return;
