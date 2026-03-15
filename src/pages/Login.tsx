@@ -29,6 +29,7 @@ export default function Login() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const trackEvent = useTrackEvent();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState("");
