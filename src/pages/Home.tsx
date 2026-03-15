@@ -67,15 +67,16 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useProGate } from "@/hooks/useProGate";
 
 import { StatusChip } from "@/components/StatusChip";
+import { VersoScoreCompact, calcVersoScore } from "@/components/VersoScore";
 
 // ─── Stats Bar ───────────────────────────────────────────────
 function StatsBar({
   activeCount,
-  avgScore,
+  avgVersoScore,
   hasCV,
 }: {
   activeCount: number;
-  avgScore: number | null;
+  avgVersoScore: number | null;
   hasCV: boolean;
 }) {
   return (
@@ -89,9 +90,9 @@ function StatsBar({
         },
         {
           icon: ChartLineUp,
-          label: "Score",
-          value: avgScore !== null ? `${avgScore}%` : "—",
-          accent: avgScore !== null && avgScore >= 70,
+          label: "Verso Score",
+          value: avgVersoScore !== null ? `${avgVersoScore}` : "—",
+          accent: avgVersoScore !== null && avgVersoScore >= 66,
         },
         {
           icon: FileText,
@@ -327,16 +328,11 @@ function RecentApplications({ apps }: { apps: AppRowWithAts[] }) {
               </div>
             </div>
             <div className="flex items-center gap-2 mt-2 ml-11">
-              {app.match_score !== null && (
-                <span className="font-mono text-xs font-bold text-primary">
-                  {app.match_score}%
-                </span>
-              )}
-              {(app as any).ats_score !== null && (app as any).ats_score !== undefined && (
-                <span className="font-mono text-xs font-bold text-info">
-                  ATS {(app as any).ats_score}%
-                </span>
-              )}
+              <VersoScoreCompact
+                matchScore={app.match_score}
+                atsScore={(app as any).ats_score}
+                honestScore={(app as any).honest_score}
+              />
               <StatusChip status={app.status} />
             </div>
           </div>
@@ -677,12 +673,12 @@ export default function Home() {
     [apps]
   );
   const hasApplications = activeApps.length > 0;
-  const avgScore = useMemo(() => {
-    const scored = (apps ?? []).filter((a) => a.match_score !== null);
-    if (scored.length === 0) return null;
-    return Math.round(
-      scored.reduce((sum, a) => sum + (a.match_score ?? 0), 0) / scored.length
-    );
+  const avgVersoScore = useMemo(() => {
+    const scores = (apps ?? [])
+      .map((a) => calcVersoScore({ match_score: a.match_score, ats_score: a.ats_score, honest_score: (a as any).honest_score }))
+      .filter((s): s is number => s !== null);
+    if (scores.length === 0) return null;
+    return Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);
   }, [apps]);
   const recentApps = useMemo(() => (apps ?? []).slice(0, 3), [apps]);
 
@@ -747,7 +743,7 @@ export default function Home() {
       >
         <StatsBar
           activeCount={activeApps.length}
-          avgScore={avgScore}
+          avgVersoScore={avgVersoScore}
           hasCV={hasCV}
         />
       </motion.div>

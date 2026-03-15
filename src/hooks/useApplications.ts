@@ -11,7 +11,7 @@ export function useApplications(limit?: number) {
     queryFn: async () => {
       let query = supabase
         .from("applications")
-        .select("id, company_name, role_title, match_score, status, created_at, notes, tailored_cvs(ats_score)")
+        .select("id, company_name, role_title, match_score, status, created_at, notes, tailored_cvs(ats_score, honest_score)")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
 
@@ -20,10 +20,17 @@ export function useApplications(limit?: number) {
       const { data, error } = await query;
       if (error) throw error;
 
-      return (data ?? []).map((d: any) => ({
-        ...d,
-        ats_score: d.tailored_cvs?.[0]?.ats_score ?? null,
-      })) as AppRowWithAts[];
+      return (data ?? []).map((d: any) => {
+        const tc = d.tailored_cvs?.[0];
+        const honestObj = tc?.honest_score;
+        return {
+          ...d,
+          ats_score: tc?.ats_score ?? null,
+          honest_score: typeof honestObj === "object" && honestObj !== null
+            ? (honestObj as any).confidence ?? null
+            : typeof honestObj === "number" ? honestObj : null,
+        };
+      }) as AppRowWithAts[];
     },
     enabled: !!user,
     staleTime: 30_000,
