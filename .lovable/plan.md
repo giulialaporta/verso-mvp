@@ -1,36 +1,34 @@
 
 
-# Fix Preview + PDF Export
+# Fix: Bottone DOCX non visibile
 
-## Problemi identificati
+## Problema
 
-1. **Preview non scala**: L'iframe mostra il CV a dimensione reale (A4 = ~794x1123px) dentro un container piccolo. Serve uno scaling CSS per adattarlo.
-2. **PDF blocca popup**: `printCvAsPdf()` usa `window.open()` che viene bloccato. Serve iframe nascosto con `.print()`.
+Il layout a 2 colonne (`grid-cols-2`) mette la card CV Recruiter (con la preview A4 molto alta) a sinistra e la card CV ATS a destra. Su viewport 919px, la preview A4 occupa quasi tutto lo schermo, e la card ATS finisce sotto il fold — l'utente deve scrollare molto per trovarla.
 
-## Modifiche — `src/components/wizard/StepExport.tsx`
+## Soluzione
 
-### 1. CVPreview — scaling responsivo
+Riorganizzare il layout dello `StepExport` per mettere i due bottoni di download **in alto, ben visibili**, seguiti dalle preview sotto.
 
-Sostituire l'iframe attuale con un approccio "CSS zoom":
-- Container con `aspect-ratio: 1/1.414` e `overflow: hidden`
-- L'iframe interno ha dimensioni fisse A4 (794x1123px) 
-- Applicare `transform: scale(containerWidth / 794)` con `transformOrigin: top left`
-- Usare un `ResizeObserver` o ref per calcolare la larghezza del container e derivare lo scale factor
-- Il container clip l'overflow, l'iframe viene ridotto proporzionalmente
+### Nuovo layout
 
-### 2. PDF — iframe nascosto con print()
+1. **Header** (titolo + subtitle) — invariato
+2. **Banner review** — invariato  
+3. **Badges** (Match, ATS, Confidence) — invariato
+4. **Sezione download** — **NUOVA**: una riga con 2 bottoni affiancati ben evidenti:
+   - `Stampa / Salva PDF` (primary)
+   - `Scarica DOCX` (outline)
+5. **Preview affiancate** — le due card con preview restano sotto, ma senza i bottoni (che sono già sopra)
+6. **Template teaser + Skip** — invariati
 
-Sostituire `printCvAsPdf()`:
-- Aggiungere un `<iframe>` nascosto (`position: absolute; left: -9999px`) al componente
-- Al click su "Scarica PDF": scrivere l'HTML (gia' disponibile dalla CVPreview) in `srcdoc` dell'iframe nascosto
-- `onLoad` → `contentWindow.print()`
-- Nessun popup, nessun blocco
+### File da modificare
 
-### 3. Condivisione HTML tra preview e print
+- `src/components/wizard/StepExport.tsx`: spostare i bottoni fuori dalle card preview e metterli in una sezione dedicata sopra le preview
 
-- CVPreview espone l'HTML caricato tramite un callback `onHtmlLoaded`
-- StepExport salva l'HTML in uno state `previewHtml`
-- Il bottone PDF riutilizza `previewHtml` senza richiamare render-cv
+### Dettagli
 
-**File**: `src/components/wizard/StepExport.tsx`
+- I bottoni vengono estratti dalle card e posizionati in un `div` con `grid grid-cols-2 gap-3` subito dopo i badges
+- Le card preview restano sotto con solo il titolo e l'anteprima (senza bottone)
+- Su mobile (`grid-cols-1`) i bottoni si impilano verticalmente
+- Questo garantisce che l'utente veda immediatamente entrambe le opzioni di download senza scrollare
 
