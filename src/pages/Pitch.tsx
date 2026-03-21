@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const TOTAL = 5;
+const TOTAL = 6;
 
 /* ─── Slide 1: Il problema + Target ─── */
 function Slide1() {
@@ -108,7 +108,51 @@ function Slide2() {
   );
 }
 
-/* ─── Slide 3: Il prodotto ─── */
+/* ─── Slide 3: Customer Journey ─── */
+function Slide3Journey() {
+  const steps = [
+    { n: "1", title: "Onboarding", desc: "Carica il CV e completa il profilo. Verso analizza e struttura tutto automaticamente." },
+    { n: "2", title: "Annuncio", desc: "Incolla URL o testo dell'offerta. AI estrae azienda, ruolo, requisiti." },
+    { n: "3", title: "Pre-screening", desc: "Dealbreaker, skill gap, domande follow-up. Ti dice subito se vale la pena candidarti." },
+    { n: "4", title: "CV su misura", desc: "Patch-based tailoring: riscrive solo quello che serve, senza inventare nulla." },
+    { n: "5", title: "Revisione e export", desc: "Revisione formale automatica. Scarica PDF (design) + DOCX (ATS-ready)." },
+    { n: "6", title: "Dashboard", desc: "Traccia tutte le candidature. Stato, score, storico in un unico posto." },
+  ];
+  const badges = [
+    "Match score + ATS score + Honest score",
+    "Integrity check su ogni modifica",
+    "Supporto italiano e inglese",
+  ];
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-8 text-center gap-8">
+      <h1 className="text-[clamp(28px,4vw,52px)] font-bold leading-tight text-[#F2F3F7]">
+        Come funziona Verso — passo dopo passo
+      </h1>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl w-full">
+        {steps.map((s) => (
+          <div key={s.n} className="border border-[#2A2D35] rounded-xl p-5 bg-[#141518] text-left flex gap-4 items-start">
+            <div className="w-8 h-8 rounded-full bg-[#6EBF47] text-[#0F1117] flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">
+              {s.n}
+            </div>
+            <div>
+              <p className="text-[#F2F3F7] font-semibold text-base">{s.title}</p>
+              <p className="text-[#8B8FA8] text-sm mt-1 leading-relaxed">{s.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap justify-center gap-3">
+        {badges.map((b, i) => (
+          <span key={i} className="border border-[#6EBF47]/30 rounded-full px-4 py-1.5 text-[#6EBF47] text-sm font-medium">
+            {b}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Slide 4: Il prodotto ─── */
 function Slide3() {
   const features = [
     "Parsing CV da PDF (con estrazione foto)",
@@ -227,7 +271,7 @@ function Slide5() {
   );
 }
 
-const SLIDES = [Slide1, Slide2, Slide3, Slide4, Slide5];
+const SLIDES = [Slide1, Slide2, Slide3Journey, Slide3, Slide4, Slide5];
 
 export default function Pitch() {
   const [idx, setIdx] = useState(0);
