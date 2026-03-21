@@ -312,15 +312,25 @@ export function StepExport({
         </div>
       </div>
 
-      {/* Review status banner */}
-      {reviewStatus === "reviewing" && (
+      {/* Pipeline status banner */}
+      {pipelineStatus === "reviewing" && (
         <div className="flex items-center gap-2 rounded-lg border border-info/20 bg-info/5 px-4 py-3 text-sm text-info">
           <SpinnerGap size={16} className="animate-spin" /> Revisione formale in corso...
         </div>
       )}
-      {reviewStatus === "done" && reviewFixes.length === 0 && (
+      {pipelineStatus === "rendering" && (
+        <div className="flex items-center gap-2 rounded-lg border border-info/20 bg-info/5 px-4 py-3 text-sm text-info">
+          <SpinnerGap size={16} className="animate-spin" /> Generazione anteprima...
+        </div>
+      )}
+      {pipelineStatus === "error" && reviewStatus === "error" && (
+        <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/5 px-4 py-3 text-sm text-warning">
+          Revisione non disponibile — il CV verrà esportato senza correzioni formali.
+        </div>
+      )}
+      {pipelineStatus === "ready" && reviewFixes.length === 0 && (
         <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-          <CheckCircle size={18} weight="fill" /> Nessuna correzione necessaria — il tuo CV è pronto.
+          <CheckCircle size={18} weight="fill" /> Pronto ✓
         </div>
       )}
 
