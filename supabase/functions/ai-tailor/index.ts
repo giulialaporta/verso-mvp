@@ -4,6 +4,7 @@ import { callAi } from "../_shared/ai-provider.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { checkIntegrity } from "../_shared/integrity-check.ts";
+import { runATSChecks } from "../_shared/ats-checks.ts";
 
 // --- Utility: apply patches to original CV with validation ---
 function applyPatches(
