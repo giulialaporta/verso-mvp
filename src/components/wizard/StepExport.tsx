@@ -188,7 +188,13 @@ export function StepExport({
           setReviewedCv(tailoredCv);
           return;
         }
-        setReviewedCv(data.revised_cv || tailoredCv);
+        // Re-inject photo data stripped by compactCV during formal review
+        const reviewed = data.revised_cv || tailoredCv;
+        const origPhoto = (tailoredCv as any)?.photo_base64;
+        const origPhotoUrl = (tailoredCv as any)?.photo_url || (tailoredCv as any)?.personal?.photo_url;
+        if (origPhoto && !reviewed.photo_base64) reviewed.photo_base64 = origPhoto;
+        if (origPhotoUrl && !reviewed.photo_url) reviewed.photo_url = origPhotoUrl;
+        setReviewedCv(reviewed);
         setReviewStatus("done");
       })
       .catch(() => {

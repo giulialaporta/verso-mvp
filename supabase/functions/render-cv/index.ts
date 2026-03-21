@@ -109,7 +109,6 @@ function prepareData(cv: Record<string, any>, lang: string): PreparedData {
     certifications: (cv.certifications || []).filter((c: any) => clean(c.name)),
     projects: (cv.projects || []).filter((p: any) => clean(p.name)),
     extraSections: (cv.extra_sections || []).filter((s: any) => s.title && s.items?.length),
-    kpis: extractKpis(cv),
     headers: getHeaders(lang),
   };
 }
