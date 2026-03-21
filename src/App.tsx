@@ -56,6 +56,11 @@ const App = () => (
                   ? <Navigate to="/" replace />
                   : <Suspense fallback={<PageSkeleton />}><Pitch /></Suspense>
               } />
+              <Route path="/icon" element={
+                window.location.hostname === "verso-cv.lovable.app"
+                  ? <Navigate to="/" replace />
+                  : <Suspense fallback={<PageSkeleton />}><Icon /></Suspense>
+              } />
               <Route
                 path="/upgrade"
                 element={
