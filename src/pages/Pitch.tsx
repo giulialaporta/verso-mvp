@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-const TOTAL = 6;
+const TOTAL = 7;
 
 /* ─── Slide 1: Il problema + Target ─── */
 function Slide1() {
@@ -224,7 +224,100 @@ function Slide4() {
   );
 }
 
-/* ─── Slide 5: Numeri e prossimi passi ─── */
+/* ─── Slide 6: Pipeline AI ─── */
+function SlideAIPipeline() {
+  const phases = [
+    {
+      label: "ONBOARDING",
+      nodes: [
+        { name: "parse-cv", provider: "Claude Sonnet", color: "#6EBF47", desc: "PDF → JSON strutturato + estrazione foto" },
+        { name: "compact-headline", provider: "Gemini Flash", color: "#5DBBFF", desc: "Compatta ruolo + azienda per card profilo" },
+      ],
+    },
+    {
+      label: "CANDIDATURA",
+      nodes: [
+        { name: "scrape-job", provider: "Gemini Flash", color: "#5DBBFF", desc: "Estrae annuncio da URL (titolo, requisiti, azienda)" },
+        { name: "ai-prescreen", provider: "Claude Haiku", color: "#6EBF47", desc: "Dealbreaker, skill gap, domande follow-up" },
+      ],
+    },
+    {
+      label: "OUTPUT",
+      nodes: [
+        { name: "ai-tailor", provider: "Claude Sonnet", color: "#6EBF47", desc: "Patch-based tailoring + integrity check" },
+        { name: "cv-review", provider: "Claude Haiku", color: "#6EBF47", desc: "Qualità e ground truth check vs CV originale" },
+        { name: "cv-formal-review", provider: "Claude Haiku", color: "#6EBF47", desc: "Grammatica, consistenza, lingua uniforme" },
+        { name: "render-cv", provider: "No AI", color: "#2A2D35", desc: "HTML→PDF template + docx→DOCX ATS" },
+      ],
+    },
+  ];
+  const badges = [
+    "Integrity check su ogni modifica AI",
+    "Fallback automatico Claude ↔ Gemini",
+  ];
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-6 text-center gap-5">
+      <h1 className="text-[clamp(24px,3.5vw,44px)] font-bold leading-tight text-[#F2F3F7]">
+        La pipeline AI — 8 servizi, zero allucinazioni
+      </h1>
+
+      <div className="flex items-start gap-3 max-w-6xl w-full justify-center">
+        {phases.map((phase, pi) => (
+          <div key={pi} className="flex items-start gap-3">
+            <div className="flex flex-col items-center gap-2 min-w-[180px]">
+              <span className="text-[#6EBF47] font-bold text-xs uppercase tracking-widest mb-1">{phase.label}</span>
+              {phase.nodes.map((node, ni) => (
+                <div key={ni} className="flex flex-col items-center gap-1.5">
+                  <div
+                    className="border rounded-xl p-3 bg-[#141518] text-left w-[180px]"
+                    style={{ borderColor: node.color === "#2A2D35" ? "#2A2D35" : `${node.color}40` }}
+                  >
+                    <p className="font-bold text-sm mb-0.5" style={{ color: node.color === "#2A2D35" ? "#8B8FA8" : node.color }}>
+                      {node.name}
+                    </p>
+                    <span
+                      className="inline-block text-[10px] font-mono px-1.5 py-0.5 rounded-full mb-1"
+                      style={{
+                        background: node.color === "#2A2D35" ? "rgba(139,143,168,0.15)" : `${node.color}20`,
+                        color: node.color === "#2A2D35" ? "#8B8FA8" : node.color,
+                      }}
+                    >
+                      {node.provider}
+                    </span>
+                    <p className="text-[#8B8FA8] text-[11px] leading-snug">{node.desc}</p>
+                  </div>
+                  {ni < phase.nodes.length - 1 && (
+                    <div className="flex flex-col items-center">
+                      <div className="w-px h-3 bg-[#6EBF47]/40" />
+                      <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-t-[5px] border-l-transparent border-r-transparent border-t-[#6EBF47]/40" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {pi < phases.length - 1 && (
+              <div className="flex items-center mt-10 gap-1">
+                <div className="w-6 h-px bg-[#6EBF47]/40" />
+                <div className="w-0 h-0 border-t-[4px] border-b-[4px] border-l-[5px] border-t-transparent border-b-transparent border-l-[#6EBF47]/40" />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap justify-center gap-3 mt-2">
+        {badges.map((b, i) => (
+          <span key={i} className="border border-[#6EBF47]/30 rounded-full px-4 py-1.5 text-[#6EBF47] text-sm font-medium">
+            {b}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Slide 7: Numeri e prossimi passi ─── */
 function Slide5() {
   const stats = [
     { value: "4", unit: "settimane", desc: "Da zero a prodotto live" },
@@ -273,7 +366,7 @@ function Slide5() {
   );
 }
 
-const SLIDES = [Slide1, Slide2, Slide3Journey, Slide3, Slide4, Slide5];
+const SLIDES = [Slide1, Slide2, Slide3Journey, Slide3, Slide4, SlideAIPipeline, Slide5];
 
 export default function Pitch() {
   const [idx, setIdx] = useState(0);
