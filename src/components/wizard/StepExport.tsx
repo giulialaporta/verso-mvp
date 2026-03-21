@@ -173,22 +173,28 @@ export function StepExport({
   const printIframeRef = useRef<HTMLIFrameElement>(null);
 
   // Formal review state
-  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("idle");
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("reviewing");
   const [reviewFixes, setReviewFixes] = useState<ReviewFix[]>([]);
   const [reviewedCv, setReviewedCv] = useState<Record<string, unknown> | null>(null);
   const [fixesOpen, setFixesOpen] = useState(false);
   const reviewCalledRef = useRef(false);
 
+  // Pipeline: reviewing → rendering → ready
+  const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>("reviewing");
+
+  // Step 1: formal review (blocking)
   useEffect(() => {
     if (reviewCalledRef.current) return;
     reviewCalledRef.current = true;
     setReviewStatus("reviewing");
+    setPipelineStatus("reviewing");
 
     supabase.functions
       .invoke("cv-formal-review", { body: { cv: tailoredCv, template_id: "visual" } })
       .then(({ data, error }) => {
         if (error || !data) {
           setReviewStatus("error");
+          setReviewedCv(tailoredCv); // fallback
           return;
         }
         const fixes = (data.fixes as ReviewFix[]) || [];
@@ -197,14 +203,34 @@ export function StepExport({
         setReviewStatus("done");
         if (fixes.length > 0) setFixesOpen(true);
       })
-      .catch(() => setReviewStatus("error"));
+      .catch(() => {
+        setReviewStatus("error");
+        setReviewedCv(tailoredCv); // fallback
+      });
   }, [tailoredCv]);
 
+  // Step 2: render HTML ONLY after review completes (reviewedCv becomes non-null)
+  useEffect(() => {
+    if (!reviewedCv) return;
+    setPipelineStatus("rendering");
+
+    supabase.functions
+      .invoke("render-cv", {
+        body: { cv: reviewedCv, template_id: "visual", format: "html", lang: cvLang || "it" },
+      })
+      .then(({ data, error: err }) => {
+        if (err || !data) {
+          setPipelineStatus("error");
+          return;
+        }
+        setPreviewHtml(typeof data === "string" ? data : "");
+        setPipelineStatus("ready");
+      })
+      .catch(() => setPipelineStatus("error"));
+  }, [reviewedCv, cvLang]);
+
   const activeCv = reviewedCv || tailoredCv;
-  const personalName = (activeCv?.personal as any)?.name || "CV";
-  const matchScore = analyzeResult?.match_score ?? 0;
-  const atsScore = analyzeResult?.ats_score ?? 0;
-  const effectiveLang = cvLang || "it";
+  const isReady = pipelineStatus === "ready" && !!previewHtml;
 
   const stats = useMemo(() =>
     computeConfidence(tailorResult.original_cv ?? null, activeCv, tailorResult.diff),
