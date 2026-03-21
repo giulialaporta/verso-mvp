@@ -545,7 +545,7 @@ export default function Home() {
     }
   };
 
-  const isLoading = activeCvQuery.isLoading || !apps;
+  const isLoading = activeCvQuery.isLoading || activeCvQuery.isFetching || !apps;
   const hasCV = cv !== null && cv !== undefined;
   const activeApps = useMemo(
     () => (apps ?? []).filter((a) => !["ko", "draft"].includes(a.status.toLowerCase())),
