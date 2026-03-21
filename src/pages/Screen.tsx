@@ -1,12 +1,12 @@
 import { Download } from "lucide-react";
 
 const SCREENS = [
+  { src: "/screens/dashboard.png", label: "Dashboard", file: "verso-dashboard.jpg" },
+  { src: "/screens/candidature.png", label: "Candidature", file: "verso-candidature.jpg" },
+  { src: "/screens/detail.png", label: "Dettaglio candidatura", file: "verso-dettaglio.jpg" },
+  { src: "/screens/wizard.png", label: "Nuova candidatura", file: "verso-wizard.jpg" },
+  { src: "/screens/impostazioni.png", label: "Impostazioni", file: "verso-impostazioni.jpg" },
   { src: "/screens/landing.png", label: "Landing page", file: "verso-landing.jpg" },
-  { src: "/screens/solution.png", label: "La soluzione", file: "verso-soluzione.jpg" },
-  { src: "/screens/journey.png", label: "Customer journey", file: "verso-journey.jpg" },
-  { src: "/screens/features.png", label: "Funzionalità", file: "verso-features.jpg" },
-  { src: "/screens/pricing.png", label: "Prezzi", file: "verso-pricing.jpg" },
-  { src: "/screens/problem.png", label: "Il problema", file: "verso-problema.jpg" },
 ];
 
 function downloadAsJpg(src: string, filename: string) {
