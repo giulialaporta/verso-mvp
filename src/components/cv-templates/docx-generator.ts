@@ -111,8 +111,16 @@ function sectionTitle(text: string): Paragraph {
   });
 }
 
+function normalizeLang(lang?: string): string {
+  if (!lang) return "it";
+  const l = lang.toLowerCase();
+  if (l.startsWith("en")) return "en";
+  return "it";
+}
+
 function getHeaders(lang?: string): Record<string, string> {
-  if (lang === "en") {
+  const norm = normalizeLang(lang);
+  if (norm === "en") {
     return {
       profile: "Professional Profile",
       experience: "Experience",

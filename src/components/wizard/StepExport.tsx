@@ -316,37 +316,10 @@ export function StepExport({
           Revisione non disponibile — il CV verrà esportato senza correzioni formali.
         </div>
       )}
-      {pipelineStatus === "ready" && reviewFixes.length === 0 && (
+      {pipelineStatus === "ready" && (
         <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
           <CheckCircle size={18} weight="fill" /> Pronto ✓
         </div>
-      )}
-
-      {/* Fixes panel */}
-      {reviewStatus === "done" && reviewFixes.length > 0 && (
-        <Collapsible open={fixesOpen} onOpenChange={setFixesOpen}>
-          <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-2 w-full rounded-lg border border-border/50 bg-card px-4 py-3 text-sm font-medium text-foreground hover:border-primary/30 transition-colors">
-              <Pencil size={16} className="text-warning" />
-              <span>{reviewFixes.length} correzioni formali applicate</span>
-              <span className="ml-auto">{fixesOpen ? <CaretUp size={14} /> : <CaretDown size={14} />}</span>
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="mt-2 space-y-2">
-              {reviewFixes.map((fix, i) => (
-                <div key={i} className="rounded-lg border border-border/30 bg-card/50 px-4 py-3 text-sm">
-                  <div className="flex items-start gap-2">
-                    <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 font-mono text-[11px] text-warning uppercase">{fix.section}</span>
-                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{fix.field}</span>
-                  </div>
-                  <p className="mt-2 text-muted-foreground">{fix.problem}</p>
-                  <p className="mt-1 text-foreground">{fix.correction}</p>
-                </div>
-              ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
       )}
 
       {/* Compact badges */}
