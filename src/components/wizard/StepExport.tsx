@@ -372,10 +372,19 @@ export function StepExport({
         </span>
       </div>
 
-      {/* 2-card layout */}
+      {/* Download buttons — always visible */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Button onClick={handleDownloadPdf} disabled={downloading || !previewHtml} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
+          {downloading ? <><SpinnerGap size={18} className="animate-spin" /> Generazione...</> : <><Printer size={18} /> Stampa / Salva PDF</>}
+        </Button>
+        <Button variant="outline" onClick={handleDownloadDocx} disabled={downloadingDocx} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
+          {downloadingDocx ? <><SpinnerGap size={18} className="animate-spin" /> Generazione DOCX...</> : <><FileDoc size={18} /> Scarica DOCX</>}
+        </Button>
+      </div>
+
+      {/* 2-card layout — previews only */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* CV Recruiter card */}
-        <div className="rounded-xl border border-border/50 bg-card p-4 space-y-4">
+        <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-display text-lg font-bold">CV Recruiter</h3>
@@ -383,16 +392,10 @@ export function StepExport({
             </div>
             <span className="rounded-full bg-primary/15 px-2.5 py-0.5 font-mono text-[11px] text-primary font-bold">PDF</span>
           </div>
-
           <CVPreview cv={activeCv} templateId="visual" lang={effectiveLang} onHtmlLoaded={setPreviewHtml} />
-
-          <Button onClick={handleDownloadPdf} disabled={downloading || !previewHtml} className="w-full gap-2 h-11 active:scale-[0.98] transition-transform">
-            {downloading ? <><SpinnerGap size={16} className="animate-spin" /> Generazione...</> : <><Printer size={16} /> Stampa / Salva PDF</>}
-          </Button>
         </div>
 
-        {/* CV ATS card */}
-        <div className="rounded-xl border border-border/50 bg-card p-4 space-y-4">
+        <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-display text-lg font-bold">CV ATS</h3>
@@ -400,12 +403,7 @@ export function StepExport({
             </div>
             <span className="rounded-full bg-info/15 px-2.5 py-0.5 font-mono text-[11px] text-info font-bold">DOCX</span>
           </div>
-
           <ATSPreview cv={activeCv as Record<string, any>} lang={effectiveLang} />
-
-          <Button variant="outline" onClick={handleDownloadDocx} disabled={downloadingDocx} className="w-full gap-2 h-11 active:scale-[0.98] transition-transform">
-            {downloadingDocx ? <><SpinnerGap size={16} className="animate-spin" /> Generazione DOCX...</> : <><FileDoc size={16} /> Scarica DOCX</>}
-          </Button>
         </div>
       </div>
 
