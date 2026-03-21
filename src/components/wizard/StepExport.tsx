@@ -185,18 +185,15 @@ export function StepExport({
       .then(({ data, error }) => {
         if (error || !data) {
           setReviewStatus("error");
-          setReviewedCv(tailoredCv); // fallback
+          setReviewedCv(tailoredCv);
           return;
         }
-        const fixes = (data.fixes as ReviewFix[]) || [];
-        setReviewFixes(fixes);
         setReviewedCv(data.revised_cv || tailoredCv);
         setReviewStatus("done");
-        if (fixes.length > 0) setFixesOpen(true);
       })
       .catch(() => {
         setReviewStatus("error");
-        setReviewedCv(tailoredCv); // fallback
+        setReviewedCv(tailoredCv);
       });
   }, [tailoredCv]);
 
