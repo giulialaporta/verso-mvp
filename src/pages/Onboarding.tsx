@@ -138,20 +138,29 @@ export default function Onboarding() {
     setSaving(true);
 
     try {
-      // Deactivate existing master CVs for this user before inserting new one
-      await supabase.from("master_cvs").update({ is_active: false } as any).eq("user_id", user.id);
+      const { error: deactivateError } = await supabase
+        .from("master_cvs")
+        .update({ is_active: false } as any)
+        .eq("user_id", user.id);
 
-      const { error } = await supabase.from("master_cvs").insert({
-        user_id: user.id,
-        parsed_data: parsedData as any,
-        file_name: file?.name || null,
-        file_url: filePath || null,
-        raw_text: rawText || null,
-        source: "upload",
-        photo_url: photoUrl || null,
-      } as any);
+      if (deactivateError) throw deactivateError;
 
-      if (error) throw error;
+      const { data: insertedCv, error: insertError } = await supabase
+        .from("master_cvs")
+        .insert({
+          user_id: user.id,
+          parsed_data: parsedData as any,
+          file_name: file?.name || null,
+          file_url: filePath || null,
+          raw_text: rawText || null,
+          source: "upload",
+          photo_url: photoUrl || null,
+        } as any)
+        .select("id, parsed_data, file_name, file_url, created_at, is_active, photo_url")
+        .single();
+
+      if (insertError) throw insertError;
+      if (!insertedCv) throw new Error("CV salvato ma non disponibile subito dopo il salvataggio.");
 
       // Save salary expectations if provided
       const currentVal = currentRal ? parseInt(currentRal, 10) : null;
@@ -168,9 +177,11 @@ export default function Onboarding() {
           .eq("user_id", user.id);
       }
 
-      toast.success("CV salvato con successo!");
+      queryClient.setQueryData(["masterCV", "active", user.id], insertedCv);
       await queryClient.invalidateQueries({ queryKey: ["masterCV"] });
-      navigate("/app/home");
+
+      toast.success("CV salvato con successo!");
+      navigate("/app/home", { replace: true });
     } catch (e: any) {
       toast.error(e.message || "Errore durante il salvataggio.");
     } finally {
