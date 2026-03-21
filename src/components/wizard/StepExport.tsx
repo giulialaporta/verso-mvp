@@ -167,9 +167,7 @@ export function StepExport({
 
   // Formal review state
   const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("reviewing");
-  const [reviewFixes, setReviewFixes] = useState<ReviewFix[]>([]);
   const [reviewedCv, setReviewedCv] = useState<Record<string, unknown> | null>(null);
-  const [fixesOpen, setFixesOpen] = useState(false);
   const reviewCalledRef = useRef(false);
 
   // Pipeline: reviewing → rendering → ready
