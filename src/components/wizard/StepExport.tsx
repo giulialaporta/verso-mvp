@@ -232,6 +232,11 @@ export function StepExport({
   const activeCv = reviewedCv || tailoredCv;
   const isReady = pipelineStatus === "ready" && !!previewHtml;
 
+  const personalName = (activeCv?.personal as any)?.name || "CV";
+  const matchScore = analyzeResult?.match_score ?? 0;
+  const atsScore = analyzeResult?.ats_score ?? 0;
+  const effectiveLang = cvLang || "it";
+
   const stats = useMemo(() =>
     computeConfidence(tailorResult.original_cv ?? null, activeCv, tailorResult.diff),
     [tailorResult.original_cv, activeCv, tailorResult.diff]
