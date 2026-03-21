@@ -9,12 +9,11 @@ Naming coerente con `docs/spec/`: epic = `epic-XX-nome.md`, stories = `stories-p
 
 | File | Priorita' | Descrizione |
 |------|-----------|-------------|
-| `epic-20-ai-quality.md` | **P0 — Critica** | Qualita' AI: CV onesti, coerenti, ben scritti (9 stories) |
-| `epic-21-export-engine.md` | **P1 — Alta** | Nuovo motore export: 2 output fissi (CV_VISUAL PDF brand Verso + CV_ATS DOCX) + teaser template Pro (6 stories) |
+| `epic-21-export-engine.md` | **P1 — Alta** | Nuovo motore export: 2 output fissi (CV_VISUAL PDF brand Verso + CV_ATS DOCX) + teaser template Pro — 4/6 stories ✅, 2 da fare (21.2, 21.6) |
 | `epic-14-email-transazionali.md` | **P2 — Media** | Email automatiche (benvenuto, draft, follow-up) via Resend |
 | `epic-16-snellimento-consensi.md` | **P0 — Critica** | Ridurre friction legali (parziale: ConsentGate fatto, cookie/art.9 da fare) |
 
-> **Archivio:** F7 (Verso Pro), F10 (Migrazione AI), F11 (Stripe Webhook), F12 (Event Tracking), F13 (Template Pro), F15 (Verso Score), F17 (Mobile UX), F18 (CV Export Quality), F19 (Home Redesign) — implementati o cancellati.
+> **Archivio:** F7 (Verso Pro), F10 (Migrazione AI), F11 (Stripe Webhook), F12 (Event Tracking), F13 (Template Pro), F15 (Verso Score), F17 (Mobile UX), F18 (CV Export Quality), F19 (Home Redesign), Epic 20 (AI Quality — 10/10 ✅) — implementati o cancellati.
 
 ## Stories per priorita'
 
@@ -22,7 +21,7 @@ Naming coerente con `docs/spec/`: epic = `epic-XX-nome.md`, stories = `stories-p
 |------|-----------|-------------|
 | `stories-p3-pulizia.md` | **P0 + P3** | 1 story sicurezza (CORS + auth) + 4 pulizia tecnica |
 
-**Totale: 4 epic + 5 stories isolate**
+**Totale: 3 epic + 5 stories isolate**
 
 ## Utility
 

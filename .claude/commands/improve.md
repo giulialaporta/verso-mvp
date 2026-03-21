@@ -43,9 +43,13 @@ Mapping epic → test:
 
 1. Leggi `docs/backlog/README.md` per l'indice
 2. Per ogni **epic** nel backlog, verifica se e' stata implementata (confronta con le epic appena create/aggiornate in `docs/spec/epics/`). Se implementata → **elimina il file dal backlog** e aggiorna `docs/backlog/README.md`.
-3. Per ogni **story** nel backlog, verifica se e' implementata **solo nei file toccati dal diff** (non greppare tutto il codebase)
-4. Implementata → rimuovila. Parziale → aggiorna. File vuoto → eliminalo.
-5. Aggiorna conteggi e `docs/backlog/README.md`
+3. Per ogni **story** nel backlog:
+   a. Verifica prima nei **file toccati dal diff** (veloce)
+   b. Se la story ha criteri di accettazione con file/funzioni specifiche, fai un grep mirato su quei file per capire se e' gia' implementata (anche in commit precedenti)
+4. Implementata → rimuovila o barra con `~~`. Parziale → aggiorna con `⚠️`. File vuoto → eliminalo.
+5. **Aggiorna la colonna "Stato"** nelle tabelle stories degli epic: `⏳ In corso`, `✅ Implementato`, `⚠️ Parziale`.
+6. **Controlla note stantie**: cerca riferimenti a stories gia' completate in note narrative ("Prossimo:", "Da fare:", ecc.) e aggiornale.
+7. Aggiorna conteggi e `docs/backlog/README.md`
 
 ## Fase 4 — Problemi (solo critici)
 

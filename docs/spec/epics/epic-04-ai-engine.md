@@ -165,7 +165,9 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 **Due livelli:**
 
 1. **Strutturale:** rimozione esperienze irrilevanti, riordino per rilevanza, condensazione bullet
-2. **Contenutistico:** riscrittura summary, bullet con verbi d'azione + metriche, riordino skill
+2. **Contenutistico:** riscrittura summary, bullet con verbi d'azione, riordino skill per rilevanza al ruolo
+
+**Prompt (SYSTEM_PROMPT_TAILOR):** ristrutturato con gerarchia esplicita — identità → regole inviolabili → esempi few-shot → lingua → come adattare → data integrity → follow-up → output format. Le 5 regole anti-hallucination sono nelle prime 15 righe del prompt.
 
 **Output:**
 ```json
@@ -179,8 +181,19 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
   "match_score": 74,
   "ats_score": 82,
   "ats_checks": [
-    { "check": "keywords", "label": "Parole chiave presenti", "status": "pass|warning|fail", "detail": "..." }
+    { "check": "single_column", "label": "Layout singola colonna", "status": "pass|warning|fail", "detail": "...", "weight": 15 },
+    { "check": "no_tables", "label": "Nessuna tabella", "status": "...", "weight": 10 },
+    { "check": "contacts_in_body", "label": "Contatti nel corpo", "status": "...", "weight": 10 },
+    { "check": "standard_sections", "label": "Sezioni standard presenti", "status": "...", "weight": 10 },
+    { "check": "no_special_chars", "label": "Caratteri compatibili ATS", "status": "...", "weight": 10 },
+    { "check": "date_format", "label": "Date consistenti", "status": "...", "weight": 10 },
+    { "check": "acronyms_expanded", "label": "Acronimi espansi", "status": "...", "weight": 5 },
+    { "check": "keyword_rate", "label": "Keyword match rate", "status": "...", "weight": 15 },
+    { "check": "no_photos", "label": "Nessuna foto nel CV ATS", "status": "...", "weight": 5 },
+    { "check": "bullet_quality", "label": "Qualità bullet point", "status": "...", "weight": 5 },
+    { "check": "plain_text_order", "label": "Ordine sezioni corretto", "status": "...", "weight": 5 }
   ],
+
   "honest_score": {
     "confidence": 97,
     "experiences_added": 0,
@@ -203,11 +216,22 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 - Se `is_pro = false` AND `free_apps_used >= 1` → risponde 403 `{ error: "UPGRADE_REQUIRED" }`
 - Il frontend intercetta il 403 e fa redirect a `/upgrade`
 
+**Parametri AI:**
+- `temperature: 0.2` + `maxTokens: 8192` per il tailor (output deterministico, CV lunghi senza troncamento)
+
+**Post-patch (server-side, dopo apply patches):**
+1. **Integrity check** (`_shared/integrity-check.ts`): revert claim qualitativi inventati + bullet troppo corti
+2. **Bullet validation**: rimozione bullet < 10 char, placeholder ("...", "•"), trailing "..."
+3. **Skill deduplication**: case-insensitive, rimozione duplicati e placeholder
+4. **Skill ordering**: required_skills → nice_to_have → resto (sort per rilevanza al job posting)
+5. **11 check ATS deterministici** (`_shared/ats-checks.ts`): score ponderato 0-100
+6. **Quality warning**: se Gemini fallback usato → `result.quality_warning` nel response
+
 **Protezioni (implementate):**
-- Mai inventare esperienze, certificazioni o competenze
-- Mai modificare date, nomi aziende, titoli di ruolo
-- Mai rimuovere tutte le esperienze (minimo 2)
-- Max 50% di rimozione esperienze
+- Mai inventare esperienze, certificazioni o competenze (rule #1 ZERO INVENTIONS nel prompt)
+- Mai modificare date, nomi aziende, titoli di ruolo (rule #2 IMMUTABLE FIELDS)
+- Mai rimuovere tutte le esperienze (minimo 2) (validate-output.ts)
+- Max 50% di rimozione esperienze (validate-output.ts)
 - Rilevamento lingua: CV output nella lingua dell'annuncio
 
 ---
@@ -221,23 +245,30 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 {
   "cv": { "...CV tailored JSON..." },
   "detected_language": "it|en",
-  "role_title": "..."
+  "role_title": "...",
+  "original_cv": { "...CV originale (opzionale, ground truth)..." },
+  "job_requirements": { "...requisiti annuncio (opzionale)..." }
 }
 ```
 
 **Processo:**
-Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` e lo perfeziona applicando 10 regole:
+Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` + il CV originale come ground truth. Applica 11 regole:
 
 1. **Uniformita' lingua** — ogni campo di testo nella lingua target, zero mix
-2. **Bullet = verbo d'azione + risultato** — riscrittura bullet generici
+2. **Bullet = verbo d'azione** — riscrittura bullet generici (senza aggiungere metriche inventate)
 3. **Capitalizzazione** — prima lettera maiuscola ovunque
 4. **Rimozione artefatti** — prefissi, virgolette, markdown, whitespace
 5. **Testo orfano** — spostamento o rimozione di testo fuori sezione
 6. **Validazione certificazioni** — nome + issuer obbligatori
-7. **Deduplicazione skill** — rimozione duplicati e cliche'
+7. **Deduplicazione skill** — rimozione duplicati e cliche' (italiano + inglese)
 8. **Max 4-5 bullet per esperienza** — condensazione
-9. **Date uniformi** — formato coerente (Gen 2021 / Jan 2021)
+9. **Date uniformi** — formato coerente
 10. **Qualita' summary** — 2-3 frasi, specifico per il ruolo, no filler
+11. **NO INVENTED OUTCOMES** — se il bullet input non ha metriche, non aggiungerne
+
+**GROUND TRUTH RULE:** ogni claim nel CV revisionato deve essere tracciabile al CV originale. Se `original_cv` e' presente, post-review viene eseguito anche un integrity check (`checkIntegrity`).
+
+**Parametri AI:** `temperature: 0.2`, `maxTokens: 8192`
 
 **Protezioni:**
 - Non inventa esperienze, skill o certificazioni

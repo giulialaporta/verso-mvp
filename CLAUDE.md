@@ -50,14 +50,26 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 | `docs/spec/verso-prd.md` | PRD principale (v1.1) — visione di prodotto |
 | `docs/spec/verso-prd-app.md` | PRD dell'app sviluppata |
 | `docs/spec/epics/` | 9 epic implementate (F1–F7, F8–F9) |
-| `docs/backlog/` | Cose da costruire — 4 epic + 5 stories (vedi README) |
-| `docs/backlog/epic-20-ai-quality.md` | **P0** — Qualita' AI: 9 stories per CV onesti, coerenti, ben scritti |
+| `docs/backlog/` | Cose da costruire — 3 epic + 5 stories (vedi README) |
+| `docs/backlog/epic-21-export-engine.md` | **P1** — Motore export: 4/6 stories ✅, da fare: 21.2 (PDFShift) + 21.6 (cleanup) |
 | `docs/backlog/stories-p3-pulizia.md` | P0 + P3 — 5 stories (1 sicurezza + 4 pulizia tecnica) |
 | `docs/backlog/CLAUDE_epic-template.md` | Template per scrivere nuovi epic |
 | `docs/test/` | Checklist di acceptance criteria per test manuale (8 file, comando `/test`) |
 | `docs/landing-page/` | Prompt per la landing page |
 | `docs/contesto/` | File di contesto progetto |
 | `docs/contesto/legal-pack/` | Documenti legali |
+
+---
+
+## Comandi disponibili
+
+| Comando | Quando usarlo |
+|---------|---------------|
+| `/improve` | Dopo ogni push Lovable — analizza il diff, sincronizza spec/test, pulisce il backlog delle stories toccate |
+| `/improve-global` | Ogni 3-4 sessioni Lovable, o quando sospetti che il backlog sia sfasato — scansione completa backlog vs codice reale, senza dipendere dal diff |
+| `/test` | Prima di una release o dopo una sessione di fix — verifica manuale dei criteri di accettazione |
+
+> **Differenza chiave:** `/improve` e' veloce ma vede solo i file del diff corrente. `/improve-global` e' piu' lento ma trova storie gia' implementate in sessioni precedenti che `/improve` non avrebbe visto.
 
 ---
 

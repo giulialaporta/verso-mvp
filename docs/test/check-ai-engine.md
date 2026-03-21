@@ -58,7 +58,7 @@
 - [x] **D3** — Output contiene: patches, structural_changes, match_score, ats_score, ats_checks, honest_score, skills_match (verificato da code review + DB schema)
 - [x] **D4** — Le patch hanno formato `{ path, value, reason }` (verificato da code review)
 - [x] **D5** — match_score e ats_score sono numeri 0-100 (verificato da DB: 87, 85)
-- [x] **D6** — ats_checks contiene 7 check con status `pass`, `warning` o `fail` (verificato via screenshot: 7 checks visibili)
+- [x] **D6** — ats_checks contiene 11 check deterministici con status `pass`, `warning` o `fail` e campo `weight` (verificato da code review: `_shared/ats-checks.ts` con 11 funzioni + `runATSChecks`)
 - [x] **D7** — honest_score contiene confidence + contatori (verificato da code review)
 - [x] **D8** — Le patch non modificano date, nomi aziende, titoli di ruolo (verificato da code review: prompt specifica)
 - [x] **D9** — Le patch non inventano esperienze o skill (verificato da code review: prompt specifica)

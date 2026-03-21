@@ -262,11 +262,11 @@ Nessun template picker. La pagina mostra:
 | ~~21.1~~ | ~~Template HTML/CSS per CV_VISUAL~~ | Must | ✅ Implementato in `render-cv/templates.ts` |
 | 21.2 | Edge Function `render-cv`: fit-to-2-pages + PDF via servizio esterno | Must | ⚠️ Parziale — template visual aggiunto, ma NO fit-to-2-pages e NO PDFShift (stampa browser) |
 | ~~21.3~~ | ~~Sequenza bloccante: review → preview → download~~ | Must | ✅ Implementato |
-| 21.4 | DOCX ATS programmatico con regole A1-A11 | Must | ⚠️ Parziale — `docx-generator.ts` riscritto client-side, verifica regole A1-A11 da fare |
+| ~~21.4~~ | ~~DOCX ATS programmatico con regole A1-A11~~ | Must | ✅ Implementato — normalizeDate, sanitize, KPI ▸, skills categorizzate, test file |
 | ~~21.5~~ | ~~Nuovo StepExport: 2 card + teaser Pro~~ | Must | ✅ Implementato |
 | 21.6 | Rimuovere react-pdf, i 4 template TSX | Should | ⏳ Da fare |
 
-> **Prossimo:** 21.3 (formal review bloccante) → 21.4 (verifica A1-A11 nel DOCX) → 21.2 (fit-to-2-pages) → 21.6 (cleanup)
+> **Prossimo:** 21.2 (fit-to-2-pages + PDFShift) → 21.6 (cleanup react-pdf)
 
 ---
 
