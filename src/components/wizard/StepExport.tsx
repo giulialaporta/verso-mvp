@@ -24,6 +24,7 @@ type ReviewFix = {
 };
 
 type ReviewStatus = "idle" | "reviewing" | "done" | "error";
+type PipelineStatus = "reviewing" | "rendering" | "ready" | "error";
 
 // --- CV Preview with responsive scaling ---
 function CVPreview({
