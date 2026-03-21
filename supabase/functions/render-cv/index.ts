@@ -66,21 +66,6 @@ interface PreparedData {
   headers: Record<string, string>;
 }
 
-function extractKpis(cv: Record<string, any>): string[] {
-  const kpis: string[] = [];
-  const regex = /(\d[\d.,]*[+]?\s*(%|[KMB]\b|anni|years|utenti|users|clienti|EUR|euro|\u20AC))/gi;
-  for (const exp of (cv.experience || [])) {
-    for (const b of (exp.bullets || [])) {
-      const matches = String(b).match(regex);
-      if (matches) {
-        for (const m of matches) {
-          if (kpis.length < 6 && !kpis.includes(m.trim())) kpis.push(m.trim());
-        }
-      }
-    }
-  }
-  return kpis;
-}
 
 function getInitials(name: string): string {
   return name.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
