@@ -24,45 +24,14 @@ type ReviewFix = {
 };
 
 type ReviewStatus = "idle" | "reviewing" | "done" | "error";
+type PipelineStatus = "reviewing" | "rendering" | "ready" | "error";
 
 // --- CV Preview with responsive scaling ---
-function CVPreview({
-  cv, templateId, lang, onHtmlLoaded
-}: {
-  cv: Record<string, unknown>;
-  templateId: string;
-  lang: string;
-  onHtmlLoaded?: (html: string) => void;
-}) {
-  const [html, setHtml] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+// Only renders when given pre-fetched HTML (no internal fetch)
+function CVPreview({ html }: { html: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
 
-  // Fetch HTML
-  useEffect(() => {
-    setLoading(true);
-    setError(false);
-    supabase.functions
-      .invoke("render-cv", {
-        body: { cv, template_id: templateId, format: "html", lang },
-      })
-      .then(({ data, error: err }) => {
-        if (err || !data) {
-          setError(true);
-          setLoading(false);
-          return;
-        }
-        const h = typeof data === "string" ? data : "";
-        setHtml(h);
-        onHtmlLoaded?.(h);
-        setLoading(false);
-      })
-      .catch(() => { setError(true); setLoading(false); });
-  }, [cv, templateId, lang]);
-
-  // Responsive scale via ResizeObserver
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -73,15 +42,6 @@ function CVPreview({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-
-  if (loading) return <Skeleton className="w-full aspect-[1/1.414] rounded-xl" />;
-  if (error || !html) {
-    return (
-      <div className="w-full aspect-[1/1.414] rounded-xl border border-border/30 bg-card/50 flex items-center justify-center text-sm text-muted-foreground">
-        Preview non disponibile
-      </div>
-    );
-  }
 
   return (
     <div
@@ -213,22 +173,28 @@ export function StepExport({
   const printIframeRef = useRef<HTMLIFrameElement>(null);
 
   // Formal review state
-  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("idle");
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("reviewing");
   const [reviewFixes, setReviewFixes] = useState<ReviewFix[]>([]);
   const [reviewedCv, setReviewedCv] = useState<Record<string, unknown> | null>(null);
   const [fixesOpen, setFixesOpen] = useState(false);
   const reviewCalledRef = useRef(false);
 
+  // Pipeline: reviewing → rendering → ready
+  const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>("reviewing");
+
+  // Step 1: formal review (blocking)
   useEffect(() => {
     if (reviewCalledRef.current) return;
     reviewCalledRef.current = true;
     setReviewStatus("reviewing");
+    setPipelineStatus("reviewing");
 
     supabase.functions
       .invoke("cv-formal-review", { body: { cv: tailoredCv, template_id: "visual" } })
       .then(({ data, error }) => {
         if (error || !data) {
           setReviewStatus("error");
+          setReviewedCv(tailoredCv); // fallback
           return;
         }
         const fixes = (data.fixes as ReviewFix[]) || [];
@@ -237,10 +203,35 @@ export function StepExport({
         setReviewStatus("done");
         if (fixes.length > 0) setFixesOpen(true);
       })
-      .catch(() => setReviewStatus("error"));
+      .catch(() => {
+        setReviewStatus("error");
+        setReviewedCv(tailoredCv); // fallback
+      });
   }, [tailoredCv]);
 
+  // Step 2: render HTML ONLY after review completes (reviewedCv becomes non-null)
+  useEffect(() => {
+    if (!reviewedCv) return;
+    setPipelineStatus("rendering");
+
+    supabase.functions
+      .invoke("render-cv", {
+        body: { cv: reviewedCv, template_id: "visual", format: "html", lang: cvLang || "it" },
+      })
+      .then(({ data, error: err }) => {
+        if (err || !data) {
+          setPipelineStatus("error");
+          return;
+        }
+        setPreviewHtml(typeof data === "string" ? data : "");
+        setPipelineStatus("ready");
+      })
+      .catch(() => setPipelineStatus("error"));
+  }, [reviewedCv, cvLang]);
+
   const activeCv = reviewedCv || tailoredCv;
+  const isReady = pipelineStatus === "ready" && !!previewHtml;
+
   const personalName = (activeCv?.personal as any)?.name || "CV";
   const matchScore = analyzeResult?.match_score ?? 0;
   const atsScore = analyzeResult?.ats_score ?? 0;
@@ -321,15 +312,25 @@ export function StepExport({
         </div>
       </div>
 
-      {/* Review status banner */}
-      {reviewStatus === "reviewing" && (
+      {/* Pipeline status banner */}
+      {pipelineStatus === "reviewing" && (
         <div className="flex items-center gap-2 rounded-lg border border-info/20 bg-info/5 px-4 py-3 text-sm text-info">
           <SpinnerGap size={16} className="animate-spin" /> Revisione formale in corso...
         </div>
       )}
-      {reviewStatus === "done" && reviewFixes.length === 0 && (
+      {pipelineStatus === "rendering" && (
+        <div className="flex items-center gap-2 rounded-lg border border-info/20 bg-info/5 px-4 py-3 text-sm text-info">
+          <SpinnerGap size={16} className="animate-spin" /> Generazione anteprima...
+        </div>
+      )}
+      {pipelineStatus === "error" && reviewStatus === "error" && (
+        <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/5 px-4 py-3 text-sm text-warning">
+          Revisione non disponibile — il CV verrà esportato senza correzioni formali.
+        </div>
+      )}
+      {pipelineStatus === "ready" && reviewFixes.length === 0 && (
         <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-          <CheckCircle size={18} weight="fill" /> Nessuna correzione necessaria — il tuo CV è pronto.
+          <CheckCircle size={18} weight="fill" /> Pronto ✓
         </div>
       )}
 
@@ -374,10 +375,10 @@ export function StepExport({
 
       {/* Download buttons — always visible */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Button onClick={handleDownloadPdf} disabled={downloading || !previewHtml} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
+        <Button onClick={handleDownloadPdf} disabled={downloading || !isReady} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
           {downloading ? <><SpinnerGap size={18} className="animate-spin" /> Generazione...</> : <><Printer size={18} /> Stampa / Salva PDF</>}
         </Button>
-        <Button variant="outline" onClick={handleDownloadDocx} disabled={downloadingDocx} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
+        <Button variant="outline" onClick={handleDownloadDocx} disabled={downloadingDocx || !isReady} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
           {downloadingDocx ? <><SpinnerGap size={18} className="animate-spin" /> Generazione DOCX...</> : <><FileDoc size={18} /> Scarica DOCX</>}
         </Button>
       </div>
@@ -392,7 +393,11 @@ export function StepExport({
             </div>
             <span className="rounded-full bg-primary/15 px-2.5 py-0.5 font-mono text-[11px] text-primary font-bold">PDF</span>
           </div>
-          <CVPreview cv={activeCv} templateId="visual" lang={effectiveLang} onHtmlLoaded={setPreviewHtml} />
+          {previewHtml ? (
+            <CVPreview html={previewHtml} />
+          ) : (
+            <Skeleton className="w-full aspect-[1/1.414] rounded-xl" />
+          )}
         </div>
 
         <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
