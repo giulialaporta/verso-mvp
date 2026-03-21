@@ -77,21 +77,6 @@ function normalizeDate(d: string | undefined | null): string {
   return sanitize(s);
 }
 
-/** Extract KPI numbers from bullet text (e.g. "+30% revenue", "120 clienti") */
-function extractKpis(bullets: string[]): string[] {
-  const kpis: string[] = [];
-  const kpiRegex = /([+-]?\d[\d.,]*\s*%?)\s+([a-zA-Zà-ú]+(?:\s+[a-zA-Zà-ú]+)?)/g;
-  for (const b of bullets) {
-    let match: RegExpExecArray | null;
-    kpiRegex.lastIndex = 0;
-    while ((match = kpiRegex.exec(b)) !== null) {
-      if (match[1].includes("%") || parseInt(match[1].replace(/[.,]/g, ""), 10) >= 10) {
-        kpis.push(`${match[1]} ${match[2]}`);
-      }
-    }
-  }
-  return kpis.slice(0, 6); // cap at 6
-}
 
 function sectionTitle(text: string): Paragraph {
   return new Paragraph({
@@ -217,39 +202,6 @@ export async function generateDocx(
   // ── Experience ──
   if (experience.length > 0) {
     children.push(sectionTitle(headers.experience));
-
-    // Collect all bullets for KPI extraction
-    const allBullets = experience.flatMap((exp: any) =>
-      Array.isArray(exp.bullets) ? exp.bullets.filter((b: string) => clean(b)) : []
-    );
-    const kpis = extractKpis(allBullets);
-
-    // KPI row (triangles inline)
-    if (kpis.length > 0) {
-      children.push(
-        new Paragraph({
-          spacing: { before: 40, after: 120 },
-          children: kpis.flatMap((kpi, i) => [
-            ...(i > 0
-              ? [new TextRun({ text: "   ", size: BODY_SIZE, font: FONT })]
-              : []),
-            new TextRun({
-              text: "\u25B8 ",
-              size: BODY_SIZE,
-              font: FONT,
-              color: SECTION_COLOR,
-            }),
-            new TextRun({
-              text: sanitize(kpi),
-              bold: true,
-              size: BODY_SIZE,
-              font: FONT,
-              color: TEXT_COLOR,
-            }),
-          ]),
-        })
-      );
-    }
 
     for (const exp of experience) {
       const role = clean(exp.role) || clean(exp.title) || "";

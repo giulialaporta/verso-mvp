@@ -181,7 +181,7 @@ export function StepExport({
     setPipelineStatus("reviewing");
 
     supabase.functions
-      .invoke("cv-formal-review", { body: { cv: tailoredCv, template_id: "visual" } })
+      .invoke("cv-formal-review", { body: { cv: tailoredCv, template_id: "visual", lang: cvLang || "it" } })
       .then(({ data, error }) => {
         if (error || !data) {
           setReviewStatus("error");

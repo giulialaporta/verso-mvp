@@ -12,12 +12,13 @@ const SYSTEM_PROMPT =
   "Revisore finale della forma di un CV. Controlla SOLO la forma, non i contenuti.\n\n" +
   "CHECKLIST:\n" +
   "1. Date: formato unico (es. tutte 'Mmm YYYY' o tutte 'MM/YYYY')\n" +
-  "2. Separatore date: unico ovunque (- o –)\n" +
+  "2. Separatore date: unico ovunque (- o -)\n" +
   "3. Maiuscole: convenzione costante per ruoli e aziende\n" +
-  "4. Lingua: niente mix involontario it/en (nomi propri e tech OK)\n" +
+  "4. LINGUA: FONDAMENTALE - rispetta la lingua target indicata. Se il CV deve essere in inglese, TUTTI i contenuti (summary, bullet, description) devono essere in inglese. Se in italiano, TUTTI in italiano. Nomi propri, aziende e termini tecnici (es. 'machine learning', 'stakeholder') sono eccezioni.\n" +
   "5. Bullet: struttura uniforme, verbo d'azione, no troppo corti (<5 parole) o lunghi (>3 righe)\n" +
   "6. Punteggiatura: consistente (tutti con o senza punto finale), no ripetizioni ravvicinate\n" +
-  "7. Fluidita': ritocco minimo per frasi meccaniche o spezzate\n\n" +
+  "7. Fluidita': ritocco minimo per frasi meccaniche o spezzate\n" +
+  "8. ANTI-HALLUCINATION: NON aggiungere mai metriche, numeri, percentuali o KPI che non sono gia' presenti. Se un bullet non ha numeri, il bullet corretto non deve averne.\n\n" +
   "OUTPUT: JSON con 'fixes' (array di correzioni) e 'revised_cv' (CV corretto, stessa struttura input).\n" +
   "Se nulla da correggere: fixes vuoto, revised_cv identico.";
 
@@ -59,7 +60,7 @@ serve(async (req) => {
   }
 
   try {
-    const { cv, template_id } = await req.json();
+    const { cv, template_id, lang } = await req.json();
 
     if (!cv || typeof cv !== "object") {
       return new Response(
@@ -71,8 +72,15 @@ serve(async (req) => {
     // Compact CV: remove nulls, empty strings, photo_base64
     const compacted = compactCV(cv);
 
+    // Detect target language for consistency enforcement
+    const normLang = lang?.toLowerCase().startsWith("en") ? "en" : "it";
+    const langRule = normLang === "en"
+      ? "Target language: ENGLISH. All CV text must be in English. Fix any Italian words/phrases that are not proper nouns or technical terms."
+      : "Lingua target: ITALIANO. Tutto il testo del CV deve essere in italiano. Correggi parole/frasi in inglese che non siano nomi propri o termini tecnici.";
+
     const userMessage =
       "Template: " + (template_id || "classico") +
+      "\n" + langRule +
       "\n\nCV:\n" + JSON.stringify(compacted);
 
     const result = await callAi({
