@@ -64,7 +64,8 @@ function ATSPreview({ cv, lang }: { cv: Record<string, any>; lang: string }) {
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills;
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
-  const h = lang === "en"
+  const normLang = lang?.toLowerCase().startsWith("en") ? "en" : "it";
+  const h = normLang === "en"
     ? { profile: "Professional Profile", experience: "Experience", education: "Education", skills: "Skills", certifications: "Certifications", languages: "Languages" }
     : { profile: "Profilo professionale", experience: "Esperienze", education: "Formazione", skills: "Competenze", certifications: "Certificazioni", languages: "Lingue" };
 
