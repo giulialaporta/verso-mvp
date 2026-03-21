@@ -12,12 +12,13 @@ const SYSTEM_PROMPT =
   "Revisore finale della forma di un CV. Controlla SOLO la forma, non i contenuti.\n\n" +
   "CHECKLIST:\n" +
   "1. Date: formato unico (es. tutte 'Mmm YYYY' o tutte 'MM/YYYY')\n" +
-  "2. Separatore date: unico ovunque (- o –)\n" +
+  "2. Separatore date: unico ovunque (- o -)\n" +
   "3. Maiuscole: convenzione costante per ruoli e aziende\n" +
-  "4. Lingua: niente mix involontario it/en (nomi propri e tech OK)\n" +
+  "4. LINGUA: FONDAMENTALE - rispetta la lingua target indicata. Se il CV deve essere in inglese, TUTTI i contenuti (summary, bullet, description) devono essere in inglese. Se in italiano, TUTTI in italiano. Nomi propri, aziende e termini tecnici (es. 'machine learning', 'stakeholder') sono eccezioni.\n" +
   "5. Bullet: struttura uniforme, verbo d'azione, no troppo corti (<5 parole) o lunghi (>3 righe)\n" +
   "6. Punteggiatura: consistente (tutti con o senza punto finale), no ripetizioni ravvicinate\n" +
-  "7. Fluidita': ritocco minimo per frasi meccaniche o spezzate\n\n" +
+  "7. Fluidita': ritocco minimo per frasi meccaniche o spezzate\n" +
+  "8. ANTI-HALLUCINATION: NON aggiungere mai metriche, numeri, percentuali o KPI che non sono gia' presenti. Se un bullet non ha numeri, il bullet corretto non deve averne.\n\n" +
   "OUTPUT: JSON con 'fixes' (array di correzioni) e 'revised_cv' (CV corretto, stessa struttura input).\n" +
   "Se nulla da correggere: fixes vuoto, revised_cv identico.";
 
