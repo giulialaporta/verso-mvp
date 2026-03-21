@@ -104,7 +104,15 @@ export function computeConfidence(
 }
 
 export const ATS_LABELS_IT: Record<string, string> = {
+  // Legacy AI-generated checks
   keywords: "Parole chiave", format: "Formato", dates: "Date",
   measurable: "Risultati misurabili", cliches: "Frasi fatte",
   sections: "Sezioni standard", action_verbs: "Verbi d'azione",
+  // Deterministic checks (ats-checks.ts)
+  single_column: "Colonna singola", no_tables: "Nessuna tabella",
+  contacts_in_body: "Contatti nel corpo", standard_sections: "Sezioni standard",
+  no_special_chars: "Nessun carattere speciale", date_format: "Formato date",
+  acronyms_expanded: "Acronimi espansi", keyword_rate: "Densità keyword",
+  no_photos: "Nessuna foto", bullet_quality: "Qualità bullet",
+  plain_text_order: "Ordine testo",
 };
