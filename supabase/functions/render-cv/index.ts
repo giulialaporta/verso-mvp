@@ -8,8 +8,16 @@ function loadTemplate(templateId: string): string {
 }
 
 // --- Localized headers ---
+function normalizeLang(lang: string | undefined | null): string {
+  if (!lang) return "it";
+  const l = lang.toLowerCase();
+  if (l.startsWith("en")) return "en";
+  return "it";
+}
+
 function getHeaders(lang: string): Record<string, string> {
-  if (lang === "en") {
+  const norm = normalizeLang(lang);
+  if (norm === "en") {
     return { contact: "Contact", skills: "Skills", languages: "Languages", certifications: "Certifications", profile: "Profile", experience: "Experience", education: "Education", projects: "Projects" };
   }
   return { contact: "Contatti", skills: "Competenze", languages: "Lingue", certifications: "Certificazioni", profile: "Profilo", experience: "Esperienza", education: "Formazione", projects: "Progetti" };

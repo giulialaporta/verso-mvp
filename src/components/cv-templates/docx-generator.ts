@@ -111,8 +111,16 @@ function sectionTitle(text: string): Paragraph {
   });
 }
 
+function normalizeLang(lang?: string): string {
+  if (!lang) return "it";
+  const l = lang.toLowerCase();
+  if (l.startsWith("en")) return "en";
+  return "it";
+}
+
 function getHeaders(lang?: string): Record<string, string> {
-  if (lang === "en") {
+  const norm = normalizeLang(lang);
+  if (norm === "en") {
     return {
       profile: "Professional Profile",
       experience: "Experience",
@@ -246,8 +254,9 @@ export async function generateDocx(
     for (const exp of experience) {
       const role = clean(exp.role) || clean(exp.title) || "";
       const startDate = normalizeDate(exp.start);
+      const normLang = normalizeLang(lang);
       const endDate = exp.current
-        ? (lang === "en" ? "Present" : "Attuale")
+        ? (normLang === "en" ? "Present" : "Attuale")
         : normalizeDate(exp.end);
       const dateStr = [startDate, endDate].filter(Boolean).join(" - ");
 
@@ -356,8 +365,8 @@ export async function generateDocx(
     if (hasCategories) {
       // Show categorized
       const categories: [string, string[]][] = [];
-      if (technicalSkills.length > 0) categories.push([lang === "en" ? "Technical" : "Tecniche", technicalSkills]);
-      if (softSkills.length > 0) categories.push([lang === "en" ? "Soft Skills" : "Trasversali", softSkills]);
+      if (technicalSkills.length > 0) categories.push([normalizeLang(lang) === "en" ? "Technical" : "Tecniche", technicalSkills]);
+      if (softSkills.length > 0) categories.push([normalizeLang(lang) === "en" ? "Soft Skills" : "Trasversali", softSkills]);
       if (toolSkills.length > 0) categories.push(["Tools", toolSkills]);
 
       for (const [label, items] of categories) {
@@ -466,7 +475,7 @@ export async function generateDocx(
   }
 
   // ── GDPR footer ──
-  const gdprText = lang === "en"
+  const gdprText = normalizeLang(lang) === "en"
     ? "I authorize the processing of my personal data pursuant to art. 13 of Legislative Decree 196/2003 and art. 13 of EU Regulation 679/2016."
     : "Autorizzo il trattamento dei miei dati personali ai sensi dell'art. 13 del D.Lgs. 196/2003 e dell'art. 13 del Regolamento UE 679/2016.";
 

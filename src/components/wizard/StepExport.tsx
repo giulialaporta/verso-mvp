@@ -9,19 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   ArrowLeft, ArrowRight, SpinnerGap,
-  Lock, FileDoc, CheckCircle, CaretDown, CaretUp, Pencil, Printer
+  Lock, FileDoc, CheckCircle, Printer
 } from "@phosphor-icons/react";
 import { generateDocx } from "@/components/cv-templates/docx-generator";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-
-type ReviewFix = {
-  section: string;
-  field: string;
-  problem: string;
-  correction: string;
-};
 
 type ReviewStatus = "idle" | "reviewing" | "done" | "error";
 type PipelineStatus = "reviewing" | "rendering" | "ready" | "error";
@@ -72,7 +64,8 @@ function ATSPreview({ cv, lang }: { cv: Record<string, any>; lang: string }) {
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills;
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
-  const h = lang === "en"
+  const normLang = lang?.toLowerCase().startsWith("en") ? "en" : "it";
+  const h = normLang === "en"
     ? { profile: "Professional Profile", experience: "Experience", education: "Education", skills: "Skills", certifications: "Certifications", languages: "Languages" }
     : { profile: "Profilo professionale", experience: "Esperienze", education: "Formazione", skills: "Competenze", certifications: "Certificazioni", languages: "Lingue" };
 
@@ -174,9 +167,7 @@ export function StepExport({
 
   // Formal review state
   const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("reviewing");
-  const [reviewFixes, setReviewFixes] = useState<ReviewFix[]>([]);
   const [reviewedCv, setReviewedCv] = useState<Record<string, unknown> | null>(null);
-  const [fixesOpen, setFixesOpen] = useState(false);
   const reviewCalledRef = useRef(false);
 
   // Pipeline: reviewing → rendering → ready
@@ -194,18 +185,15 @@ export function StepExport({
       .then(({ data, error }) => {
         if (error || !data) {
           setReviewStatus("error");
-          setReviewedCv(tailoredCv); // fallback
+          setReviewedCv(tailoredCv);
           return;
         }
-        const fixes = (data.fixes as ReviewFix[]) || [];
-        setReviewFixes(fixes);
         setReviewedCv(data.revised_cv || tailoredCv);
         setReviewStatus("done");
-        if (fixes.length > 0) setFixesOpen(true);
       })
       .catch(() => {
         setReviewStatus("error");
-        setReviewedCv(tailoredCv); // fallback
+        setReviewedCv(tailoredCv);
       });
   }, [tailoredCv]);
 
@@ -328,37 +316,10 @@ export function StepExport({
           Revisione non disponibile — il CV verrà esportato senza correzioni formali.
         </div>
       )}
-      {pipelineStatus === "ready" && reviewFixes.length === 0 && (
+      {pipelineStatus === "ready" && (
         <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
           <CheckCircle size={18} weight="fill" /> Pronto ✓
         </div>
-      )}
-
-      {/* Fixes panel */}
-      {reviewStatus === "done" && reviewFixes.length > 0 && (
-        <Collapsible open={fixesOpen} onOpenChange={setFixesOpen}>
-          <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-2 w-full rounded-lg border border-border/50 bg-card px-4 py-3 text-sm font-medium text-foreground hover:border-primary/30 transition-colors">
-              <Pencil size={16} className="text-warning" />
-              <span>{reviewFixes.length} correzioni formali applicate</span>
-              <span className="ml-auto">{fixesOpen ? <CaretUp size={14} /> : <CaretDown size={14} />}</span>
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="mt-2 space-y-2">
-              {reviewFixes.map((fix, i) => (
-                <div key={i} className="rounded-lg border border-border/30 bg-card/50 px-4 py-3 text-sm">
-                  <div className="flex items-start gap-2">
-                    <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 font-mono text-[11px] text-warning uppercase">{fix.section}</span>
-                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{fix.field}</span>
-                  </div>
-                  <p className="mt-2 text-muted-foreground">{fix.problem}</p>
-                  <p className="mt-1 text-foreground">{fix.correction}</p>
-                </div>
-              ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
       )}
 
       {/* Compact badges */}
