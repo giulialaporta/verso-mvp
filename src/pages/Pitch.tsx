@@ -273,7 +273,7 @@ function Slide5() {
   );
 }
 
-const SLIDES = [Slide1, Slide2, Slide3Journey, Slide3, Slide4, Slide5];
+const SLIDES = [Slide1, Slide2, Slide3Journey, Slide3, Slide4, SlideAIPipeline, Slide5];
 
 export default function Pitch() {
   const [idx, setIdx] = useState(0);
