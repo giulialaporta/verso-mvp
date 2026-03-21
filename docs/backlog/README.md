@@ -10,7 +10,7 @@ Naming coerente con `docs/spec/`: epic = `epic-XX-nome.md`, stories = `stories-p
 | File | Priorita' | Descrizione |
 |------|-----------|-------------|
 | `epic-20-ai-quality.md` | **P0 — Critica** | Qualita' AI: CV onesti, coerenti, ben scritti (9 stories) |
-| `epic-21-export-engine.md` | **P1 — Alta** | Nuovo motore export: HTML/CSS → PDF + template DOCX + preview (6 stories) |
+| `epic-21-export-engine.md` | **P1 — Alta** | Nuovo motore export: 2 output fissi (CV_VISUAL PDF brand Verso + CV_ATS DOCX) + teaser template Pro (6 stories) |
 | `epic-14-email-transazionali.md` | **P2 — Media** | Email automatiche (benvenuto, draft, follow-up) via Resend |
 | `epic-16-snellimento-consensi.md` | **P0 — Critica** | Ridurre friction legali (parziale: ConsentGate fatto, cookie/art.9 da fare) |
 

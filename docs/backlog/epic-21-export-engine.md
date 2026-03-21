@@ -1,13 +1,15 @@
-# Epic 21 — Nuovo motore di export CV (HTML/CSS → PDF + template DOCX)
+# Epic 21 — Nuovo motore di export CV (CV_VISUAL + CV_ATS)
 
 ## Obiettivo
 
-Sostituire l'attuale pipeline di export (react-pdf + docx programmatico) con un sistema basato su:
-- **PDF:** template HTML/CSS renderizzati server-side con un algoritmo fit-to-2-pages
-- **DOCX:** template .docx reali (progettati in Word) riempiti con i dati del CV
-- **Preview:** lo stesso HTML renderizzato in un iframe per anteprima istantanea
+Sostituire l'attuale pipeline di export (4 template react-pdf + docx programmatico) con 2 output fissi, sempre disponibili:
 
-Il CV finale deve essere perfettamente impaginato su max 2 pagine A4, con spaziature corrette, a-capo sensati, nessun contenuto troncato, e aspetto professionale.
+- **CV_VISUAL** — PDF elegante, brand-aligned Verso, per i recruiter umani
+- **CV_ATS** — DOCX ottimizzato per superare i filtri automatici (ATS)
+
+Niente picker di template. Ogni candidatura produce sempre entrambi i file.
+
+Il modello Free/Pro non cambia lato download (entrambi accessibili). L'UI mostra un teaser "Altri template recruiter" bloccato, che anticipa future varianti visual per utenti Pro.
 
 ---
 
@@ -15,35 +17,241 @@ Il CV finale deve essere perfettamente impaginato su max 2 pagine A4, con spazia
 
 | Problema attuale | Causa | Soluzione |
 |---|---|---|
-| Contenuto che trabocca o viene troncato ("…") | react-pdf non ha paginazione reale; density system stima con CPL=42 | Browser rendering + loop fit-to-2-pages basato su altezza reale |
-| CV sempre su 1 pagina (taglia contenuto per stare) | Single `<Page>` component, no multi-page | CSS `@page` produce N pagine naturalmente, l'algoritmo limita a 2 |
-| DOCX non assomiglia al PDF (no sidebar, no foto) | Due pipeline completamente separate | Un template HTML → PDF; un template .docx progettato identico |
-| Nessun preview prima del download | react-pdf genera blob → download cieco | Stesso HTML in un iframe = preview istantanea |
-| Aggiungere un template = 200+ righe di JSX + 100 righe di docx builder | Template hardcoded in codice | Template HTML/CSS o .docx files: un designer puo' crearli senza toccare codice |
-| No hyphenation, no widow/orphan control | react-pdf li disabilita | CSS `hyphens: auto`, `orphans: 2`, `widows: 2` |
-| Font da CDN (latenza, fallback) | `Font.register()` da jsdelivr | Font embedded nel template HTML o nel servizio di rendering |
+| Contenuto che trabocca o viene troncato ("…") | react-pdf non ha paginazione reale | Browser rendering + algoritmo fit-to-2-pages su altezza reale |
+| DOCX non assomiglia al PDF | Due pipeline separate | Template DOCX progettato come output dedicato (non clone del PDF) |
+| Nessun preview prima del download | react-pdf genera blob → download cieco | HTML compilato in un iframe = preview istantanea |
+| 4 template da mantenere in codice | Template hardcoded in JSX | 2 file HTML template + 1 file .docx: modificabili senza toccare il codice |
+| Complessita' Free/Pro per template | Gate su template specifici | Gate solo su numero candidature; template unici per tutti |
+
+---
+
+## I due output
+
+### CV_VISUAL — PDF brand Verso
+
+Pensato per un recruiter umano che lo apre, lo legge, lo stampa.
+
+**Layout:** 2 colonne — sidebar scura + body bianco.
+
+**Colori (print-safe, non dark mode):**
+```
+SIDEBAR_BG    #1C1F26  — sidebar scura
+SIDEBAR_TEXT  #F2F3F7  — testo sidebar
+BODY_BG       #FFFFFF  — body bianco
+NOME          #111827  — nome grande
+ACCENT        #6EBF47  — verde Verso muted (leggibile su bianco e su sidebar)
+TESTO         #1F2937  — corpo testo
+META          #6B7280  — date, note, secondari
+KPI_BG        #F0FAE0  — badge KPI (sfondo verde chiaro)
+KPI_BORDER    #9ED940  — badge KPI (bordo verde lime)
+KPI_TEXT      #14532D  — badge KPI (testo verde scuro)
+```
+
+**Struttura:**
+```
+┌──────────────────────────────────────────┐
+│ SIDEBAR (28%)        │ BODY (72%)         │
+│ #1C1F26              │ bianco             │
+│                      │                   │
+│ Foto (cerchio 72px)  │ Nome (Syne 22px)  │
+│ Contatti             │ Headline          │
+│ ─────────────────    │ ─────────────── ← │ KPI badges (max 3, inline)
+│ Competenze           │ PROFILO           │
+│ Lingue               │ ESPERIENZE        │
+│ Certificazioni       │ FORMAZIONE        │
+│                      │ PROGETTI          │
+└──────────────────────────────────────────┘
+```
+
+**KPI badges (max 3, prima del summary):**
+```html
+<div class="kpi-row">
+  <span class="kpi-badge">10+ prodotti AI lanciati</span>
+  <span class="kpi-badge">20 FTE automatizzati</span>
+</div>
+```
+```css
+.kpi-badge {
+  background: #F0FAE0;
+  border: 0.5px solid #9ED940;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 7.5pt;
+  color: #14532D;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.kpi-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+```
+
+**Font:** DM Sans (400, 500, 700) via Google Fonts embed. Fallback: Helvetica.
+
+**Titoli sezione:**
+- Maiuscolo, letter-spacing 0.08em
+- Linea sottile sotto (1px, `#6EBF47`)
+- Padding-bottom 4px
+
+**Bullet:**
+- Marker `·` in verde accent (`#6EBF47`)
+- Struttura: **Etichetta bold** + testo descrittivo su stessa riga
+
+**Formato:** A4, margini 15mm top/bottom 12mm left/right.
+
+**Generazione:** HTML/CSS → PDF via servizio di rendering (PDFShift o equivalente), con algoritmo fit-to-2-pages.
+
+---
+
+### CV_ATS — DOCX ottimizzato ATS
+
+Pensato per passare i filtri automatici dei sistemi HR (Greenhouse, Lever, Workday, etc.).
+
+**Formato file**
+- `.docx` — non PDF, non Canva, non Pages
+- Nome file senza caratteri speciali: `NomeCognome_CV_Anno.docx`
+
+**Layout**
+- Singola colonna, lettura lineare top-to-bottom
+- Zero sidebar, zero tabelle, zero text box, zero colonne affiancate
+- Margini standard: 1 inch (2.54cm) tutti i lati
+
+**Contatti**
+- Prima riga del corpo del documento
+- Mai in header o footer Word (ignorati dal 25-100% degli ATS)
+- Su riga unica con tab stop — non tabella
+
+**Font**
+- Calibri 11pt corpo, 14-16pt nome
+- Alternativa accettata: Arial, Georgia, Times New Roman
+- Zero font decorativi o custom
+
+**Titoli sezione — nomi standard obbligatori**
+`Profilo professionale` · `Esperienze` · `Formazione` · `Competenze` · `Certificazioni` · `Lingue`
+- Zero titoli creativi ("Il mio percorso", "Chi sono", etc.)
+
+**Caratteri**
+- No em dash `—` → trattino `-`
+- No en dash `–` → trattino `-`
+- No virgolette tipografiche `"` `"` → virgolette dritte `"`
+- No emoji, no Unicode decorativi
+- KPI: triangolini `▸` inline (unico Unicode ammesso, ATS-safe)
+- Bullet standard Word (`•` o `-`)
+
+**Date**
+- Formato `MM/YYYY` consistente in tutto il documento
+- Mai date senza mese
+- Mai formati misti (es. "Gen 2022" in un posto e "01/2022" in un altro)
+
+**Acronimi**
+- Sempre forma estesa + acronimo alla prima occorrenza
+- "Robotic Process Automation (RPA)", non solo "RPA"
+
+**Keyword**
+- Target 65-75% match rate con il JD
+- Sopra il 75% e' keyword stuffing — penalizzato
+- Keyword in contesto naturale, non listate a freddo
+
+**Elementi vietati**
+- Tabelle (anche quelle "semplici" a 1 colonna)
+- Text box (contenuto invisibile all'ATS)
+- Grafici, progress bar, rating visivi delle skill
+- Immagini con testo, loghi aziendali
+- Icone al posto di testo (icona telefono invece di "Tel:")
+- Foto (rischio parsing + bias)
+- Colori nel testo (solo NERO e VERDE per i titoli sezione)
+
+**Colori ATS-safe (testo scuro su bianco):**
+```
+NERO      #111827  — nome, titoli ruolo
+VERDE     #166534  — titoli sezione, bullet marker, bordi
+VERDE_CO  #15803D  — nome azienda
+GRIGIO    #374151  — testo corpo
+GRIGIO_L  #6B7280  — date, note, GDPR
+```
+
+**Struttura visiva (senza tabelle):**
+- Titoli sezione: bold, verde, letter-spacing, bordo bottom sottile (`#166534`)
+- Nome azienda: italic bold, bordo sinistro verde
+- KPI: triangolini `▸` inline prima del summary
+- Contatti: tab stop su riga unica (non tabella)
+- Bullet: trattino colorato via numbering config Word
+
+**Test finale obbligatorio (A11)**
+- Copia tutto il testo in plain text (Notepad)
+- Se l'ordine e' corretto e nulla manca → ATS-ready
+- Se il testo e' mescolato o sezioni spariscono → correggere prima di consegnare
+
+**Generazione:** libreria `docx` (npm) in Edge Function o client-side. Nessun template .docx esterno — generato programmaticamente per garantire la conformita' ATS a ogni output.
+
+> Il DOCX ATS non usa `docx-templates` (che richiede un file .docx di base) ma la libreria `docx` per costruzione programmatica, che da' controllo totale su ogni elemento.
 
 ---
 
 ## Architettura
 
 ```
-Frontend                          Backend (Edge Function)
---------                          ----------------------
+Frontend                          Backend (Edge Functions)
+--------                          -----------------------
 
-StepExport                        render-cv
-  |                                 |
-  |-- Preview (iframe HTML) <------ | compila template HTML
-  |                                 |     con dati CV
-  |-- "Scarica PDF" ------------->  | adatta CSS (fit-to-2-pages)
-  |                                 | chiama API rendering → PDF blob
-  |                                 | salva su Storage → ritorna URL
+StepExport
   |
-  |-- "Scarica DOCX" ----------->  render-cv-docx
-                                    | carica template .docx da Storage
-                                    | riempie placeholder con dati CV
-                                    | ritorna DOCX blob
+  |-- Preview CV_VISUAL ------->  render-cv
+  |   (iframe HTML)               | compila template HTML con dati CV
+  |                               | algoritmo fit-to-2-pages
+  |                               | chiama PDF API → blob
+  |                               | salva su Storage → URL
+  |
+  |-- "Scarica PDF" ----------->  render-cv (format: "pdf")
+  |
+  |-- "Scarica DOCX ATS" ------>  render-cv-ats
+                                  | costruisce DOCX programmaticamente
+                                  | applica regole A1-A11
+                                  | restituisce DOCX blob
 ```
+
+---
+
+## UI — StepExport
+
+Nessun template picker. La pagina mostra:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│  ┌─────────────────────────┐  ┌─────────────────────────┐  │
+│  │  CV Recruiter           │  │  CV ATS                 │  │
+│  │  ─────────────────────  │  │  ─────────────────────  │  │
+│  │  [preview iframe A4]    │  │  [anteprima strutturata] │  │
+│  │                         │  │                         │  │
+│  │  Ottimizzato per il     │  │  Ottimizzato per i      │  │
+│  │  recruiter umano        │  │  filtri automatici      │  │
+│  │                         │  │                         │  │
+│  │  [ ↓ Scarica PDF ]      │  │  [ ↓ Scarica DOCX ]    │  │
+│  └─────────────────────────┘  └─────────────────────────┘  │
+│                                                             │
+│  ── Altri template recruiter ── (Prossimamente con Pro) ──  │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ 🔒 Executive │  │ 🔒 Berlin    │  │ 🔒 Minimal   │      │
+│  │   [preview]  │  │   [preview]  │  │   [preview]  │      │
+│  │  Con Pro     │  │  Con Pro     │  │  Con Pro     │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                             │
+│  ATS Score: 82   Honest Score: 97                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Sezione teaser "Altri template recruiter":**
+- 3 card bloccate con preview opacizzata e badge "Con Pro"
+- Testo: "Prossimamente con Versō Pro — scegli il template piu' adatto al tuo settore"
+- Click sulle card → redirect a `/upgrade` (o no-op se Pro gia' attivo, con coming soon)
+- Non implementate: le card sono solo UI placeholder per anticipare la feature
+
+**CV ATS preview:** non un iframe completo — una rappresentazione testuale stilizzata del DOCX (sezioni, bullet, font mono) che comunica la struttura senza richiedere rendering.
 
 ---
 
@@ -51,712 +259,460 @@ StepExport                        render-cv
 
 | ID | Story | Priorita' | Effort |
 |----|-------|-----------|--------|
-| 21.1 | Creare i 4 template HTML/CSS con layout A4 e CSS Paged Media | Must | L |
-| 21.2 | Edge Function `render-cv`: compilazione template + fit-to-2-pages + PDF API | Must | L |
-| 21.3 | Preview istantanea nel frontend (iframe con HTML compilato) | Must | M |
-| 21.4 | Creare i 4 template .docx reali e riempirli con `docx-templates` | Must | M |
-| 21.5 | Integrare il nuovo motore in StepExport + ExportDrawer | Must | M |
-| 21.6 | Rimuovere react-pdf, docx-generator.ts e i 4 template TSX | Should | S |
+| 21.1 | Template HTML/CSS per CV_VISUAL (brand Verso, sidebar scura, KPI badges) | Must | L |
+| 21.2 | Edge Function `render-cv`: compilazione HTML + fit-to-2-pages + PDF via API | Must | L |
+| 21.3 | Preview iframe in StepExport (HTML compilato, aggiornamento live) | Must | M |
+| 21.4 | Edge Function `render-cv-ats`: DOCX programmatico con regole A1-A11 | Must | L |
+| 21.5 | Nuovo StepExport: 2 card download + teaser Pro template | Must | M |
+| 21.6 | Rimuovere react-pdf, i 4 template TSX, docx-generator.ts | Should | S |
 
-> **Ordine di implementazione:** 21.1 → 21.2 → 21.3 → 21.5 → 21.4 → 21.6
+> **Ordine di implementazione:** 21.1 → 21.2 → 21.3 → 21.4 → 21.5 → 21.6
 
 ---
 
-## Story 21.1 — Template HTML/CSS con layout A4 e CSS Paged Media
+## Story 21.1 — Template HTML/CSS per CV_VISUAL
 
 **Priorita':** Must
 
 ### Cosa fare
 
-Creare 4 template HTML/CSS corrispondenti ai 4 template attuali (Classico, Minimal, Executive, Moderno). Ogni template e' un file HTML completo con `<style>` inline e placeholder Handlebars-style.
+Creare 1 file HTML/CSS per il CV_VISUAL brand Verso. Il file vive in `supabase/functions/render-cv/templates/visual.html`.
 
-I template vanno salvati come file in `supabase/functions/render-cv/templates/` (o in Storage).
+### Specifiche
 
-### Specifiche per ogni template
-
-**Tutti i template condividono:**
+**Layout base:**
 ```css
-@page {
-  size: A4;
-  margin: 15mm 12mm 15mm 12mm;
-}
+@page { size: A4; margin: 15mm 12mm; }
+body { font-family: 'DM Sans', Helvetica, sans-serif; font-size: 10pt; line-height: 1.5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-body {
-  font-size: var(--body-size, 10pt);
-  line-height: var(--line-height, 1.5);
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
+.layout { display: grid; grid-template-columns: 180pt 1fr; min-height: 100vh; }
+.sidebar { background: #1C1F26; color: #F2F3F7; padding: 20pt 14pt; }
+.body    { background: #FFFFFF; padding: 20pt 16pt; }
+```
 
-/* Paginazione intelligente */
-.section-title {
-  break-after: avoid;      /* non lasciare un titolo da solo in fondo pagina */
-}
-.experience-block {
-  break-inside: avoid;     /* non spezzare un'esperienza a meta' */
-}
-.experience-block:last-child {
-  break-inside: auto;      /* l'ultima esperienza puo' andare a capo */
-}
-p, li {
-  orphans: 2;              /* minimo 2 righe prima del page break */
-  widows: 2;               /* minimo 2 righe dopo il page break */
+**Paginazione intelligente:**
+```css
+.section-title { break-after: avoid; }
+.experience-block { break-inside: avoid; }
+.experience-block:last-child { break-inside: auto; }
+p, li { orphans: 2; widows: 2; }
+```
+
+**CSS Variables per fit-to-2-pages:**
+```css
+:root {
+  --body-size: 10pt;
+  --line-height: 1.5;
+  --section-margin-top: 14px;
+  --exp-margin-bottom: 10px;
+  --bullet-margin-bottom: 2px;
+  --sidebar-font-size: 8.5pt;
 }
 ```
 
-**Template "Classico":**
-- Layout: CSS Grid 2 colonne (28% sidebar scura + 72% main)
-- Sidebar: background `#1C1F26`, testo `#F2F3F7`, accent `#60A5FA`
-- Font: Inter (400, 500, 700) via Google Fonts embed
-- Foto: cerchio 72px nella sidebar
-- Sidebar contiene: foto, contatti, competenze, lingue, certificazioni
-- Main contiene: nome, headline, profilo, esperienza, formazione, progetti
-
-**Template "Minimal":**
-- Layout: CSS Grid 2 colonne (26% sidebar chiara + 74% main)
-- Colori chiari, minimal, accent sottile
-- Font: Inter
-- Sidebar piu' stretta, separatori sottili
-
-**Template "Executive":**
-- Layout: singola colonna centrata, no sidebar
-- Accent: `#2563EB`, linee orizzontali sotto i titoli sezione
-- Nome centrato grande, contatti in riga sotto il nome
-- Font: DM Sans (400, 500, 700)
-
-**Template "Moderno":**
-- Layout: CSS Grid 2 colonne (35% sidebar scura + 65% main)
-- Sidebar: `#1E293B`, accent `#38BDF8`
-- Sidebar piu' ampia del Classico
-- Font: Inter
-
-### Placeholder syntax
-
-Usare la sintassi Handlebars-compatibile:
+**Placeholder Handlebars:**
 ```html
-<h1>{{name}}</h1>
-<p>{{summary}}</p>
+<h1 class="nome">{{name}}</h1>
+<p class="headline">{{headline}}</p>
+
+{{#if kpis}}
+<div class="kpi-row">
+  {{#each kpis}}<span class="kpi-badge">{{this}}</span>{{/each}}
+</div>
+{{/if}}
+
+<p class="summary">{{summary}}</p>
+
 {{#each experience}}
 <div class="experience-block">
-  <strong>{{this.role}}</strong> — {{this.company}}
-  <span class="meta">{{this.start}} – {{this.end}}</span>
-  <ul>
+  <div class="exp-header">
+    <strong class="exp-role">{{this.role}}</strong>
+    <span class="exp-meta">{{this.start}} - {{this.end}}</span>
+  </div>
+  <div class="exp-company">{{this.company}}{{#if this.location}} · {{this.location}}{{/if}}</div>
+  {{#if this.description}}<p class="exp-desc">{{this.description}}</p>{{/if}}
+  <ul class="bullets">
     {{#each this.bullets}}<li>{{this}}</li>{{/each}}
   </ul>
 </div>
 {{/each}}
 ```
 
-### CSS Variables per il fit-to-2-pages
-
-I template devono usare CSS custom properties per tutti i valori che l'algoritmo di fitting puo' modificare:
-
-```css
-:root {
-  --body-size: 10pt;
-  --line-height: 1.5;
-  --section-margin-top: 16px;
-  --exp-margin-bottom: 12px;
-  --bullet-margin-bottom: 2px;
-  --sidebar-font-size: 8.5pt;
-}
-```
-
-L'Edge Function inietta un `<style>` override con i valori calcolati dall'algoritmo.
+**Gestione foto:** cerchio 72px nella sidebar. Se assente: iniziale del nome su sfondo accent.
 
 ### Criteri di accettazione
 
-- [ ] 4 file template HTML completi (classico, minimal, executive, moderno)
-- [ ] CSS `@page` con size A4 e margini corretti
+- [ ] File `visual.html` completo con sidebar + body
+- [ ] CSS `@page` A4, margini corretti
+- [ ] CSS variables per tutte le dimensioni modificabili dal fit-algorithm
 - [ ] `break-inside: avoid` su experience-block
-- [ ] `break-after: avoid` su section-title
-- [ ] `orphans: 2; widows: 2` su paragrafi
-- [ ] CSS variables per font-size, line-height, margins
-- [ ] Layout 2 colonne funzionante (CSS Grid) per classico, minimal, moderno
-- [ ] Layout 1 colonna centrato per executive
-- [ ] Foto circolare nella sidebar (con fallback iniziale se assente)
-- [ ] Placeholder Handlebars per tutti i campi CV
-- [ ] Font embedded (Google Fonts link o @font-face)
-- [ ] Colori esatti dei template attuali
-- [ ] Testato manualmente: aprire l'HTML in un browser → aspetto corretto su A4
+- [ ] KPI badges inline (non a capo)
+- [ ] Foto circolare con fallback iniziale
+- [ ] Testato: apri l'HTML in browser → layout corretto, nessun overflow visibile
+- [ ] Font DM Sans caricato via Google Fonts link
 
 ---
 
-## Story 21.2 — Edge Function render-cv
+## Story 21.2 — Edge Function `render-cv`
 
 **Priorita':** Must
 
 ### Cosa fare
 
-Creare una nuova Edge Function `render-cv` che:
-1. Riceve CV JSON + template ID + formato (pdf/html)
-2. Compila il template HTML con i dati
-3. Esegue l'algoritmo fit-to-2-pages
-4. Renderizza il PDF tramite un servizio esterno
-5. Restituisce il PDF blob (o l'HTML per la preview)
+Edge Function che riceve CV JSON, compila il template HTML, applica fit-to-2-pages, renderizza il PDF.
 
 ### Endpoint
 
 ```
 POST /functions/v1/render-cv
 Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "cv": { ... },              // CV JSON (parsed_data format)
-  "template_id": "classico",  // classico | minimal | executive | moderno
-  "format": "pdf",            // "pdf" | "html"
-  "lang": "it"                // target language
-}
-```
-
-**Response (format=pdf):**
-```
-Content-Type: application/pdf
-Body: PDF binary
-```
-
-**Response (format=html):**
-```
-Content-Type: text/html
-Body: HTML compilato (per preview iframe)
-```
-
-### Compilazione template
-
-Usare una funzione di template semplice (non serve Handlebars full — un mini-engine basta):
-
-```typescript
-function compileTemplate(html: string, data: Record<string, any>): string {
-  // Sostituire {{variabile}} con valori
-  // Gestire {{#each array}}...{{/each}} per loop
-  // Gestire {{#if condizione}}...{{/if}} per condizionali
-  // Gestire {{this.campo}} dentro i loop
-}
-```
-
-In alternativa, usare una libreria lightweight come `eta` o `mustache` disponibile per Deno.
-
-### Preparazione dati per il template
-
-Prima di compilare, preparare i dati:
-
-```typescript
-function prepareTemplateData(cv: Record<string, any>, lang: string) {
-  const personal = cv.personal || {};
-  return {
-    name: clean(personal.name) || "Nome Cognome",
-    email: clean(personal.email),
-    phone: clean(personal.phone),
-    location: clean(personal.location),
-    linkedin: clean(personal.linkedin),
-    website: clean(personal.website),
-    photoUrl: clean(cv.photo_url) || clean(cv.photo_base64) || clean(personal.photo_url),
-    summary: clean(cv.summary),
-    experience: (cv.experience || []).map(exp => ({
-      role: clean(exp.role) || clean(exp.title),
-      company: exp.company,
-      start: exp.start,
-      end: exp.end || (exp.current ? (lang === "it" ? "Attuale" : "Present") : ""),
-      location: clean(exp.location),
-      description: clean(exp.description),
-      bullets: (exp.bullets || []).filter(b => clean(b)),
-    })),
-    education: (cv.education || []).map(ed => ({
-      degree: ed.degree,
-      field: clean(ed.field),
-      institution: ed.institution,
-      period: [ed.start, ed.end].filter(Boolean).join(" – "),
-      grade: clean(ed.grade),
-    })),
-    skills: mergeAndDeduplicateSkills(cv.skills),
-    languages: cv.skills?.languages || [],
-    certifications: (cv.certifications || []).filter(c => clean(c.name)),
-    projects: (cv.projects || []).filter(p => clean(p.name)),
-    extraSections: (cv.extra_sections || []).filter(s => s.title && s.items?.length),
-    // Localizzazione
-    headers: getHeaders(lang),
-  };
-}
+{ "cv": {...}, "format": "pdf"|"html", "lang": "it"|"en" }
 ```
 
 ### Algoritmo fit-to-2-pages
 
-L'algoritmo deve garantire che il PDF sia max 2 pagine A4 (594mm di altezza totale contenuto).
-
-**Approccio:** l'Edge Function non ha un browser per misurare l'altezza. Percio' l'algoritmo lavora con una **stima migliorata** basata su:
-- Larghezza colonna nota (dimensioni A4 - margini - eventuale sidebar)
-- Font size nota → caratteri per riga calcolabili con precision
-- Line height nota → altezza per riga calcolabile
-- Ogni sezione ha un overhead fisso (titolo + margini)
+Il motore non ha un browser per misurare l'altezza. Stima con:
+- Larghezza colonna main nota (A4 - margini - sidebar = ~(186-180*0.28)mm ≈ 133mm)
+- Font size nota → caratteri per riga
+- Line height nota → altezza riga in mm
 
 ```typescript
 interface FitConfig {
-  bodySize: number;      // pt (10 → 8, step 0.5)
-  lineHeight: number;    // 1.5 → 1.3, step 0.05
-  sectionMargin: number; // px (16 → 8, step 2)
-  expMargin: number;     // px (12 → 6, step 2)
-  maxBullets: number;    // 99 → 4 → 3
+  bodySize: number;      // pt: 10 → 8.5 → 8 (step 0.5)
+  lineHeight: number;    // 1.5 → 1.3 (step 0.05)
+  sectionMargin: number; // px: 14 → 8 (step 2)
+  expMargin: number;     // px: 10 → 6 (step 2)
+  maxBullets: number;    // illimitato → 4 → 3
 }
 
-function fitTo2Pages(data: TemplateData, templateId: string): FitConfig {
-  const pageHeight = 297 - 30; // A4 height - margins (mm)
-  const maxHeight = pageHeight * 2; // 2 pages
-
-  let config: FitConfig = {
-    bodySize: 10,
-    lineHeight: 1.5,
-    sectionMargin: 16,
-    expMargin: 12,
-    maxBullets: 99,
-  };
-
-  // Stima altezza con la config attuale
-  while (estimateHeight(data, config, templateId) > maxHeight) {
-    // Step 1: riduci font-size (10 → 8, minimo)
-    if (config.bodySize > 8) {
-      config.bodySize -= 0.5;
-      config.lineHeight = Math.max(1.3, config.lineHeight - 0.03);
-      continue;
-    }
-    // Step 2: riduci margini
-    if (config.sectionMargin > 8) {
-      config.sectionMargin -= 2;
-      config.expMargin = Math.max(6, config.expMargin - 2);
-      continue;
-    }
-    // Step 3: limita bullet (prima 4, poi 3)
-    if (config.maxBullets > 3) {
-      config.maxBullets = config.maxBullets > 4 ? 4 : 3;
-      continue;
-    }
-    // Non si puo' fare di piu' — accetta overflow
-    break;
-  }
-
-  return config;
-}
-
-function estimateHeight(data: TemplateData, config: FitConfig, templateId: string): number {
-  // Calcola larghezza colonna main in mm
-  const pageWidth = 210 - 24; // A4 - margini laterali
-  const mainWidth = templateId === "executive"
-    ? pageWidth
-    : pageWidth * 0.72; // 72% per layout 2 colonne
-
-  // Caratteri per riga (approssimazione: 1pt ≈ 0.35mm larghezza media)
-  const charWidth = config.bodySize * 0.22; // mm per carattere medio
-  const charsPerLine = Math.floor(mainWidth / charWidth);
-
-  const lineH = config.bodySize * config.lineHeight * 0.35; // altezza riga in mm
-
-  let height = 0;
-
-  // Nome + subtitle
-  height += 12;
-
-  // Summary
-  if (data.summary) {
-    height += config.sectionMargin * 0.35; // section margin
-    height += 6; // section title
-    height += Math.ceil(data.summary.length / charsPerLine) * lineH;
-  }
-
-  // Experience
-  if (data.experience.length > 0) {
-    height += config.sectionMargin * 0.35;
-    height += 6;
-    for (const exp of data.experience) {
-      height += 3 * lineH; // role + company + meta
-      if (exp.description) {
-        height += Math.ceil(exp.description.length / charsPerLine) * lineH;
-      }
-      const bullets = exp.bullets.slice(0, config.maxBullets);
-      for (const b of bullets) {
-        height += Math.ceil(b.length / charsPerLine) * lineH;
-      }
-      height += config.expMargin * 0.35;
-    }
-  }
-
-  // Education, certifications, projects (stime simili)
-  height += data.education.length * 3 * lineH;
-  height += data.certifications.length * 2 * lineH;
-  for (const proj of data.projects) {
-    height += 2 * lineH;
-    if (proj.description) height += Math.ceil(proj.description.length / charsPerLine) * lineH;
-  }
-
-  return height;
-}
+// Ciclo: stima altezza → se > 2 pagine → riduci config → riesegui
+// Ordine di riduzione: 1) font-size, 2) margini, 3) bullet limit
 ```
-
-L'algoritmo inietta i valori calcolati come CSS variables nell'HTML prima del rendering:
-
-```typescript
-const fitConfig = fitTo2Pages(templateData, templateId);
-
-const cssOverride = `<style>
-:root {
-  --body-size: ${fitConfig.bodySize}pt;
-  --line-height: ${fitConfig.lineHeight};
-  --section-margin-top: ${fitConfig.sectionMargin}px;
-  --exp-margin-bottom: ${fitConfig.expMargin}px;
-}
-</style>`;
-
-compiledHtml = compiledHtml.replace("</head>", cssOverride + "</head>");
-```
-
-Se `maxBullets` e' stato ridotto, i bullet vengono tagliati nei dati PRIMA della compilazione.
 
 ### Rendering PDF
 
-Chiamare un servizio di rendering. Raccomandazione: **PDFShift** (semplice, economico, ottima qualita').
+Raccomandazione: **PDFShift** (free tier 250 PDF/mese, sufficiente per MVP).
 
 ```typescript
 async function renderPdf(html: string): Promise<Uint8Array> {
-  const response = await fetch("https://api.pdfshift.io/v3/convert/pdf", {
+  const res = await fetch("https://api.pdfshift.io/v3/convert/pdf", {
     method: "POST",
     headers: {
       "Authorization": "Basic " + btoa("api:" + Deno.env.get("PDFSHIFT_API_KEY")),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      source: html,
-      format: "A4",
-      margin: "0", // margini gia' nel CSS @page
-      sandbox: false,
-      use_print: true, // usa @media print CSS
-    }),
+    body: JSON.stringify({ source: html, format: "A4", use_print: true }),
   });
-
-  if (!response.ok) throw new Error("PDF rendering failed: " + response.status);
-  return new Uint8Array(await response.arrayBuffer());
+  if (!res.ok) throw new Error("PDF rendering failed");
+  return new Uint8Array(await res.arrayBuffer());
 }
 ```
 
-**Alternativa gratuita:** se il budget e' zero, usare `jsPDF` + `html2canvas` client-side come fallback temporaneo. Ma la qualita' e' inferiore (rasterizzato).
-
-**Alternativa self-hosted:** Gotenberg (Docker container con Chrome headless). Piu' complesso ma zero costi ricorrenti.
+**Alternativa self-hosted:** Gotenberg (Docker + Chrome headless), zero costi ricorrenti.
 
 ### Criteri di accettazione
 
-- [ ] Edge Function `render-cv` creata e deployata
-- [ ] Accetta CV JSON + template_id + format (pdf/html) + lang
-- [ ] Compila template HTML con dati CV
-- [ ] Algoritmo fit-to-2-pages produce CSS overrides
-- [ ] format=html restituisce HTML compilato
-- [ ] format=pdf restituisce PDF via servizio di rendering
+- [ ] Endpoint accetta CV JSON + format + lang
+- [ ] Compila template HTML con i dati del CV
+- [ ] Algoritmo fit-to-2-pages inietta CSS override nell'HTML
+- [ ] `format=html` → restituisce HTML (per preview)
+- [ ] `format=pdf` → restituisce PDF via servizio rendering
 - [ ] PDF risultante e' max 2 pagine A4
 - [ ] Autenticazione Bearer token richiesta
-- [ ] CORS configurato correttamente (getCorsHeaders)
-- [ ] Logging costi rendering (opzionale)
+- [ ] CORS via `getCorsHeaders`
 
 ---
 
-## Story 21.3 — Preview istantanea nel frontend
+## Story 21.3 — Preview iframe in StepExport
 
 **Priorita':** Must
 
 ### Cosa fare
 
-Aggiungere un preview panel in StepExport che mostra il CV renderizzato in tempo reale PRIMA del download.
+Il CV_VISUAL deve essere visibile in anteprima prima del download. La preview usa il CV **gia' revisionato da `cv-formal-review`** — non il CV grezzo. La formal review e' un prerequisito bloccante: la preview non parte finche' la review non e' completata.
 
-### Behavior
-
-1. Quando l'utente arriva a StepExport, viene chiamata l'Edge Function `render-cv` con `format: "html"`
-2. L'HTML compilato viene renderizzato in un `<iframe>` con dimensioni A4 scalate
-3. L'utente vede esattamente cosa verra' scaricato
-4. Cambiando template, il preview si aggiorna (con loading state)
-5. Il pulsante "Scarica PDF" usa lo stesso template per generare il PDF
-
-### Layout
+### Sequenza obbligatoria
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Template: [Classico] [Minimal] [Executive] [M] │
-│                                                 │
-│  ┌───────────────────────────────────────────┐  │
-│  │                                           │  │
-│  │          CV PREVIEW (iframe A4)           │  │
-│  │          scala ~60% per desktop           │  │
-│  │          scrollabile se 2 pagine          │  │
-│  │                                           │  │
-│  └───────────────────────────────────────────┘  │
-│                                                 │
-│  [ Scarica PDF ]  [ Scarica DOCX (Pro) ]        │
-└─────────────────────────────────────────────────┘
+mount StepExport
+    │
+    ▼
+chiama cv-formal-review(cv_tailored)
+    │  [stato: "Revisione in corso..."]
+    │  download bloccato
+    │
+    ▼ completata (o fallita con fallback al CV originale)
+    │
+    ▼
+chiama render-cv(cv_reviewed, format: "html")
+    │  [stato: "Generazione preview..."]
+    │  download ancora bloccato
+    │
+    ▼ preview pronta
+    │
+    ▼
+abilita pulsanti download
+[stato: "N correzioni applicate" oppure "Pronto"]
 ```
 
-**Mobile:** preview a larghezza piena, scala ~40%, scrollabile verticalmente.
+**Il CV passato a `render-cv` e `render-cv-ats` e' sempre `cv_reviewed`**, mai `cv_tailored` grezzo. Se `cv-formal-review` fallisce, si usa `cv_tailored` come fallback — ma il fallback non viene mai saltato silenziosamente: l'utente vede "Revisione non disponibile, usando CV originale".
 
 ### Implementazione
 
 ```tsx
-function CVPreview({ cv, templateId, lang }: Props) {
-  const [html, setHtml] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+function StepExport({ cvTailored, lang }: Props) {
+  const [reviewedCv, setReviewedCv] = useState<CV | null>(null);
+  const [reviewStatus, setReviewStatus] = useState<"reviewing" | "rendering" | "ready" | "error">("reviewing");
+  const [reviewCorrections, setReviewCorrections] = useState<number>(0);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    fetch("/functions/v1/render-cv", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ cv, template_id: templateId, format: "html", lang }),
-    })
-      .then(res => res.text())
-      .then(html => { setHtml(html); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [cv, templateId, lang]);
+    async function run() {
+      // Step 1 — formal review (bloccante)
+      setReviewStatus("reviewing");
+      let cv = cvTailored;
+      try {
+        const { data } = await supabase.functions.invoke("cv-formal-review", {
+          body: { cv: cvTailored }
+        });
+        cv = data.reviewed_cv ?? cvTailored;
+        setReviewCorrections(data.fixes?.length ?? 0);
+      } catch {
+        // fallback silenzioso al CV grezzo, ma avviso all'utente
+        setReviewStatus("error"); // mostrera' banner "Revisione non disponibile"
+      }
+      setReviewedCv(cv);
 
-  if (loading) return <Skeleton className="w-full aspect-[1/1.414]" />;
+      // Step 2 — genera preview (bloccante)
+      setReviewStatus("rendering");
+      try {
+        const { data } = await supabase.functions.invoke("render-cv", {
+          body: { cv, format: "html", lang }
+        });
+        setPreviewHtml(data);
+      } catch {
+        setPreviewHtml(null);
+      }
+
+      setReviewStatus("ready");
+    }
+    run();
+  }, []);
+
+  const isReady = reviewStatus === "ready";
 
   return (
-    <iframe
-      srcDoc={html}
-      className="w-full aspect-[1/1.414] border rounded-lg shadow-lg bg-white"
-      style={{ transform: "scale(0.6)", transformOrigin: "top left" }}
-      sandbox="allow-same-origin"
-    />
+    <>
+      <ReviewStatusBanner status={reviewStatus} corrections={reviewCorrections} />
+      <CVVisualPreview html={previewHtml} loading={!isReady} />
+      <DownloadButtons cv={reviewedCv} disabled={!isReady} lang={lang} />
+      <ATSPreview cv={reviewedCv} />
+    </>
   );
 }
 ```
 
+### Stati del banner di revisione
+
+| Stato | Messaggio | UI |
+|-------|-----------|-----|
+| `reviewing` | "Revisione in corso…" | spinner, download disabilitati |
+| `rendering` | "Generazione anteprima…" | spinner, download disabilitati |
+| `ready` (0 fix) | "Nessuna correzione necessaria" | check verde |
+| `ready` (N fix) | "N correzioni applicate" | check verde, dettaglio espandibile |
+| `error` | "Revisione non disponibile — usando il CV come prodotto" | warning giallo |
+
 ### Criteri di accettazione
 
-- [ ] Preview visibile in StepExport prima del download
-- [ ] Preview si aggiorna al cambio template (con loading skeleton)
-- [ ] Preview mantiene proporzioni A4 (1:1.414)
+- [ ] `cv-formal-review` viene chiamata per prima, prima di qualsiasi rendering
+- [ ] Preview generata con il CV revisionato, non con il CV grezzo
+- [ ] Download disabilitati finche' review + rendering non sono completati
+- [ ] Se formal review fallisce: fallback al CV grezzo con banner warning
+- [ ] Banner mostra stato corrente (reviewing → rendering → ready)
+- [ ] Proporzioni A4 corrette (1:1.414)
 - [ ] Preview scrollabile se il CV e' 2 pagine
-- [ ] Preview funziona su mobile (scala ridotta)
-- [ ] Nessun download automatico — l'utente decide quando scaricare
+- [ ] Nessun download automatico
 
 ---
 
-## Story 21.4 — Template DOCX reali con docx-templates
+## Story 21.4 — Edge Function `render-cv-ats`
 
 **Priorita':** Must
 
 ### Cosa fare
 
-Sostituire il docx-generator.ts programmatico con template .docx reali riempiti dalla libreria `docx-templates`.
+Edge Function che costruisce programmaticamente il DOCX ATS partendo dal CV JSON, applicando tutte le regole A1-A11.
 
-### Approccio
-
-1. **Creare 4 file .docx** professionali in Word/Google Docs, uno per ogni template
-2. **Caricare i template** in Supabase Storage (bucket `cv-templates`)
-3. **Creare Edge Function `render-cv-docx`** (o estendere `render-cv`) che:
-   - Scarica il template .docx da Storage
-   - Riempie i placeholder con i dati CV usando `docx-templates`
-   - Restituisce il DOCX blob
-
-### Placeholder syntax (docx-templates)
-
-Nei file .docx, usare la sintassi di `docx-templates`:
+### Endpoint
 
 ```
-{name}
-{summary}
-{#experience}
-{role} — {company}
-{start} – {end} · {location}
-{#bullets}
-• {.}
-{/bullets}
-{/experience}
+POST /functions/v1/render-cv-ats
+Authorization: Bearer <token>
+{ "cv": {...}, "lang": "it"|"en" }
 ```
 
-### Template .docx design
+### Costruzione DOCX (libreria `docx`)
 
-Ogni template deve essere progettato in Word con:
-- **Stili Word nativi** (Heading 1, Heading 2, Normal, List Bullet) — Word gestisce la paginazione
-- **Colori e font** corrispondenti al template PDF
-- **Margini identici** al PDF (15mm top/bottom, 12mm left/right)
-- **Layout a 2 colonne** (per Classico, Minimal, Moderno) usando la funzionalita' "Colonne" di Word
+La funzione costruisce il documento elemento per elemento, garantendo conformita' ATS.
 
-> **Nota:** il layout a 2 colonne in Word e' piu' limitato del CSS Grid. Se troppo complesso, usare un layout a 1 colonna con le skill in riga orizzontale (pills separate da " · ") invece della sidebar verticale.
+**Struttura documento:**
 
-### Edge Function
+1. **Nome** — 52pt, tracking negativo, #111827
+2. **Headline** — 12pt, #374151, bordo bottom sottile grigio
+3. **Contatti** — riga unica con tab stop (non tabella)
+4. **KPI** — triangolini `▸` inline, nessun badge grafico
+5. **Sezioni** — titoli con bordo bottom verde #166534, letter-spacing
+6. **Esperienze** — nome azienda con bordo sinistro verde, bullet con trattino colorato
+7. **Footer GDPR** — testo muto, centrato
 
-```typescript
-import createReport from "docx-templates";
+**Regole applicate durante la costruzione:**
+- Nessuna tabella, text box, header/footer Word
+- Font Calibri ovunque
+- Caratteri: solo ASCII + `▸` (U+25B8, ATS-safe)
+- Date: formato MM/YYYY
+- Nessun em dash o en dash
+- Acronimi: prima occorrenza con forma estesa + acronimo
 
-async function generateDocxFromTemplate(
-  cv: Record<string, any>,
-  templateId: string,
-  lang: string
-): Promise<Uint8Array> {
-  // 1. Scarica template da Storage
-  const templateBuffer = await downloadTemplate(templateId);
-
-  // 2. Prepara dati (stessa funzione di render-cv)
-  const data = prepareTemplateData(cv, lang);
-
-  // 3. Riempi template
-  const result = await createReport({
-    template: templateBuffer,
-    data,
-    cmdDelimiter: ["{", "}"],
-  });
-
-  return result;
-}
-```
-
-### Dipendenze
-
-Aggiungere `docx-templates` alle dipendenze dell'Edge Function. Verificare compatibilita' con Deno. Se non compatibile, valutare alternative:
-- `easy-template-x` (piu' leggero, compatibile Deno)
-- Compilazione client-side (la libreria funziona nel browser)
-
-Se la compilazione DOCX non e' praticabile server-side, spostarla client-side:
-```typescript
-import { createReport } from "docx-templates";
-
-async function downloadAndFillDocx(cv, templateId, lang) {
-  const templateUrl = supabase.storage.from("cv-templates").getPublicUrl(`${templateId}.docx`);
-  const templateBuffer = await fetch(templateUrl).then(r => r.arrayBuffer());
-  const data = prepareTemplateData(cv, lang);
-  const result = await createReport({ template: templateBuffer, data });
-  saveAs(new Blob([result]), `cv-${templateId}.docx`);
-}
-```
+**Keyword check (A10):**
+Prima di restituire il DOCX, calcola il match rate delle keyword rilevanti vs il JD (se disponibile). Se > 75%: rimuovi keyword in eccesso dai bullet meno rilevanti, non dal summary.
 
 ### Criteri di accettazione
 
-- [ ] 4 file .docx template caricati in Supabase Storage
-- [ ] Ogni template ha placeholder per tutti i campi CV
-- [ ] docx-templates (o alternativa) riempie i placeholder correttamente
-- [ ] Il DOCX risultante ha formattazione professionale
-- [ ] Il DOCX risultante e' max 2 pagine (gestito da Word, ma i template devono essere progettati per questo)
-- [ ] Font, colori, margini coerenti con i template PDF
-- [ ] Funziona sia su Word che su Google Docs (compatibilita' .docx)
+- [ ] DOCX generato senza tabelle, text box, immagini
+- [ ] Contatti nel corpo (non header/footer Word)
+- [ ] Titoli sezione standard (A4)
+- [ ] Font Calibri 11pt corpo, 14pt nome
+- [ ] Nessun em dash o en dash
+- [ ] Date formato MM/YYYY consistenti
+- [ ] Test parsing: copia il testo del DOCX → ordine e contenuto corretti
+- [ ] Nessun colore nel testo oltre a NERO e VERDE
+- [ ] Autenticazione Bearer token richiesta
 
 ---
 
-## Story 21.5 — Integrare il nuovo motore in StepExport + ExportDrawer
+## Story 21.5 — Nuovo StepExport
 
 **Priorita':** Must
 
 ### Cosa fare
 
-Collegare il nuovo motore di rendering ai componenti frontend esistenti. Sostituire le chiamate a react-pdf e docx-generator con le chiamate al nuovo sistema.
+Sostituire lo step export attuale (template picker + download) con il nuovo layout a 2 card + teaser.
 
-### Modifiche a StepExport
+### Layout completo
 
-1. **Rimuovere** l'import di `pdf` da `@react-pdf/renderer` e dei template TSX
-2. **Rimuovere** l'import di `generateDocx` da `docx-generator.ts`
-3. **Aggiungere** il componente `CVPreview` (da story 21.3)
-4. **Modificare `handleDownload`:**
-   ```typescript
-   async function handleDownload() {
-     setDownloading(true);
-     try {
-       const response = await supabase.functions.invoke("render-cv", {
-         body: { cv: cvData, template_id: selectedTemplate, format: "pdf", lang },
-       });
-       if (response.error) throw response.error;
-       const blob = new Blob([response.data], { type: "application/pdf" });
-       saveAs(blob, `cv-${selectedTemplate}.pdf`);
-       // Upload to storage (same as now)
-     } finally {
-       setDownloading(false);
-     }
-   }
-   ```
-5. **Modificare `handleDownloadDocx`:** chiamare la nuova Edge Function o il generatore client-side (da story 21.4)
+**Sezione principale — 2 card affiancate:**
 
-### Modifiche a ExportDrawer
+```
+CV Recruiter (PDF)              CV ATS (DOCX)
+─────────────────               ──────────────────
+[iframe preview]                [struttura testuale]
+                                CALIBRI · SINGOLA COLONNA
+                                ATS-READY
+Ottimizzato per il              Ottimizzato per i filtri
+recruiter umano                 automatici (ATS)
 
-Stesse modifiche: sostituire il rendering react-pdf con la chiamata alla Edge Function.
+[ ↓ Scarica PDF ]               [ ↓ Scarica DOCX ]
+```
 
-### Formal Review
+**Sezione teaser — altri template recruiter (Pro):**
 
-Il flusso cv-formal-review resta invariato — viene chiamato sul CV JSON, non sul PDF. Il CV corretto viene passato a render-cv per il rendering.
+```
+── Altri template recruiter ─────────────────── Prossimamente con Versō Pro ──
+
+[🔒 Executive]    [🔒 Berlin]    [🔒 Minimal Pro]
+  opacizzato        opacizzato       opacizzato
+  Con Pro           Con Pro          Con Pro
+
+"Presto potrai scegliere il template piu' adatto al tuo settore."
+```
+
+**Comportamento teaser:**
+- Card bloccate, non cliccabili (o click → toast "Prossimamente")
+- Se utente e' gia' Pro → stesso messaggio "Prossimamente"
+- Non mostrano preview reali — placeholder stilizzati
+
+**Score bar in fondo:**
+- ATS Score + Honest Score come badge compatti
+
+### Modifiche tecniche
+
+1. Rimuovere `selectedTemplate` state — non c'e' piu' scelta
+2. La sequenza al mount e' **bloccante**: `cv-formal-review` → `render-cv(html)` → abilita download
+3. Download PDF → chiama `render-cv(pdf)` con `cv_reviewed`
+4. Download DOCX → chiama `render-cv-ats` con `cv_reviewed`
+5. Upload su Storage: `cv-exports/{userId}/{applicationId}/cv-visual.pdf` e `cv-ats.docx`
+6. Salvataggio in `tailored_cvs`: `template_id = "visual"` per PDF, aggiungere campo `ats_docx_url`
+
+> **Invariante:** `cv_reviewed` (output di `cv-formal-review`) e' l'unico CV usato per tutti gli output. Non esiste un percorso in cui si scarica il CV grezzo senza aver prima tentato la review.
 
 ### Criteri di accettazione
 
-- [ ] StepExport usa il nuovo motore per PDF e DOCX
-- [ ] ExportDrawer usa il nuovo motore
-- [ ] Preview visibile prima del download
-- [ ] Download PDF funzionante con il nuovo motore
-- [ ] Download DOCX funzionante con il nuovo motore
-- [ ] Formal review continua a funzionare
-- [ ] Upload su Storage dopo download (come prima)
-- [ ] Nessuna regressione: tutti i template funzionano
+- [ ] 2 card affiancate (una per output)
+- [ ] Download disabilitati finche' la sequenza review → preview non e' completata
+- [ ] Preview iframe CV_VISUAL generata con il CV revisionato
+- [ ] Preview testuale CV_ATS (no iframe — struttura stilizzata) con il CV revisionato
+- [ ] Pulsante Scarica PDF usa `cv_reviewed`
+- [ ] Pulsante Scarica DOCX usa `cv_reviewed`
+- [ ] Banner di stato visibile durante review e rendering
+- [ ] Sezione teaser visibile con 3 card bloccate
+- [ ] Nessun template picker
+- [ ] Upload su Storage per entrambi i file
+- [ ] Mobile: card impilate verticalmente
 
 ---
 
-## Story 21.6 — Rimuovere il vecchio motore (react-pdf + docx-generator)
+## Story 21.6 — Rimuovere il vecchio motore
 
-**Priorita':** Should (dopo che il nuovo motore funziona)
+**Priorita':** Should (dopo che il nuovo motore e' stabile)
 
 ### Cosa fare
 
-1. Rimuovere da `package.json`:
-   - `@react-pdf/renderer`
-   - `docx` (se non usato altrove)
-
-2. Eliminare i file:
-   - `src/components/cv-templates/ClassicoTemplate.tsx`
-   - `src/components/cv-templates/MinimalTemplate.tsx`
-   - `src/components/cv-templates/ExecutiveTemplate.tsx`
-   - `src/components/cv-templates/ModernoTemplate.tsx`
-   - `src/components/cv-templates/docx-generator.ts`
-   - `src/components/cv-templates/template-utils.ts` (se non usato altrove)
-
-3. Aggiornare `src/components/cv-templates/index.ts` per esportare solo il registry (template ID, nome, free/pro)
-
-4. Verificare che nessun altro file importi i componenti rimossi
+1. Rimuovere da `package.json`: `@react-pdf/renderer`, `docx` (se non usato altrove)
+2. Eliminare: `ClassicoTemplate.tsx`, `MinimalTemplate.tsx`, `ExecutiveTemplate.tsx`, `ModernoTemplate.tsx`, `docx-generator.ts`, `template-utils.ts`
+3. Verificare che nessun altro file importi i componenti rimossi
+4. Verificare che l'app compili senza errori
 
 ### Criteri di accettazione
 
-- [ ] `@react-pdf/renderer` rimosso da package.json
-- [ ] `docx` rimosso da package.json (se non usato)
-- [ ] 4 file template TSX eliminati
-- [ ] docx-generator.ts eliminato
-- [ ] L'app compila senza errori
-- [ ] Bundle size ridotto significativamente (react-pdf e' pesante)
+- [ ] `@react-pdf/renderer` rimosso
+- [ ] 4 template TSX eliminati
+- [ ] `docx-generator.ts` e `template-utils.ts` eliminati
+- [ ] App compila senza errori
+- [ ] Bundle size ridotto (react-pdf e' ~800KB)
 
 ---
 
 ## Criteri di accettazione globali
 
-- [ ] Il CV PDF e' sempre max 2 pagine A4
-- [ ] Nessun contenuto troncato con "…" — l'algoritmo riduce font/margini prima di tagliare
-- [ ] Ogni esperienza lavorativa e' presente nel CV finale
-- [ ] Layout a 2 colonne funziona sia in PDF che in DOCX
-- [ ] Spaziature corrette: nessun titolo orfano in fondo pagina, nessun blocco esperienza spezzato
-- [ ] Hyphenation attiva (parole lunghe vanno a capo correttamente)
-- [ ] Preview istantanea nel browser prima del download
-- [ ] Il DOCX ha la stessa struttura visiva del PDF
-- [ ] Aggiungere un nuovo template = creare un file HTML + un file DOCX, nessun codice da scrivere
-- [ ] L'app compila senza react-pdf (riduzione bundle size)
+- [ ] Ogni candidatura produce sempre 2 output: CV_VISUAL (PDF) + CV_ATS (DOCX)
+- [ ] Nessun template picker — design fisso
+- [ ] CV_VISUAL: layout sidebar scura + body bianco, brand Verso, max 2 pagine
+- [ ] CV_ATS: DOCX singola colonna, supera test parsing plain text, regole A1-A11 rispettate
+- [ ] Sezione teaser "Altri template Pro" visibile ma non funzionale
+- [ ] Entrambi i file disponibili per utenti Free e Pro (gate solo su numero candidature)
+- [ ] Preview PDF visibile prima del download
+- [ ] Upload su Storage per entrambi dopo il download
+- [ ] Nessuna regressione su formal review, honest score, ATS score
 
 ---
 
 ## Note implementative
 
-### Scelta del servizio PDF rendering
+### Scelta servizio PDF rendering
 
-| Servizio | Quando usarlo |
-|---|---|
-| **PDFShift** | Scelta raccomandata. API semplice, buona qualita', free tier 250 PDF/mese. Sufficiente per MVP. |
-| **Gotenberg** | Se serve self-hosted (zero costi ricorrenti). Richiede Docker. |
-| **Browserless.io** | Se serve esecuzione JS nel rendering (animazioni, calcoli). |
-| **Client-side (jsPDF + html2canvas)** | Fallback temporaneo se nessun servizio esterno. Qualita' inferiore (rasterizzato). |
+| Servizio | Quando |
+|----------|--------|
+| **PDFShift** | Raccomandato. Free tier 250 PDF/mese. API semplice. Sufficiente per MVP. |
+| **Gotenberg** | Se serve self-hosted (zero costi ricorrenti). Docker + Chrome headless. |
+| **Client-side html2canvas** | Fallback temporaneo. Qualita' inferiore (rasterizzato). |
 
-### Compatibilita' Deno per DOCX
+### Compatibilita' Deno per `docx`
 
-`docx-templates` usa Node APIs (Buffer, fs). Per Deno:
-- Usare `npm:docx-templates` con Deno npm compatibility
-- Oppure usare `easy-template-x` che e' piu' leggero
-- Oppure generare il DOCX client-side (la libreria funziona nel browser)
+La libreria `docx` (npm) funziona con `npm:docx` in Deno. Alternativa client-side: costruire il DOCX nel browser (la libreria supporta browser environment). In questo caso `render-cv-ats` diventa una funzione JS lato client invece di un'edge function.
 
 ### Migrazione graduale
 
-E' possibile implementare il nuovo motore **in parallelo** al vecchio:
-1. Aggiungere un toggle "Usa nuovo motore (beta)" in StepExport
-2. Testare con utenti reali
-3. Quando stabile, rimuovere il vecchio motore (story 21.6)
+Possibile implementare in parallelo al vecchio motore:
+1. Nuovo StepExport con feature flag `use_new_export_engine`
+2. Test con utenti reali
+3. Quando stabile: rimuovere il vecchio motore (story 21.6)

@@ -71,8 +71,9 @@ Cambiamenti chiave rispetto all'as-is:
 | 20.7 | CV formattato leggibile per l'AI + verifica copertura patch per traduzione completa | Should | S |
 | 20.8 | Preservare score_note AI + warning fallback Gemini | Should | S |
 | 20.9 | Fix prompt cv-review: rimuovere esempio che invita a inventare, aggiungere ruolo validatore | Should | S |
+| 20.10 | Riscrivere ats_checks in ai-tailor con i controlli ATS reali (11 check completi) | Must | M |
 
-> **Ordine di implementazione:** 20.1 → 20.2 → 20.4 → 20.3 → 20.6 → 20.5 → 20.9 → 20.7 → 20.8
+> **Ordine di implementazione:** 20.1 → 20.2 → 20.4 → 20.3 → 20.6 → 20.5 → 20.9 → 20.7 → 20.8 → 20.10
 
 ---
 
@@ -723,6 +724,205 @@ Se `result.quality_warning` e' presente, mostrare un toast/banner giallo nella p
 - [ ] score_note dell'AI preservata, con ragione dell'aggiustamento appendata
 - [ ] `quality_warning` presente nella risposta se usato fallback
 - [ ] Frontend mostra warning visibile se `quality_warning` presente (toast o banner)
+
+---
+
+## Story 20.10 — Riscrivere ats_checks in ai-tailor con i controlli ATS reali
+
+**Priorita':** Must
+**File:** `supabase/functions/ai-tailor/index.ts`
+
+### Problema
+
+L'attuale `ats_checks` restituito da `ai-tailor` contiene un solo check generico ("keywords") che non riflette i criteri reali con cui i sistemi ATS analizzano un CV. Il punteggio `ats_score` e' quindi una stima poco informativa — non segnala i problemi concreti che causano il rigetto automatico.
+
+### Cosa fare
+
+Sostituire il check generico con **11 controlli specifici**, derivati dalle regole ATS definite per `CV_ATS`. Ogni check e':
+- Verificabile sul CV JSON (non richiede AI — e' logica deterministica)
+- Mappato a un peso per il calcolo dello score finale
+- Presentato all'utente con label leggibile + dettaglio + suggerimento di fix
+
+### I 11 check (con peso)
+
+| ID | Check | Cosa verifica | Peso |
+|----|-------|---------------|------|
+| `single_column` | Layout singola colonna | Il CV non ha strutture a 2 colonne (sidebar, layout affiancato) | 15 |
+| `no_tables` | Nessuna tabella | Nessun campo contiene struttura tabulare o skill in grid | 10 |
+| `contacts_in_body` | Contatti nel corpo | `personal.email`, `personal.phone`, `personal.location` presenti e non vuoti | 10 |
+| `standard_sections` | Titoli sezione standard | Le sezioni usano nomi standard: Profilo, Esperienze, Formazione, Competenze, Certificazioni, Lingue | 10 |
+| `no_special_chars` | Nessun carattere problematico | Nessun em dash `—`, en dash `–`, virgolette tipografiche `"` `"`, emoji nei campi testo | 10 |
+| `date_format` | Date consistenti | Tutte le date nel formato MM/YYYY, nessuna data senza mese, nessun formato misto | 10 |
+| `acronyms_expanded` | Acronimi espansi | Gli acronimi comuni (AI, ML, RPA, CRM, ERP, KPI, ecc.) hanno la forma estesa alla prima occorrenza | 5 |
+| `keyword_rate` | Keyword match rate 65-75% | Match rate tra keyword del CV e keyword del JD. Pass se 65-75%, warning se <65%, fail se >75% | 15 |
+| `no_photos` | Nessuna foto | `photo_url` assente o rimossa dal CV ATS (la foto e' nel CV visual, non nell'ATS) | 5 |
+| `bullet_quality` | Bullet non vuoti | Nessun bullet vuoto, nessun placeholder ("...", "•", trattino solo) | 5 |
+| `plain_text_order` | Ordine plain text | L'ordine delle sezioni nel JSON corrisponde all'ordine standard atteso dall'ATS | 5 |
+
+**Score totale:** somma dei pesi dei check `pass`. Max 100.
+
+### Logica di calcolo (deterministica, non AI)
+
+I check vengono eseguiti **sul CV JSON dopo le patch**, prima di restituire la risposta. Non richiedono una chiamata AI aggiuntiva.
+
+```typescript
+interface ATSCheck {
+  check: string;         // ID del check
+  label: string;         // Label leggibile per l'utente
+  status: "pass" | "warning" | "fail";
+  detail: string;        // Cosa e' stato trovato
+  suggestion?: string;   // Come risolvere (solo se warning/fail)
+  weight: number;        // Peso nel calcolo score
+}
+
+function runATSChecks(cv: TailoredCV, jdKeywords: string[]): { checks: ATSCheck[], score: number } {
+  const checks: ATSCheck[] = [];
+
+  // single_column — sempre pass per CV generato da Verso (struttura JSON non ha sidebar)
+  // Controlla che non ci siano hint di layout a colonne nei bullet o nel summary
+  checks.push(checkSingleColumn(cv));
+
+  // no_tables — controlla pattern tabulari nei testi (tab multipli, pipe separatori)
+  checks.push(checkNoTables(cv));
+
+  // contacts_in_body
+  checks.push(checkContactsInBody(cv));
+
+  // standard_sections — verifica che le chiavi JSON mappino a sezioni standard
+  checks.push(checkStandardSections(cv));
+
+  // no_special_chars — regex su tutti i campi testo
+  checks.push(checkNoSpecialChars(cv));
+
+  // date_format — regex MM/YYYY su tutte le date
+  checks.push(checkDateFormat(cv));
+
+  // acronyms_expanded — lista di acronimi comuni, verifica prima occorrenza
+  checks.push(checkAcronymsExpanded(cv));
+
+  // keyword_rate — conta keyword JD presenti nel testo del CV
+  checks.push(checkKeywordRate(cv, jdKeywords));
+
+  // no_photos
+  checks.push(checkNoPhotos(cv));
+
+  // bullet_quality
+  checks.push(checkBulletQuality(cv));
+
+  // plain_text_order
+  checks.push(checkPlainTextOrder(cv));
+
+  // Score: somma pesi dei check pass + meta' peso dei warning
+  const score = checks.reduce((acc, c) => {
+    if (c.status === "pass") return acc + c.weight;
+    if (c.status === "warning") return acc + Math.floor(c.weight / 2);
+    return acc;
+  }, 0);
+
+  return { checks, score };
+}
+```
+
+### Dettaglio check `no_special_chars`
+
+```typescript
+function checkNoSpecialChars(cv: TailoredCV): ATSCheck {
+  const allText = extractAllText(cv); // concat tutti i campi stringa
+  const problems: string[] = [];
+
+  if (/—/.test(allText)) problems.push("em dash (—)");
+  if (/–/.test(allText)) problems.push("en dash (–)");
+  if (/[""'']/.test(allText)) problems.push("virgolette tipografiche");
+  if (/[\u{1F300}-\u{1FFFF}]/u.test(allText)) problems.push("emoji");
+
+  return {
+    check: "no_special_chars",
+    label: "Caratteri compatibili ATS",
+    status: problems.length === 0 ? "pass" : "fail",
+    detail: problems.length === 0
+      ? "Nessun carattere problematico trovato"
+      : `Trovati: ${problems.join(", ")}`,
+    suggestion: problems.length > 0
+      ? "Sostituire em dash e en dash con trattino (-), rimuovere emoji"
+      : undefined,
+    weight: 10,
+  };
+}
+```
+
+### Dettaglio check `keyword_rate`
+
+```typescript
+function checkKeywordRate(cv: TailoredCV, jdKeywords: string[]): ATSCheck {
+  const cvText = extractAllText(cv).toLowerCase();
+  const matched = jdKeywords.filter(kw => cvText.includes(kw.toLowerCase()));
+  const rate = jdKeywords.length > 0 ? matched.length / jdKeywords.length : 0;
+  const percentage = Math.round(rate * 100);
+
+  let status: "pass" | "warning" | "fail";
+  let detail: string;
+  let suggestion: string | undefined;
+
+  if (percentage >= 65 && percentage <= 75) {
+    status = "pass";
+    detail = `${percentage}% match rate — nella fascia ottimale (65-75%)`;
+  } else if (percentage < 65) {
+    status = "warning";
+    detail = `${percentage}% match rate — sotto il minimo consigliato (65%)`;
+    suggestion = "Inserire nel testo le keyword mancanti in modo naturale";
+  } else {
+    status = "fail";
+    detail = `${percentage}% match rate — sopra il 75%, rischio keyword stuffing`;
+    suggestion = "Ridurre le ripetizioni di keyword, riscrivere in modo piu' naturale";
+  }
+
+  return { check: "keyword_rate", label: "Keyword match rate", status, detail, suggestion, weight: 15 };
+}
+```
+
+### Aggiornamento output ai-tailor
+
+L'output `ats_checks` passa da:
+```json
+[{ "check": "keywords", "label": "Parole chiave presenti", "status": "pass", "detail": "..." }]
+```
+
+A:
+```json
+[
+  { "check": "single_column",    "label": "Layout singola colonna",        "status": "pass",    "detail": "Struttura lineare rilevata",                "weight": 15 },
+  { "check": "no_tables",        "label": "Nessuna tabella",               "status": "pass",    "detail": "Nessuna struttura tabulare trovata",        "weight": 10 },
+  { "check": "contacts_in_body", "label": "Contatti nel corpo",            "status": "pass",    "detail": "Email, telefono, luogo presenti",           "weight": 10 },
+  { "check": "standard_sections","label": "Titoli sezione standard",       "status": "pass",    "detail": "Tutte le sezioni hanno nomi standard",      "weight": 10 },
+  { "check": "no_special_chars", "label": "Caratteri compatibili ATS",     "status": "warning", "detail": "Trovati: em dash (—)",                      "suggestion": "Sostituire con trattino (-)", "weight": 10 },
+  { "check": "date_format",      "label": "Date in formato MM/YYYY",       "status": "pass",    "detail": "Tutte le date nel formato corretto",        "weight": 10 },
+  { "check": "acronyms_expanded","label": "Acronimi espansi",              "status": "warning", "detail": "AI non espanso alla prima occorrenza",      "suggestion": "Scrivere 'Intelligenza Artificiale (AI)'", "weight": 5 },
+  { "check": "keyword_rate",     "label": "Keyword match rate",            "status": "pass",    "detail": "71% match rate — nella fascia ottimale",    "weight": 15 },
+  { "check": "no_photos",        "label": "Nessuna foto nel CV ATS",       "status": "pass",    "detail": "Foto assente",                              "weight": 5 },
+  { "check": "bullet_quality",   "label": "Bullet non vuoti",              "status": "pass",    "detail": "Tutti i bullet hanno contenuto",            "weight": 5 },
+  { "check": "plain_text_order", "label": "Ordine sezioni corretto",       "status": "pass",    "detail": "Sezioni in ordine standard",                "weight": 5 }
+]
+```
+
+`ats_score` = somma pesi check `pass` + meta' peso check `warning` = numero 0-100.
+
+### Impatto sul frontend
+
+Lo step revisione (StepRevisione) mostra gia' `ats_checks` come lista. Con i nuovi 11 check la lista diventa piu' informativa: ogni `warning` o `fail` mostra anche `suggestion`.
+
+La card ATS Score in StepExport mostra il numero. Nessuna modifica necessaria al layout — solo il contenuto dei check cambia.
+
+### Criteri di accettazione
+
+- [ ] 11 check implementati come funzioni pure (no AI, logica deterministica)
+- [ ] `ats_score` calcolato dalla somma dei pesi (pass = peso pieno, warning = meta', fail = 0)
+- [ ] Check `no_special_chars` rileva em dash, en dash, virgolette tipografiche, emoji
+- [ ] Check `keyword_rate` calcola il match rate e distingue <65% / 65-75% / >75%
+- [ ] Check `date_format` valida pattern MM/YYYY su tutti i campi data del CV
+- [ ] Check `contacts_in_body` verifica email + telefono + location non vuoti
+- [ ] Ogni check warning/fail include un campo `suggestion` con il fix concreto
+- [ ] Output `ats_checks` compatibile con il frontend esistente (stessa struttura, campi aggiuntivi opzionali)
+- [ ] `jdKeywords` passati come parametro (estratti dal job posting gia' disponibile in ai-tailor)
 
 ---
 
