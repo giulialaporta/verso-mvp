@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -25,12 +25,22 @@ type ReviewFix = {
 
 type ReviewStatus = "idle" | "reviewing" | "done" | "error";
 
-// --- CV Preview component ---
-function CVPreview({ cv, templateId, lang }: { cv: Record<string, unknown>; templateId: string; lang: string }) {
+// --- CV Preview with responsive scaling ---
+function CVPreview({
+  cv, templateId, lang, onHtmlLoaded
+}: {
+  cv: Record<string, unknown>;
+  templateId: string;
+  lang: string;
+  onHtmlLoaded?: (html: string) => void;
+}) {
   const [html, setHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.5);
 
+  // Fetch HTML
   useEffect(() => {
     setLoading(true);
     setError(false);
@@ -40,59 +50,59 @@ function CVPreview({ cv, templateId, lang }: { cv: Record<string, unknown>; temp
       })
       .then(({ data, error: err }) => {
         if (err || !data) {
-          console.error("render-cv error:", err);
           setError(true);
           setLoading(false);
           return;
         }
-        setHtml(typeof data === "string" ? data : "");
+        const h = typeof data === "string" ? data : "";
+        setHtml(h);
+        onHtmlLoaded?.(h);
         setLoading(false);
       })
-      .catch(() => {
-        setError(true);
-        setLoading(false);
-      });
+      .catch(() => { setError(true); setLoading(false); });
   }, [cv, templateId, lang]);
+
+  // Responsive scale via ResizeObserver
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 400;
+      setScale(w / 794);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   if (loading) return <Skeleton className="w-full aspect-[1/1.414] rounded-xl" />;
   if (error || !html) {
     return (
-      <div className="w-full aspect-[1/1.414] rounded-xl border border-border/30 bg-card/50 flex items-center justify-content text-sm text-muted-foreground">
+      <div className="w-full aspect-[1/1.414] rounded-xl border border-border/30 bg-card/50 flex items-center justify-center text-sm text-muted-foreground">
         Preview non disponibile
       </div>
     );
   }
 
   return (
-    <div className="w-full rounded-xl border border-border/30 overflow-hidden shadow-lg bg-white" style={{ aspectRatio: "1/1.414" }}>
+    <div
+      ref={containerRef}
+      className="w-full rounded-xl border border-border/30 overflow-hidden shadow-lg bg-white"
+      style={{ aspectRatio: "1/1.414" }}
+    >
       <iframe
         srcDoc={html}
-        className="w-full h-full border-0"
+        className="border-0"
         sandbox="allow-same-origin"
         title="CV Preview"
-        style={{ transform: "scale(1)", transformOrigin: "top left", width: "100%", height: "100%" }}
+        style={{
+          width: "794px",
+          height: "1123px",
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
       />
     </div>
   );
-}
-
-/** Print HTML for PDF save */
-async function printCvAsPdf(cv: Record<string, unknown>, templateId: string, lang: string): Promise<void> {
-  const { data, error } = await supabase.functions.invoke("render-cv", {
-    body: { cv, template_id: templateId, format: "html", lang },
-  });
-  if (error || !data) throw new Error("Errore nel rendering del CV");
-
-  const htmlStr = typeof data === "string" ? data : "";
-  const printWindow = window.open("", "_blank", "width=800,height=1100");
-  if (!printWindow) throw new Error("Popup bloccato dal browser");
-
-  printWindow.document.open();
-  printWindow.document.write(htmlStr);
-  printWindow.document.close();
-
-  printWindow.onload = () => { setTimeout(() => printWindow.print(), 400); };
-  setTimeout(() => { printWindow.print(); }, 1500);
 }
 
 // --- ATS text preview ---
@@ -198,6 +208,10 @@ export function StepExport({
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const trackEvent = useTrackEvent();
 
+  // Shared HTML for preview + print
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const printIframeRef = useRef<HTMLIFrameElement>(null);
+
   // Formal review state
   const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("idle");
   const [reviewFixes, setReviewFixes] = useState<ReviewFix[]>([]);
@@ -214,7 +228,6 @@ export function StepExport({
       .invoke("cv-formal-review", { body: { cv: tailoredCv, template_id: "visual" } })
       .then(({ data, error }) => {
         if (error || !data) {
-          console.error("cv-formal-review error:", error);
           setReviewStatus("error");
           return;
         }
@@ -224,10 +237,7 @@ export function StepExport({
         setReviewStatus("done");
         if (fixes.length > 0) setFixesOpen(true);
       })
-      .catch((e) => {
-        console.error("cv-formal-review fetch error:", e);
-        setReviewStatus("error");
-      });
+      .catch(() => setReviewStatus("error"));
   }, [tailoredCv]);
 
   const activeCv = reviewedCv || tailoredCv;
@@ -243,19 +253,30 @@ export function StepExport({
 
   const fileBaseName = "CV-" + personalName.replace(/\s+/g, "-") + "-" + jobData.company_name.replace(/\s+/g, "-");
 
-  const handleDownloadPdf = async () => {
-    setDownloading(true);
-    try {
-      await printCvAsPdf(activeCv, "visual", effectiveLang);
-      trackEvent("pdf_downloaded", { template: "visual", formal_review: reviewStatus === "done", method: "print" });
-      toast.success("Finestra di stampa aperta — salva come PDF.");
-    } catch (e) {
-      console.error("PDF generation error:", e);
-      toast.error("Errore durante la generazione del PDF. Verifica che i popup non siano bloccati.");
-    } finally {
-      setDownloading(false);
+  // PDF via hidden iframe print — no popup
+  const handleDownloadPdf = useCallback(() => {
+    if (!previewHtml) {
+      toast.error("Preview non ancora caricata. Riprova tra un momento.");
+      return;
     }
-  };
+    setDownloading(true);
+    const iframe = printIframeRef.current;
+    if (!iframe) { setDownloading(false); return; }
+
+    iframe.srcdoc = previewHtml;
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow?.print();
+        trackEvent("pdf_downloaded", { template: "visual", formal_review: reviewStatus === "done", method: "iframe_print" });
+        toast.success("Finestra di stampa aperta — salva come PDF.");
+      } catch (e) {
+        console.error("Print error:", e);
+        toast.error("Errore durante la stampa.");
+      } finally {
+        setDownloading(false);
+      }
+    };
+  }, [previewHtml, reviewStatus, trackEvent]);
 
   const handleDownloadDocx = async () => {
     setDownloadingDocx(true);
@@ -363,9 +384,9 @@ export function StepExport({
             <span className="rounded-full bg-primary/15 px-2.5 py-0.5 font-mono text-[11px] text-primary font-bold">PDF</span>
           </div>
 
-          <CVPreview cv={activeCv} templateId="visual" lang={effectiveLang} />
+          <CVPreview cv={activeCv} templateId="visual" lang={effectiveLang} onHtmlLoaded={setPreviewHtml} />
 
-          <Button onClick={handleDownloadPdf} disabled={downloading} className="w-full gap-2 h-11 active:scale-[0.98] transition-transform">
+          <Button onClick={handleDownloadPdf} disabled={downloading || !previewHtml} className="w-full gap-2 h-11 active:scale-[0.98] transition-transform">
             {downloading ? <><SpinnerGap size={16} className="animate-spin" /> Generazione...</> : <><Printer size={16} /> Stampa / Salva PDF</>}
           </Button>
         </div>
@@ -405,6 +426,14 @@ export function StepExport({
       <Button variant="outline" onClick={onNext} className="w-full gap-2 text-muted-foreground">
         Salta per ora <ArrowRight size={16} />
       </Button>
+
+      {/* Hidden iframe for printing — no popup needed */}
+      <iframe
+        ref={printIframeRef}
+        style={{ position: "absolute", left: "-9999px", width: "794px", height: "1123px" }}
+        sandbox="allow-same-origin allow-modals"
+        title="Print CV"
+      />
     </div>
   );
 }
