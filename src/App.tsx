@@ -50,7 +50,11 @@ const App = () => (
               <Route path="/cookie-policy" element={<Suspense fallback={<PageSkeleton />}><CookiePolicyPage /></Suspense>} />
               <Route path="/" element={<Landing />} />
               <Route path="/linkedin-card" element={<Suspense fallback={<PageSkeleton />}><LinkedInCard /></Suspense>} />
-              <Route path="/pitch" element={<Suspense fallback={<PageSkeleton />}><Pitch /></Suspense>} />
+              <Route path="/pitch" element={
+                window.location.hostname === "verso-cv.lovable.app"
+                  ? <Navigate to="/" replace />
+                  : <Suspense fallback={<PageSkeleton />}><Pitch /></Suspense>
+              } />
               <Route
                 path="/upgrade"
                 element={
