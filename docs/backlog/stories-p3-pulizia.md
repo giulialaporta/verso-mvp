@@ -7,36 +7,6 @@
 
 ---
 
-## Bug B1 — Formal review non bloccante in StepExport (CRITICO)
-
-### Problema
-
-In `StepExport.tsx`, `cv-formal-review` viene chiamata in background ma NON blocca i download. Il pulsante "Scarica PDF" si abilita non appena `previewHtml` è disponibile (caricato in parallelo alla review), non quando la review è completata. L'utente può quindi scaricare il CV grezzo non revisionato.
-
-Questo viola l'invariante della spec: il CV grezzo non deve mai raggiungere il rendering senza aver prima tentato la formal review.
-
-### Cosa fare
-
-Rendere la sequenza bloccante in `StepExport.tsx`:
-
-1. Al mount: chiama `cv-formal-review` (aspetta completamento o errore)
-2. Solo dopo: chiama `render-cv(format:"html")` con il CV revisionato
-3. I pulsanti "Scarica PDF" e "Scarica DOCX" restano disabilitati finché entrambi gli step non sono completati
-
-Il banner di stato deve riflettere la sequenza: `reviewing` → `rendering` → `ready`.
-
-In caso di errore di `cv-formal-review`: usa il CV grezzo come fallback e mostra banner warning. Non bloccare indefinitamente.
-
-### Criteri di accettazione
-
-- [ ] `cv-formal-review` completata (o fallback) PRIMA di chiamare `render-cv`
-- [ ] `render-cv` chiamata con il CV revisionato, non con il CV grezzo
-- [ ] Pulsanti download disabilitati durante `reviewing` e `rendering`
-- [ ] Banner mostra: "Revisione in corso…" → "Generazione anteprima…" → "Pronto"
-- [ ] Errore review: banner warning + fallback + download comunque abilitato
-
----
-
 ## Story P0.1 — Sicurezza `cv-formal-review` (CRITICO)
 
 ### Problema

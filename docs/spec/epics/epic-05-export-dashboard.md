@@ -54,17 +54,17 @@ Generato client-side da `docx-generator.ts` con libreria `docx` (npm).
 
 ## 2. StepExport — Flusso e UI
 
-**Al mount dello step:**
-1. `cv-formal-review` chiamata in background (non bloccante — ⚠️ vedi backlog)
-2. Preview HTML caricata via `render-cv(format:"html")` in parallelo
-3. PDF scaricabile quando `previewHtml` è disponibile
-4. DOCX scaricabile subito (generazione client-side)
+**Al mount dello step — sequenza bloccante:**
+1. `cv-formal-review` → aspetta completamento (o errore con fallback a `tailoredCv`)
+2. Solo dopo: `render-cv(format:"html")` con il CV revisionato (`reviewedCv`)
+3. Pulsanti PDF e DOCX disabilitati finché `pipelineStatus !== "ready"`
 
-**Banner di stato revisione:**
+**Banner di stato (pipelineStatus):**
 - `reviewing` → spinner "Revisione formale in corso..."
-- `done` (0 fix) → banner verde "Nessuna correzione necessaria"
-- `done` (N fix) → collapsible con lista correzioni (section, field, problema, correzione)
-- `error` → nessun banner (fallback silenzioso al CV grezzo)
+- `rendering` → spinner "Generazione anteprima..."
+- `ready` (0 fix) → banner verde "Pronto ✓"
+- `ready` (N fix) → collapsible con lista correzioni (section, field, problema, correzione)
+- `error` (review fallita) → banner warning + fallback a CV grezzo + pipeline continua
 
 **Layout a 2 card:**
 - **CV Recruiter** — iframe preview A4 scalato con ResizeObserver + pulsante "Stampa / Salva PDF"

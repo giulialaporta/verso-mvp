@@ -45,11 +45,13 @@
 
 ---
 
-## D. Revisione formale
+## D. Revisione formale — sequenza bloccante
 
-- [ ] **D1** — `cv-formal-review` viene chiamata al mount di StepExport
-- [ ] **D2** — Il CV revisionato viene usato per PDF e DOCX (non il CV grezzo)
-- [ ] **D3** — Se la review fallisce: fallback al CV grezzo senza bloccare il download
+- [ ] **D1** — Al mount: banner "Revisione formale in corso…" visibile, pulsanti download disabilitati
+- [ ] **D2** — Dopo la review: banner "Generazione anteprima…" visibile, pulsanti ancora disabilitati
+- [ ] **D3** — Pulsanti PDF e DOCX si abilitano solo quando la preview è pronta (`pipelineStatus = ready`)
+- [ ] **D4** — Il CV revisionato (non il grezzo) viene usato per PDF e DOCX
+- [ ] **D5** — Se la review fallisce: banner warning + pulsanti si abilitano comunque (fallback al CV grezzo)
 
 ---
 
