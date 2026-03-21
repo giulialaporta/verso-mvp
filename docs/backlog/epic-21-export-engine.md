@@ -257,16 +257,16 @@ Nessun template picker. La pagina mostra:
 
 ## Stories
 
-| ID | Story | Priorita' | Effort |
-|----|-------|-----------|--------|
-| 21.1 | Template HTML/CSS per CV_VISUAL (brand Verso, sidebar scura, KPI badges) | Must | L |
-| 21.2 | Edge Function `render-cv`: compilazione HTML + fit-to-2-pages + PDF via API | Must | L |
-| 21.3 | Preview iframe in StepExport (HTML compilato, aggiornamento live) | Must | M |
-| 21.4 | Edge Function `render-cv-ats`: DOCX programmatico con regole A1-A11 | Must | L |
-| 21.5 | Nuovo StepExport: 2 card download + teaser Pro template | Must | M |
-| 21.6 | Rimuovere react-pdf, i 4 template TSX, docx-generator.ts | Should | S |
+| ID | Story | Priorita' | Stato |
+|----|-------|-----------|-------|
+| ~~21.1~~ | ~~Template HTML/CSS per CV_VISUAL~~ | Must | ✅ Implementato in `render-cv/templates.ts` |
+| 21.2 | Edge Function `render-cv`: fit-to-2-pages + PDF via servizio esterno | Must | ⚠️ Parziale — template visual aggiunto, ma NO fit-to-2-pages e NO PDFShift (stampa browser) |
+| 21.3 | Sequenza bloccante: review → preview → download | Must | ⚠️ Parziale — preview OK, ma review NON bloccante (vedi bug in backlog) |
+| 21.4 | DOCX ATS programmatico con regole A1-A11 | Must | ⚠️ Parziale — `docx-generator.ts` riscritto client-side, verifica regole A1-A11 da fare |
+| ~~21.5~~ | ~~Nuovo StepExport: 2 card + teaser Pro~~ | Must | ✅ Implementato |
+| 21.6 | Rimuovere react-pdf, i 4 template TSX | Should | ⏳ Da fare |
 
-> **Ordine di implementazione:** 21.1 → 21.2 → 21.3 → 21.4 → 21.5 → 21.6
+> **Prossimo:** 21.3 (formal review bloccante) → 21.4 (verifica A1-A11 nel DOCX) → 21.2 (fit-to-2-pages) → 21.6 (cleanup)
 
 ---
 

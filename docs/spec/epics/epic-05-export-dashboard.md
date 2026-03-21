@@ -4,100 +4,83 @@
 
 ## Cosa è stato costruito
 
-1. Sistema template PDF con 4 layout (2 free + 2 Pro-only)
-2. Generazione PDF e DOCX nel browser con download + upload automatico
-3. Revisione formale automatica del CV prima dell'export
-4. Dashboard home con 3 stati, statistiche, CV card collapsible e gestione CV
-5. Pagina CVEdit per modificare il CV master senza ri-upload
+1. 2 output fissi per ogni candidatura: CV_VISUAL (PDF) + CV_ATS (DOCX)
+2. Revisione formale automatica del CV prima dell'export
+3. Dashboard home con 3 stati, statistiche, CV card collapsible e gestione CV
+4. Pagina CVEdit per modificare il CV master senza ri-upload
 
-> **Differenza dal piano MVP:** il piano prevedeva 4 template (2 free + 2 pro), export DOCX, e drawer ATS separato. Implementati 4 template (2 free + 2 Pro), export PDF + DOCX (Pro-only), revisione formale automatica, e pannelli ATS/Honest Score integrati nel wizard.
-
----
-
-## 1. Template PDF
-
-Ogni template è un componente `@react-pdf/renderer` che riceve il JSON del CV adattato (`tailored_data`) e lo renderizza.
-
-### Template 1: Classico
-
-- Header scuro (`#141518`) con nome completo (DM Sans 600 22px, bianco)
-- Email | telefono | località sotto (DM Sans 400 11px, grigio chiaro)
-- Body sfondo bianco con testo nero
-- Sezioni: Profilo → Esperienza → Formazione → Competenze → Certificazioni → Progetti
-- Titoli sezione: DM Sans 600 12px uppercase, con linea sotto
-- Competenze come testo inline separato da " · "
-- Formato A4, margini 24mm
-
-### Template 2: Minimal
-
-- Tutto sfondo bianco, nessun header colorato
-- Nome in Inter 600 24px, dati contatto in Inter 400 10px separati da " | "
-- Linea sottile (0.5px, grigio chiaro) tra le sezioni
-- Titoli sezione: Inter 600 11px uppercase
-- Massima pulizia e leggibilità
-- Formato A4, margini 22mm
-
-### Template 3: Executive (Pro-only)
-
-- Layout a 2 colonne con sidebar scura
-- Design professionale per ruoli senior/executive
-- Font serif o sans-serif elegante
-- Sidebar con skill, lingue, certificazioni
-- Main body con esperienza e formazione
-- Lucchetto per utenti Free
-
-### Template 4: Moderno (Pro-only)
-
-- Design contemporaneo con colori accent
-- Layout pulito con elementi grafici moderni
-- Icone e badge per skill
-- Lucchetto per utenti Free
-
-### Best practice ATS (tutti i template)
-
-- Layout single-column
-- Heading standard
-- Testo selezionabile
-- Font 10-12pt
-- Margini ≥ 20mm
-- Nessuna immagine per testo, nessuna tabella
+> **Cambio rispetto al piano precedente:** sostituiti i 4 template selezionabili (Classico, Minimal, Executive, Moderno) con 2 output fissi sempre disponibili. DOCX non più Pro-only. Sezione teaser "Altri template recruiter" con 3 card bloccate anticipa feature Pro futura.
 
 ---
 
-## 2. Generazione e Download PDF + DOCX
+## 1. I due output CV
 
-**Revisione formale automatica:**
-- Al mount dello step export, viene chiamata `cv-formal-review` in background
-- Controlla coerenza date, maiuscole, lingua, bullet, punteggiatura
-- Il CV revisionato viene usato per tutti gli export
-- Se fallisce, viene usato il CV originale (nessun blocco)
-- Status visibile all'utente con lista correzioni espandibile
+### CV_VISUAL — PDF brand Verso
 
-**Flusso PDF:**
-1. Utente seleziona template (4 disponibili: 2 free + 2 Pro) nello step 5 del wizard
-2. Preview dei pannelli ATS Score e Honest Score
-3. Click "Scarica PDF"
-4. Generazione nel browser con `@react-pdf/renderer`
-5. Download diretto
-6. Upload automatico su Supabase Storage: `cv-exports/{userId}/{applicationId}/{filename}`
-7. URL pubblico salvato in `tailored_cvs.pdf_url`
-8. Template scelto salvato in `tailored_cvs.template_id`
+Template HTML/CSS `visual` renderizzato via `render-cv` edge function, stampato via hidden iframe.
 
-**Flusso DOCX (Pro-only):**
-1. Click "Scarica DOCX" (icona FileDoc)
-2. Se utente Free → redirect a `/upgrade` (icona Lock + Crown)
-3. Generazione nel browser con libreria `docx` (`docx-generator.ts`)
-4. Stile DOCX adattato al template selezionato (4 stili: classico, minimal, executive, moderno)
-5. Download diretto
-6. Upload automatico su Supabase Storage
+**Layout:** 2 colonne — sidebar scura (28%) + body bianco (72%)
 
-**Sistema densita' adattiva (template-utils.ts):**
-- 5 livelli: NORMAL → COMPACT → DENSE → ULTRA → EXTREME
-- `computeDensity()` calcola il tier in base alla lunghezza del CV
-- Ogni livello riduce font size, margini, line-height, max bullet, max esperienze
-- `truncateSummary()`, `limitExperiences()`, `truncateBullets()` per tier estremi
+**Colori:**
+- Sidebar: `#1C1F26` background, `#F2F3F7` testo, `#6EBF47` accent
+- Body: `#FFFFFF` background, `#1F2937` testo
+- KPI badge: background `#F0FAE0`, bordo `#9ED940`, testo `#14532D`
+- Meta: `#6B7280`
 
-**Nome file:** `CV-{Nome}-{Azienda}.pdf` / `CV-{Nome}-{Azienda}.docx`
+**Sidebar:** foto circolare 72px (fallback: iniziali su sfondo accent), contatti, competenze, lingue, certificazioni
+
+**Body:** nome, headline, KPI badges estratti automaticamente dai bullet (max 6, regex su numeri+unità), summary, esperienze, formazione, progetti
+
+**Bullet:** marker `·` verde accent, struttura: **Etichetta bold** + testo
+
+**Font:** DM Sans (Google Fonts). Fallback: sans-serif.
+
+**Generazione:** `render-cv` edge function con `template_id: "visual"`, `format: "html"` per preview, stampa via hidden iframe (`printIframeRef`)
+
+### CV_ATS — DOCX ottimizzato ATS
+
+Generato client-side da `docx-generator.ts` con libreria `docx` (npm).
+
+**Regole applicate:**
+- Singola colonna, nessuna sidebar o tabella
+- Contatti su riga unica con tab stop (non tabella)
+- Font Calibri, titoli sezione standard
+- Nessun em dash / en dash → trattino
+- Colori: NERO `#111827` + VERDE `#166534` soltanto
+
+**Nome file:** `CV-{Nome}-{Azienda}-ATS.docx`
+
+---
+
+## 2. StepExport — Flusso e UI
+
+**Al mount dello step:**
+1. `cv-formal-review` chiamata in background (non bloccante — ⚠️ vedi backlog)
+2. Preview HTML caricata via `render-cv(format:"html")` in parallelo
+3. PDF scaricabile quando `previewHtml` è disponibile
+4. DOCX scaricabile subito (generazione client-side)
+
+**Banner di stato revisione:**
+- `reviewing` → spinner "Revisione formale in corso..."
+- `done` (0 fix) → banner verde "Nessuna correzione necessaria"
+- `done` (N fix) → collapsible con lista correzioni (section, field, problema, correzione)
+- `error` → nessun banner (fallback silenzioso al CV grezzo)
+
+**Layout a 2 card:**
+- **CV Recruiter** — iframe preview A4 scalato con ResizeObserver + pulsante "Stampa / Salva PDF"
+- **CV ATS** — ATSPreview testuale (font mono, sezioni stilizzate, colori NERO/VERDE) + pulsante "Scarica DOCX"
+
+**Sezione teaser "Altri template recruiter":**
+- 3 card opacizzate: Executive, Minimal, Moderno
+- Label "Prossimamente con Verso Pro" — non cliccabili
+- Visibili per tutti (Free e Pro)
+
+**Score badges in fondo:** Match%, ATS%, Confidence%
+
+**Gate Free/Pro:** nessuno sull'export — entrambi i formati disponibili per tutti. Il gate è solo sul numero di candidature (`free_apps_used`).
+
+**Nome file PDF:** `CV-{Nome}-{Azienda}.pdf` (via dialog di stampa/salva)
+**Nome file DOCX:** `CV-{Nome}-{Azienda}-ATS.docx`
 
 ---
 
@@ -161,14 +144,12 @@ Route `/app/cv-edit` — pagina dedicata alla modifica del CV master.
 
 | Componente | Scopo |
 |------------|-------|
-| `ClassicoTemplate` | Template PDF tradizionale (free) |
-| `MinimalTemplate` | Template PDF moderno/pulito (free) |
-| `ExecutiveTemplate` | Template PDF executive con sidebar (Pro-only) |
-| `ModernoTemplate` | Template PDF contemporaneo con accent (Pro-only) |
-| `docx-generator.ts` | Generatore DOCX con 4 stili template (Pro-only) |
-| `template-utils.ts` | Utility condivise: clean, ensureArray, densita' adattiva (5 tier) |
-| `MatchScore` | Score con anello animato + badge (rinominato da VersoScore) |
-| `ExportDrawer` | Pannello export con template picker + score |
+| `CVPreview` | iframe preview A4 del CV_VISUAL con scaling via ResizeObserver (interno a StepExport) |
+| `ATSPreview` | Anteprima testuale del CV_ATS in font mono (interno a StepExport) |
+| `docx-generator.ts` | Generatore DOCX ATS client-side con libreria `docx` (disponibile per tutti) |
+| `template-utils.ts` | Utility condivise: clean, ensureArray, MAX_SIDEBAR_SKILLS |
+| `render-cv` (Edge Function) | Compila template HTML + genera PDF/HTML — include template `visual` |
+| `MatchScore` | Score con anello animato + badge |
 | `HeroSection` | Hero con avatar, nome, headline AI, badge piano, stats, CTA (interno a Home.tsx) |
 | `RecentApplications` | Lista ultime 3 candidature con hover prefetch (interno a Home.tsx) |
 | `CVCard` | Card collapsible con azioni CV (interno a Home.tsx) |

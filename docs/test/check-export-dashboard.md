@@ -1,78 +1,55 @@
 # Check — Export PDF + Dashboard: Acceptance Criteria
 
-**Ultimo test:** 2026-03-08 — Browser automation + DB query
+**Ultimo test:** —
 
 ---
 
-## A. Export PDF — Generazione
+## A. StepExport — UI e flusso
 
-- [ ] **A1** — Click "Scarica PDF": il file viene generato e scaricato nel browser
-- [ ] **A2** — Il nome file segue il formato `CV-{Nome}-{Azienda}.pdf`
-- [ ] **A3** — Il PDF viene caricato automaticamente su Supabase Storage in `cv-exports/{userId}/{applicationId}/`
-- [ ] **A4** — L'URL del PDF viene salvato in `tailored_cvs.pdf_url`
-- [ ] **A5** — Il template scelto viene salvato in `tailored_cvs.template_id`
-
----
-
-## B. Template Classico
-
-- [ ] **B1** — Header scuro (`#141518`) con nome completo bianco
-- [ ] **B2** — Email, telefono, localita' sotto il nome in grigio chiaro
-- [ ] **B3** — Body sfondo bianco con testo nero
-- [ ] **B4** — Sezioni nell'ordine: Profilo, Esperienza, Formazione, Competenze, Certificazioni, Progetti
-- [ ] **B5** — Titoli sezione uppercase con linea sotto
-- [ ] **B6** — Competenze come testo inline separato da " . "
-- [ ] **B7** — Formato A4, margini 24mm
+- [ ] **A1** — Nessun template picker: lo step mostra direttamente 2 card (CV Recruiter + CV ATS)
+- [ ] **A2** — Banner di revisione visibile al mount: "Revisione formale in corso…"
+- [ ] **A3** — Banner aggiornato al completamento: "N correzioni applicate" o "Nessuna correzione necessaria"
+- [ ] **A4** — Collapsible correzioni: espandibile con lista section/field/problema/correzione
+- [ ] **A5** — Sezione teaser "Altri template recruiter" con 3 card opacizzate (Executive, Minimal, Moderno)
+- [ ] **A6** — Badge score in fondo: Match%, ATS%, Confidence%
+- [ ] **A7** — Layout responsive: 2 card affiancate su desktop, impilate su mobile
 
 ---
 
-## C. Template Minimal
+## B. CV_VISUAL — PDF
 
-- [ ] **C1** — Tutto sfondo bianco, nessun header colorato
-- [ ] **C2** — Nome in grande, dati contatto separati da " | "
-- [ ] **C3** — Linea sottile tra le sezioni
-- [ ] **C4** — Massima pulizia e leggibilita'
-- [ ] **C5** — Formato A4, margini 22mm
-
----
-
-## C-bis. Template Executive (Pro-only)
-
-- [ ] **C-bis.1** — Layout a 2 colonne con sidebar scura
-- [ ] **C-bis.2** — Lucchetto visibile per utenti Free
-- [ ] **C-bis.3** — Utente Free che seleziona Executive: redirect a `/upgrade`
-- [ ] **C-bis.4** — Formato A4
+- [ ] **B1** — Preview iframe del CV_VISUAL visibile nella card "CV Recruiter"
+- [ ] **B2** — Preview proporzionata A4, scalata per fit nel container (ResizeObserver)
+- [ ] **B3** — Sidebar scura (`#1C1F26`) con contatti, competenze, lingue, certificazioni
+- [ ] **B4** — Body bianco con titoli sezione in verde `#6EBF47`
+- [ ] **B5** — KPI badges visibili sopra il summary (se presenti numeri nei bullet)
+- [ ] **B6** — Foto circolare nella sidebar (se presente); fallback: iniziali su sfondo accent
+- [ ] **B7** — Click "Stampa / Salva PDF": apre dialog di stampa del browser
+- [ ] **B8** — PDF salvabile come file da dialog di stampa
 
 ---
 
-## C-ter. Template Moderno (Pro-only)
+## C. CV_ATS — DOCX
 
-- [ ] **C-ter.1** — Design contemporaneo con accent
-- [ ] **C-ter.2** — Lucchetto visibile per utenti Free
-- [ ] **C-ter.3** — Utente Free che seleziona Moderno: redirect a `/upgrade`
-- [ ] **C-ter.4** — Formato A4
-
----
-
-## C-quater. Export DOCX (Pro-only)
-
-- [ ] **C-quater.1** — Pulsante "Scarica DOCX" visibile nello step export
-- [ ] **C-quater.2** — DOCX generato correttamente con tutte le sezioni del CV
-- [ ] **C-quater.3** — Stile DOCX adattato al template selezionato (4 stili)
-- [ ] **C-quater.4** — DOCX apribile in Word, Google Docs, LibreOffice
-- [ ] **C-quater.5** — Utente Free: icona Lock + Crown sul pulsante DOCX
-- [ ] **C-quater.6** — File salvato su Supabase Storage
+- [ ] **C1** — ATSPreview testuale visibile nella card "CV ATS" (font mono, struttura a sezioni)
+- [ ] **C2** — Click "Scarica DOCX": file `.docx` scaricato
+- [ ] **C3** — Nome file: `CV-{Nome}-{Azienda}-ATS.docx`
+- [ ] **C4** — DOCX apribile in Word, Google Docs, LibreOffice
+- [ ] **C5** — Singola colonna, nessuna tabella, nessun text box
+- [ ] **C6** — Contatti nella prima riga del corpo (non header/footer)
+- [ ] **C7** — Font Calibri
+- [ ] **C8** — Titoli sezione standard (Profilo professionale, Esperienze, Formazione, Competenze, Certificazioni, Lingue)
+- [ ] **C9** — Nessun em dash o en dash nel testo
+- [ ] **C10** — Copia plain text: ordine corretto, nulla mancante
+- [ ] **C11** — DOCX disponibile per utenti Free e Pro (nessun gate)
 
 ---
 
-## D. Qualita' ATS (tutti i template)
+## D. Revisione formale
 
-- [ ] **D1** — Layout single-column (no colonne multiple)
-- [ ] **D2** — Heading standard riconoscibili
-- [ ] **D3** — Testo selezionabile (non immagine)
-- [ ] **D4** — Font 10-12pt leggibile
-- [ ] **D5** — Margini >= 20mm
-- [ ] **D6** — Nessuna tabella o immagine al posto del testo
+- [ ] **D1** — `cv-formal-review` viene chiamata al mount di StepExport
+- [ ] **D2** — Il CV revisionato viene usato per PDF e DOCX (non il CV grezzo)
+- [ ] **D3** — Se la review fallisce: fallback al CV grezzo senza bloccare il download
 
 ---
 
