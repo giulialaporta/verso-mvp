@@ -77,21 +77,6 @@ function normalizeDate(d: string | undefined | null): string {
   return sanitize(s);
 }
 
-/** Extract KPI numbers from bullet text (e.g. "+30% revenue", "120 clienti") */
-function extractKpis(bullets: string[]): string[] {
-  const kpis: string[] = [];
-  const kpiRegex = /([+-]?\d[\d.,]*\s*%?)\s+([a-zA-Zà-ú]+(?:\s+[a-zA-Zà-ú]+)?)/g;
-  for (const b of bullets) {
-    let match: RegExpExecArray | null;
-    kpiRegex.lastIndex = 0;
-    while ((match = kpiRegex.exec(b)) !== null) {
-      if (match[1].includes("%") || parseInt(match[1].replace(/[.,]/g, ""), 10) >= 10) {
-        kpis.push(`${match[1]} ${match[2]}`);
-      }
-    }
-  }
-  return kpis.slice(0, 6); // cap at 6
-}
 
 function sectionTitle(text: string): Paragraph {
   return new Paragraph({
