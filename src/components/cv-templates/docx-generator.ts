@@ -365,8 +365,8 @@ export async function generateDocx(
     if (hasCategories) {
       // Show categorized
       const categories: [string, string[]][] = [];
-      if (technicalSkills.length > 0) categories.push([lang === "en" ? "Technical" : "Tecniche", technicalSkills]);
-      if (softSkills.length > 0) categories.push([lang === "en" ? "Soft Skills" : "Trasversali", softSkills]);
+      if (technicalSkills.length > 0) categories.push([normalizeLang(lang) === "en" ? "Technical" : "Tecniche", technicalSkills]);
+      if (softSkills.length > 0) categories.push([normalizeLang(lang) === "en" ? "Soft Skills" : "Trasversali", softSkills]);
       if (toolSkills.length > 0) categories.push(["Tools", toolSkills]);
 
       for (const [label, items] of categories) {
