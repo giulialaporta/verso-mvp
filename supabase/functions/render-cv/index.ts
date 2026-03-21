@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing cv" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const validTemplates = ["classico", "minimal", "executive", "moderno"];
+    const validTemplates = ["classico", "minimal", "executive", "moderno", "visual"];
     if (!validTemplates.includes(templateId)) {
       return new Response(JSON.stringify({ error: "Unknown template: " + templateId }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
