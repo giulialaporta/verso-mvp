@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const TOTAL = 6;
 
@@ -276,6 +278,8 @@ const SLIDES = [Slide1, Slide2, Slide3Journey, Slide3, Slide4, Slide5];
 export default function Pitch() {
   const [idx, setIdx] = useState(0);
   const [dir, setDir] = useState(1);
+  const [exporting, setExporting] = useState(false);
+  const offscreenRef = useRef<HTMLDivElement>(null);
 
   const go = useCallback(
     (d: number) => {
@@ -287,17 +291,74 @@ export default function Pitch() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (exporting) return;
       if (e.key === "ArrowRight" || e.key === " ") go(1);
       if (e.key === "ArrowLeft") go(-1);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [go]);
+  }, [go, exporting]);
+
+  const handleExportPdf = useCallback(async () => {
+    if (exporting || !offscreenRef.current) return;
+    setExporting(true);
+
+    try {
+      const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1920, 1080] });
+
+      for (let i = 0; i < TOTAL; i++) {
+        const container = offscreenRef.current;
+        const SlideComponent = SLIDES[i];
+
+        // Render slide into offscreen container
+        const { createRoot } = await import("react-dom/client");
+        const wrapper = document.createElement("div");
+        wrapper.style.width = "1920px";
+        wrapper.style.height = "1080px";
+        wrapper.style.background = "#0F1117";
+        wrapper.style.position = "relative";
+        container.appendChild(wrapper);
+
+        const root = createRoot(wrapper);
+        await new Promise<void>((resolve) => {
+          root.render(
+            <div style={{ width: 1920, height: 1080, display: "flex", alignItems: "center", justifyContent: "center", background: "#0F1117" }}>
+              <SlideComponent />
+            </div>
+          );
+          setTimeout(resolve, 200);
+        });
+
+        const canvas = await html2canvas(wrapper, {
+          width: 1920,
+          height: 1080,
+          scale: 2,
+          backgroundColor: "#0F1117",
+          useCORS: true,
+        });
+
+        if (i > 0) pdf.addPage([1920, 1080], "landscape");
+        pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 1920, 1080);
+
+        root.unmount();
+        container.removeChild(wrapper);
+      }
+
+      pdf.save("Verso-Pitch.pdf");
+    } catch (err) {
+      console.error("PDF export failed:", err);
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting]);
 
   const CurrentSlide = SLIDES[idx];
 
   return (
     <div className="fixed inset-0 bg-[#0F1117] overflow-hidden select-none">
+      {/* Offscreen render target */}
+      <div ref={offscreenRef} style={{ position: "fixed", left: "-9999px", top: 0 }} />
+
       <AnimatePresence mode="wait" custom={dir}>
         <motion.div
           key={idx}
@@ -329,6 +390,15 @@ export default function Pitch() {
           className="w-10 h-10 rounded-full bg-[#1E2025] text-[#F2F3F7] flex items-center justify-center disabled:opacity-30 hover:bg-[#2A2D35] transition"
         >
           <ChevronRight size={20} />
+        </button>
+
+        <button
+          onClick={handleExportPdf}
+          disabled={exporting}
+          className="w-10 h-10 rounded-full bg-[#6EBF47] text-[#0F1117] flex items-center justify-center hover:brightness-110 transition disabled:opacity-50"
+          title="Scarica PDF"
+        >
+          <Download size={18} />
         </button>
       </div>
     </div>
