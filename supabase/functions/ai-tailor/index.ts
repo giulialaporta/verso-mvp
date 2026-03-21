@@ -797,6 +797,15 @@ Deno.serve(async (req) => {
       reverts: integrityResult.reverts,
     };
 
+    // --- DETERMINISTIC ATS CHECKS (Story 20.10) ---
+    const jdKeywords = [
+      ...(job_data?.required_skills || []),
+      ...(job_data?.nice_to_have || []),
+    ].map((s: string) => typeof s === "string" ? s.trim() : "").filter(Boolean);
+    const atsResult = runATSChecks(tailoredCV as Record<string, unknown>, jdKeywords);
+    result.ats_checks = atsResult.checks;
+    result.ats_score = atsResult.score;
+
     result.tailored_cv = tailoredCV;
     result.master_cv_id = masterCV.id;
     const originalCvClean = JSON.parse(JSON.stringify(originalCV));
