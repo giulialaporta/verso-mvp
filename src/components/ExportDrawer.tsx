@@ -39,6 +39,17 @@ const ATS_LABELS_IT: Record<string, string> = {
   cliches: "Frasi fatte",
   sections: "Sezioni standard",
   action_verbs: "Verbi d'azione",
+  single_column: "Colonna singola",
+  no_tables: "Nessuna tabella",
+  contacts_in_body: "Contatti nel corpo",
+  standard_sections: "Sezioni standard",
+  no_special_chars: "Nessun carattere speciale",
+  date_format: "Formato date",
+  acronyms_expanded: "Acronimi espansi",
+  keyword_rate: "Densità keyword",
+  no_photos: "Nessuna foto",
+  bullet_quality: "Qualità bullet",
+  plain_text_order: "Ordine testo",
 };
 
 const ATS_SUGGESTIONS_IT: Record<string, string> = {
