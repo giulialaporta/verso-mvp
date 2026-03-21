@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-const TOTAL = 6;
+const TOTAL = 7;
 
 /* ─── Slide 1: Il problema + Target ─── */
 function Slide1() {
