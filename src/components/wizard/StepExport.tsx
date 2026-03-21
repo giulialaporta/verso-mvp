@@ -27,43 +27,11 @@ type ReviewStatus = "idle" | "reviewing" | "done" | "error";
 type PipelineStatus = "reviewing" | "rendering" | "ready" | "error";
 
 // --- CV Preview with responsive scaling ---
-function CVPreview({
-  cv, templateId, lang, onHtmlLoaded
-}: {
-  cv: Record<string, unknown>;
-  templateId: string;
-  lang: string;
-  onHtmlLoaded?: (html: string) => void;
-}) {
-  const [html, setHtml] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+// Only renders when given pre-fetched HTML (no internal fetch)
+function CVPreview({ html }: { html: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
 
-  // Fetch HTML
-  useEffect(() => {
-    setLoading(true);
-    setError(false);
-    supabase.functions
-      .invoke("render-cv", {
-        body: { cv, template_id: templateId, format: "html", lang },
-      })
-      .then(({ data, error: err }) => {
-        if (err || !data) {
-          setError(true);
-          setLoading(false);
-          return;
-        }
-        const h = typeof data === "string" ? data : "";
-        setHtml(h);
-        onHtmlLoaded?.(h);
-        setLoading(false);
-      })
-      .catch(() => { setError(true); setLoading(false); });
-  }, [cv, templateId, lang]);
-
-  // Responsive scale via ResizeObserver
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -74,15 +42,6 @@ function CVPreview({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-
-  if (loading) return <Skeleton className="w-full aspect-[1/1.414] rounded-xl" />;
-  if (error || !html) {
-    return (
-      <div className="w-full aspect-[1/1.414] rounded-xl border border-border/30 bg-card/50 flex items-center justify-center text-sm text-muted-foreground">
-        Preview non disponibile
-      </div>
-    );
-  }
 
   return (
     <div
