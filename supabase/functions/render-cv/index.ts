@@ -63,7 +63,6 @@ interface PreparedData {
   certifications: { name: string; issuer?: string; year?: string }[];
   projects: { name: string; description?: string }[];
   extraSections: { title: string; items: string[] }[];
-  kpis: string[];
   headers: Record<string, string>;
 }
 
