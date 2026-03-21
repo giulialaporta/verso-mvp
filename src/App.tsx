@@ -30,6 +30,7 @@ const CandidaturaDetail = lazy(() => import("./pages/CandidaturaDetail"));
 const DevTest = lazy(() => import("./pages/DevTest"));
 const Faq = lazy(() => import("./pages/Faq"));
 const LinkedInCard = lazy(() => import("./pages/LinkedInCard"));
+const Pitch = lazy(() => import("./pages/Pitch"));
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/cookie-policy" element={<Suspense fallback={<PageSkeleton />}><CookiePolicyPage /></Suspense>} />
               <Route path="/" element={<Landing />} />
               <Route path="/linkedin-card" element={<Suspense fallback={<PageSkeleton />}><LinkedInCard /></Suspense>} />
+              <Route path="/pitch" element={<Suspense fallback={<PageSkeleton />}><Pitch /></Suspense>} />
               <Route
                 path="/upgrade"
                 element={
