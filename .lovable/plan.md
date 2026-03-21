@@ -1,68 +1,80 @@
-# Riduzione Latenza AI ✅
 
-## Implementato
 
-1. **Parallelizzazione prescreen + analyze** — `Promise.all` in `handleAnnuncioConfirm`, risultato analyze cachato in ref e usato istantaneamente allo Step 2 (−8-15s)
-2. **cv-review integrato nel prompt tailor** — Le 10 regole di qualità ora sono nel `SYSTEM_PROMPT_TAILOR`, eliminata la chiamata separata (−5-8s)  
-3. **Downgrade modelli** — `ai-prescreen` e `ai-tailor-analyze` ora usano Claude Haiku 4.5 (−40-60% latenza, −60% costi)
-4. **Progress indicator** — Già presente con animazioni staggered in StepVerifica e StepTailoring
+# Epic 21 — Stato attuale e piano di implementazione
 
-## Risultato atteso
+## Stato delle stories
 
-```
-PRIMA:  Step 0→1: 12s | Step 1→2: 12s | Step 2→3: 20s = ~44s
-DOPO:   Step 0→1: 4s  | Step 1→2: 0s  | Step 2→3: 12s = ~16s  (−65%)
-```
+| Story | Stato | Note |
+|-------|-------|------|
+| 21.1 | Parziale | Template HTML esistono ma usano Inter, colori generici, nessun KPI badge. Manca il template "visual" brand Verso con DM Sans, sidebar #1C1F26, accent #6EBF47 |
+| 21.2 | Fatto | `render-cv` edge function funziona con fit-to-2-pages e output HTML |
+| 21.3 | Fatto | CVPreview con iframe esiste in StepExport |
+| 21.4 | Non fatto | Nessuna edge function `render-cv-ats`. Esiste `docx-generator.ts` client-side ma non segue le regole ATS A1-A11 |
+| 21.5 | Non fatto | StepExport ha ancora il template picker con 4 template. Serve il layout a 2 card (CV Recruiter + CV ATS) + teaser Pro |
+| 21.6 | Fatto | `react-pdf` e i 4 template TSX sono gia' stati rimossi |
 
-# Protezione Esperienze CV ✅
+## Piano di implementazione (3 stories rimanenti)
 
-## Implementato
+### Story 21.1 — Template CV_VISUAL brand Verso
 
-1. **Prompt EXPERIENCE PROTECTION riscritto** — L'AI non può MAI rimuovere esperienze, solo riordinare e condensare
-2. **Enum structural_changes aggiornato** — Rimossa l'azione "removed", ammesse solo "reordered" e "condensed"
-3. **Seniority overqualified** — Se il candidato è più senior del ruolo, l'esperienza extra viene valorizzata come punto di forza
-4. **Level 1 tailoring aggiornato** — Le esperienze non vengono mai rimosse, solo progetti/certificazioni irrilevanti
+Creare un nuovo template `visual` in `supabase/functions/render-cv/templates.ts`:
+- **Font**: DM Sans (400, 500, 700) via Google Fonts
+- **Colori**: sidebar #1C1F26, accent #6EBF47, KPI badges (#F0FAE0 bg, #9ED940 border, #14532D text)
+- **Layout**: grid 28% sidebar + 72% body, come da spec
+- **KPI badges**: sezione `{{#if kpis}}` con `.kpi-row` e `.kpi-badge` inline
+- **Bullet marker**: `·` in verde accent
+- **Titoli sezione**: maiuscolo, letter-spacing 0.08em, linea sotto 1px #6EBF47
+- **Foto**: cerchio 72px con fallback iniziale del nome
+- Aggiornare `prepareData()` in `render-cv/index.ts` per estrarre `kpis` dal CV JSON
+- Aggiungere `"visual"` alla lista `validTemplates`
+- Rideploy `render-cv`
 
-# Agente Revisione Formale CV ✅
+**File**: `supabase/functions/render-cv/templates.ts`, `supabase/functions/render-cv/index.ts`
 
-## Implementato
+### Story 21.4 — DOCX ATS via client-side
 
-1. **Nuova edge function `cv-formal-review`** — Claude Haiku 4.5 via `ai-provider.ts`, controlla coerenza date, maiuscole, separatori, lingua unica, bullet uniformi, punteggiatura, fluidità
-2. **Task routing aggiornato** — Nuovo task `cv-formal-review` in `ai-provider.ts` con Haiku 4.5 + fallback Gemini 2.5 Flash
-3. **Review automatica in background** — Si attiva con `useEffect` all'ingresso nello step Export, senza click dell'utente
-4. **Download non bloccato** — L'utente può scaricare subito; se la review è pronta, il CV revisionato viene usato automaticamente
-5. **UI correzioni** — Badge nel pannello score (reviewing/OK/N correzioni) + pannello collapsible con dettaglio fix (sezione → campo → problema → correzione)
+Riscrivere `src/components/cv-templates/docx-generator.ts` come generatore ATS-compliant:
+- **Singola colonna**, zero tabelle, zero text box
+- **Font Calibri** 11pt corpo, 16pt nome
+- **Contatti** su riga unica con tab stop (non tabella, non header Word)
+- **Titoli sezione standard**: "Profilo professionale", "Esperienze", "Formazione", "Competenze", "Certificazioni", "Lingue"
+- **Colori**: solo nero #111827 e verde #166534 per titoli
+- **Caratteri**: no em dash, no en dash, no virgolette tipografiche
+- **Date**: formato MM/YYYY
+- **KPI**: triangolini `▸` inline
+- **Bullet**: trattino `-` via numbering config Word
+- **Footer GDPR**: testo muto centrato
+- Mantenere generazione client-side (la libreria `docx` e' gia' in `package.json`)
 
-# Anti-Hallucination & Integrity Check ✅
+**File**: `src/components/cv-templates/docx-generator.ts`
 
-## Implementato
+### Story 21.5 — Nuovo StepExport (2 card + teaser)
 
-### 1. Prompt Hardening (`ai-tailor/index.ts`)
-- Aggiunta sezione **ANTI-HALLUCINATION — ABSOLUTE RULES** con 11 regole esplicite
-- Vietato inventare metriche, percentuali, importi, dimensioni team
-- Vietato modificare ruoli, aziende, location, date — copia carattere-per-carattere
-- Vietato modificare titoli di studio, voti, honors
-- Vietato aggiungere/rimuovere certificazioni
-- Bullet riformulato: "action verb + impact, metriche SOLO se presenti nell'originale"
-- Summary: preservare identità professionale reale
+Riscrivere `src/components/wizard/StepExport.tsx`:
+- Rimuovere template picker (nessuna scelta template)
+- **Sequenza bloccante** al mount: `cv-formal-review` → `render-cv(visual, html)` → abilita download
+- **Layout 2 card affiancate** (impilate su mobile):
+  - **CV Recruiter**: iframe preview del template visual + bottone "Scarica PDF"
+  - **CV ATS**: anteprima testuale stilizzata (struttura sezioni, font mono) + bottone "Scarica DOCX"
+- **Teaser "Altri template recruiter"**: 3 card opacizzate con lock + "Prossimamente con Verso Pro"
+- **Banner stati**: reviewing → rendering → ready (con conteggio correzioni)
+- Download PDF: `printCvAsPdf()` con template `visual`
+- Download DOCX: `generateDocx()` con il nuovo generatore ATS
+- Entrambi i download disponibili per Free e Pro (nessun gate)
+- Upload su Storage dopo download
 
-### 2. Integrity Check server-side (`_shared/integrity-check.ts`)
-- Validazione post-patch che confronta CV tailored con originale
-- **Campi immutabili experience**: role, company, location, start, end → revert automatico
-- **Campi immutabili education**: institution, degree, field, grade, honors, program, publication → revert automatico
-- **Certificazioni**: inventate rimosse, rimosse ripristinate (match fuzzy per nome)
-- **Metriche fabbricate**: regex scan per `\d+%`, `€\d+`, `\d+[KMB]+`, `team of \d+` — revert bullet se metrica assente nell'originale
-- **Dati personali**: name, email, phone, location, linkedin protetti
-- **Education inventate**: rimosse; education rimosse: ripristinate
+**File**: `src/components/wizard/StepExport.tsx`, `src/components/cv-templates/index.ts`
 
-### 3. Honest Score server-computed
-- L'AI non si auto-valuta più — i contatori sono calcolati server-side
-- Nuovi campi: `dates_modified`, `roles_changed`, `companies_changed`, `degrees_changed`, `metrics_fabricated`, `certs_invented`, `certs_removed`
-- Flag `server_validated: true` per distinguere dal vecchio self-report
-- Conteggio `reverts` con dettaglio per categoria
+## Ordine di esecuzione
 
-## Root cause risolte
-- ✅ "action verb + measurable result" → non incentiva più l'invenzione di metriche
-- ✅ Nessuna enforcement server-side → integrity-check.ts valida ogni campo
-- ✅ honest_score self-reported → calcolato server-side
-- ✅ validate-output solo tipi → integrity check confronta contenuto
+1. **21.1** — Template visual (prerequisito per preview)
+2. **21.4** — Generatore DOCX ATS
+3. **21.5** — Nuovo StepExport che usa entrambi
+
+## Dettagli tecnici
+
+- I vecchi 4 template (classico, minimal, executive, moderno) restano in `templates.ts` per backward compatibility ma non verranno piu' mostrati nello step export
+- Il template `visual` viene aggiunto come quinto template nel dizionario `TEMPLATES`
+- `docx-generator.ts` viene riscritto completamente: il codice attuale genera DOCX basati sui 4 vecchi template con stili diversi per ciascuno; il nuovo genera un unico output ATS-compliant
+- Nessuna nuova edge function necessaria: il DOCX resta client-side, il PDF resta via `render-cv`
+
