@@ -13,17 +13,85 @@ import {
 } from "docx";
 import { clean, ensureArray, MAX_SIDEBAR_SKILLS } from "./template-utils";
 
-// ATS-compliant DOCX generator
-// Rules: single column, zero tables, Calibri 11pt, standard section headers
+// ─── ATS-Compliant DOCX Generator ─────────────────────────────
+// Rules: single column, zero tables/text boxes, Calibri, no em/en dash,
+// contatti in body (not header), standard section titles, trattino bullets
 
 const FONT = "Calibri";
-const NAME_SIZE = 32; // 16pt in half-points
+const NAME_SIZE = 32; // 16pt
 const SECTION_SIZE = 24; // 12pt
 const BODY_SIZE = 22; // 11pt
 const META_SIZE = 20; // 10pt
 const TEXT_COLOR = "111827";
 const SECTION_COLOR = "166534";
 const MUTED_COLOR = "6B7280";
+
+// ─── Helpers ───────────────────────────────────────────────────
+
+/** Remove em dash, en dash, smart quotes — ATS-safe chars only */
+function sanitize(text: string): string {
+  return text
+    .replace(/\u2014/g, "-")
+    .replace(/\u2013/g, "-")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'");
+}
+
+/** Normalize date strings to MM/YYYY format when possible */
+function normalizeDate(d: string | undefined | null): string {
+  if (!d) return "";
+  const s = d.trim();
+
+  // Already MM/YYYY
+  if (/^\d{2}\/\d{4}$/.test(s)) return s;
+
+  // YYYY-MM or YYYY-MM-DD
+  const isoMatch = s.match(/^(\d{4})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[2]}/${isoMatch[1]}`;
+
+  // "Gen 2020", "Gennaio 2020", "Jan 2020", etc.
+  const monthNames: Record<string, string> = {
+    gen: "01", gennaio: "01", jan: "01", january: "01",
+    feb: "02", febbraio: "02", february: "02",
+    mar: "03", marzo: "03", march: "03",
+    apr: "04", aprile: "04", april: "04",
+    mag: "05", maggio: "05", may: "05",
+    giu: "06", giugno: "06", jun: "06", june: "06",
+    lug: "07", luglio: "07", jul: "07", july: "07",
+    ago: "08", agosto: "08", aug: "08", august: "08",
+    set: "09", settembre: "09", sep: "09", september: "09",
+    ott: "10", ottobre: "10", oct: "10", october: "10",
+    nov: "11", novembre: "11", november: "11",
+    dic: "12", dicembre: "12", dec: "12", december: "12",
+  };
+  const monthMatch = s.match(/^([a-zA-Z]+)\s+(\d{4})$/);
+  if (monthMatch) {
+    const mm = monthNames[monthMatch[1].toLowerCase()];
+    if (mm) return `${mm}/${monthMatch[2]}`;
+  }
+
+  // Just a year
+  if (/^\d{4}$/.test(s)) return s;
+
+  // Fallback: return as-is, sanitized
+  return sanitize(s);
+}
+
+/** Extract KPI numbers from bullet text (e.g. "+30% revenue", "120 clienti") */
+function extractKpis(bullets: string[]): string[] {
+  const kpis: string[] = [];
+  const kpiRegex = /([+-]?\d[\d.,]*\s*%?)\s+([a-zA-Zà-ú]+(?:\s+[a-zA-Zà-ú]+)?)/g;
+  for (const b of bullets) {
+    let match: RegExpExecArray | null;
+    kpiRegex.lastIndex = 0;
+    while ((match = kpiRegex.exec(b)) !== null) {
+      if (match[1].includes("%") || parseInt(match[1].replace(/[.,]/g, ""), 10) >= 10) {
+        kpis.push(`${match[1]} ${match[2]}`);
+      }
+    }
+  }
+  return kpis.slice(0, 6); // cap at 6
+}
 
 function sectionTitle(text: string): Paragraph {
   return new Paragraph({
@@ -41,15 +109,6 @@ function sectionTitle(text: string): Paragraph {
       }),
     ],
   });
-}
-
-function sanitize(text: string): string {
-  // Remove em dash, en dash, smart quotes — ATS-safe chars only
-  return text
-    .replace(/\u2014/g, "-")
-    .replace(/\u2013/g, "-")
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/[\u2018\u2019]/g, "'");
 }
 
 function getHeaders(lang?: string): Record<string, string> {
@@ -75,11 +134,13 @@ function getHeaders(lang?: string): Record<string, string> {
   };
 }
 
+// ─── Main generator ────────────────────────────────────────────
+
 export async function generateDocx(
   cv: Record<string, any>,
   lang?: string,
 ): Promise<Blob> {
-  const h = getHeaders(lang);
+  const headers = getHeaders(lang);
   const personal = cv.personal || {};
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
@@ -90,14 +151,13 @@ export async function generateDocx(
 
   const children: Paragraph[] = [];
 
-  // --- Name ---
-  const nameText = clean(personal.name) || "Nome Cognome";
+  // ── Name ──
   children.push(
     new Paragraph({
       spacing: { after: 60 },
       children: [
         new TextRun({
-          text: sanitize(nameText),
+          text: sanitize(clean(personal.name) || "Nome Cognome"),
           bold: true,
           size: NAME_SIZE,
           font: FONT,
@@ -107,7 +167,7 @@ export async function generateDocx(
     })
   );
 
-  // --- Contact line with tab stops ---
+  // ── Contact line (in body, NOT header/footer) ──
   const contactParts = [
     clean(personal.email),
     clean(personal.phone),
@@ -132,10 +192,10 @@ export async function generateDocx(
     );
   }
 
-  // --- Summary ---
+  // ── Summary / Professional Profile ──
   const summary = clean(cv.summary);
   if (summary) {
-    children.push(sectionTitle(h.profile));
+    children.push(sectionTitle(headers.profile));
     children.push(
       new Paragraph({
         spacing: { after: 120 },
@@ -146,22 +206,61 @@ export async function generateDocx(
     );
   }
 
-  // --- Experience ---
+  // ── Experience ──
   if (experience.length > 0) {
-    children.push(sectionTitle(h.experience));
+    children.push(sectionTitle(headers.experience));
+
+    // Collect all bullets for KPI extraction
+    const allBullets = experience.flatMap((exp: any) =>
+      Array.isArray(exp.bullets) ? exp.bullets.filter((b: string) => clean(b)) : []
+    );
+    const kpis = extractKpis(allBullets);
+
+    // KPI row (triangles inline)
+    if (kpis.length > 0) {
+      children.push(
+        new Paragraph({
+          spacing: { before: 40, after: 120 },
+          children: kpis.flatMap((kpi, i) => [
+            ...(i > 0
+              ? [new TextRun({ text: "   ", size: BODY_SIZE, font: FONT })]
+              : []),
+            new TextRun({
+              text: "\u25B8 ",
+              size: BODY_SIZE,
+              font: FONT,
+              color: SECTION_COLOR,
+            }),
+            new TextRun({
+              text: sanitize(kpi),
+              bold: true,
+              size: BODY_SIZE,
+              font: FONT,
+              color: TEXT_COLOR,
+            }),
+          ]),
+        })
+      );
+    }
+
     for (const exp of experience) {
       const role = clean(exp.role) || clean(exp.title) || "";
-      const endStr = exp.end || (exp.current ? (lang === "en" ? "Present" : "Attuale") : "");
-      const dateStr = [exp.start, endStr].filter(Boolean).join(" - ");
+      const startDate = normalizeDate(exp.start);
+      const endDate = exp.current
+        ? (lang === "en" ? "Present" : "Attuale")
+        : normalizeDate(exp.end);
+      const dateStr = [startDate, endDate].filter(Boolean).join(" - ");
 
-      // Role + date on same line
+      // Role + date on same line (tab stop right)
       children.push(
         new Paragraph({
           spacing: { before: 120, after: 20 },
           tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
           children: [
             new TextRun({ text: sanitize(role), bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
-            new TextRun({ text: "\t" + sanitize(dateStr), size: META_SIZE, font: FONT, color: MUTED_COLOR }),
+            ...(dateStr
+              ? [new TextRun({ text: "\t" + sanitize(dateStr), size: META_SIZE, font: FONT, color: MUTED_COLOR })]
+              : []),
           ],
         })
       );
@@ -179,7 +278,7 @@ export async function generateDocx(
         );
       }
 
-      // Description
+      // Description paragraph
       if (clean(exp.description)) {
         children.push(
           new Paragraph({
@@ -191,7 +290,7 @@ export async function generateDocx(
         );
       }
 
-      // Bullets using numbering (ATS-safe)
+      // Bullets (dash via Word numbering — ATS-safe)
       const bullets = Array.isArray(exp.bullets) ? exp.bullets.filter((b: string) => clean(b)) : [];
       for (const b of bullets) {
         children.push(
@@ -207,12 +306,14 @@ export async function generateDocx(
     }
   }
 
-  // --- Education ---
+  // ── Education ──
   if (education.length > 0) {
-    children.push(sectionTitle(h.education));
+    children.push(sectionTitle(headers.education));
     for (const ed of education) {
       const degreeField = [ed.degree, clean(ed.field)].filter(Boolean).join(" in ");
-      const period = [ed.start, ed.end].filter(Boolean).join(" - ");
+      const startDate = normalizeDate(ed.start);
+      const endDate = normalizeDate(ed.end);
+      const period = [startDate, endDate].filter(Boolean).join(" - ");
 
       children.push(
         new Paragraph({
@@ -239,36 +340,60 @@ export async function generateDocx(
     }
   }
 
-  // --- Skills ---
-  const allSkills = skills
-    ? Array.isArray(skills)
-      ? skills.filter((sk: string) => clean(sk))
-      : [...ensureArray(skills.technical), ...ensureArray(skills.soft), ...ensureArray(skills.tools)]
-    : [];
+  // ── Skills (categorized: technical, soft, tools) ──
+  const technicalSkills = skills ? ensureArray(skills.technical) : [];
+  const softSkills = skills ? ensureArray(skills.soft) : [];
+  const toolSkills = skills ? ensureArray(skills.tools) : [];
+  const flatSkills = Array.isArray(skills) ? skills.filter((s: string) => clean(s)) : [];
+  const hasCategories = technicalSkills.length > 0 || softSkills.length > 0 || toolSkills.length > 0;
+  const allSkills = hasCategories
+    ? [...technicalSkills, ...softSkills, ...toolSkills]
+    : flatSkills;
 
   if (allSkills.length > 0) {
-    children.push(sectionTitle(h.skills));
-    children.push(
-      new Paragraph({
-        spacing: { after: 80 },
-        children: [
-          new TextRun({
-            text: sanitize(allSkills.slice(0, MAX_SIDEBAR_SKILLS).join(", ")),
-            size: BODY_SIZE,
-            font: FONT,
-            color: TEXT_COLOR,
-          }),
-        ],
-      })
-    );
+    children.push(sectionTitle(headers.skills));
+
+    if (hasCategories) {
+      // Show categorized
+      const categories: [string, string[]][] = [];
+      if (technicalSkills.length > 0) categories.push([lang === "en" ? "Technical" : "Tecniche", technicalSkills]);
+      if (softSkills.length > 0) categories.push([lang === "en" ? "Soft Skills" : "Trasversali", softSkills]);
+      if (toolSkills.length > 0) categories.push(["Tools", toolSkills]);
+
+      for (const [label, items] of categories) {
+        children.push(
+          new Paragraph({
+            spacing: { after: 40 },
+            children: [
+              new TextRun({ text: label + ": ", bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+              new TextRun({ text: sanitize(items.slice(0, MAX_SIDEBAR_SKILLS).join(", ")), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+            ],
+          })
+        );
+      }
+    } else {
+      children.push(
+        new Paragraph({
+          spacing: { after: 80 },
+          children: [
+            new TextRun({
+              text: sanitize(allSkills.slice(0, MAX_SIDEBAR_SKILLS).join(", ")),
+              size: BODY_SIZE,
+              font: FONT,
+              color: TEXT_COLOR,
+            }),
+          ],
+        })
+      );
+    }
   }
 
-  // --- Languages ---
+  // ── Languages ──
   const languages = skills?.languages && Array.isArray(skills.languages) ? skills.languages : [];
   if (languages.length > 0) {
-    children.push(sectionTitle(h.languages));
+    children.push(sectionTitle(headers.languages));
     const langText = languages
-      .map((l: any) => l.language + (clean(l.level) ? " - " + l.level : ""))
+      .map((l: any) => l.language + (clean(l.level) ? " - " + l.level : "") + (clean(l.descriptor) ? ` (${l.descriptor})` : ""))
       .join(", ");
     children.push(
       new Paragraph({
@@ -280,9 +405,9 @@ export async function generateDocx(
     );
   }
 
-  // --- Certifications ---
+  // ── Certifications ──
   if (certifications.length > 0) {
-    children.push(sectionTitle(h.certifications));
+    children.push(sectionTitle(headers.certifications));
     for (const cert of certifications) {
       const parts = [cert.name];
       if (clean(cert.issuer)) parts.push(cert.issuer);
@@ -298,9 +423,9 @@ export async function generateDocx(
     }
   }
 
-  // --- Projects ---
+  // ── Projects ──
   if (projects.length > 0) {
-    children.push(sectionTitle(h.projects));
+    children.push(sectionTitle(headers.projects));
     for (const proj of projects) {
       children.push(
         new Paragraph({
@@ -323,7 +448,7 @@ export async function generateDocx(
     }
   }
 
-  // --- Extra sections ---
+  // ── Extra sections ──
   for (const sec of extraSections) {
     children.push(sectionTitle(sec.title));
     const items = (sec.items || []).filter((item: string) => clean(item));
@@ -340,6 +465,7 @@ export async function generateDocx(
     }
   }
 
+  // ── GDPR footer ──
   const gdprText = lang === "en"
     ? "I authorize the processing of my personal data pursuant to art. 13 of Legislative Decree 196/2003 and art. 13 of EU Regulation 679/2016."
     : "Autorizzo il trattamento dei miei dati personali ai sensi dell'art. 13 del D.Lgs. 196/2003 e dell'art. 13 del Regolamento UE 679/2016.";
