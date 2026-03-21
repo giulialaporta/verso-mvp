@@ -475,7 +475,7 @@ export async function generateDocx(
   }
 
   // ── GDPR footer ──
-  const gdprText = lang === "en"
+  const gdprText = normalizeLang(lang) === "en"
     ? "I authorize the processing of my personal data pursuant to art. 13 of Legislative Decree 196/2003 and art. 13 of EU Regulation 679/2016."
     : "Autorizzo il trattamento dei miei dati personali ai sensi dell'art. 13 del D.Lgs. 196/2003 e dell'art. 13 del Regolamento UE 679/2016.";
 
