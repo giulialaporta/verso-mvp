@@ -203,39 +203,6 @@ export async function generateDocx(
   if (experience.length > 0) {
     children.push(sectionTitle(headers.experience));
 
-    // Collect all bullets for KPI extraction
-    const allBullets = experience.flatMap((exp: any) =>
-      Array.isArray(exp.bullets) ? exp.bullets.filter((b: string) => clean(b)) : []
-    );
-    const kpis = extractKpis(allBullets);
-
-    // KPI row (triangles inline)
-    if (kpis.length > 0) {
-      children.push(
-        new Paragraph({
-          spacing: { before: 40, after: 120 },
-          children: kpis.flatMap((kpi, i) => [
-            ...(i > 0
-              ? [new TextRun({ text: "   ", size: BODY_SIZE, font: FONT })]
-              : []),
-            new TextRun({
-              text: "\u25B8 ",
-              size: BODY_SIZE,
-              font: FONT,
-              color: SECTION_COLOR,
-            }),
-            new TextRun({
-              text: sanitize(kpi),
-              bold: true,
-              size: BODY_SIZE,
-              font: FONT,
-              color: TEXT_COLOR,
-            }),
-          ]),
-        })
-      );
-    }
-
     for (const exp of experience) {
       const role = clean(exp.role) || clean(exp.title) || "";
       const startDate = normalizeDate(exp.start);

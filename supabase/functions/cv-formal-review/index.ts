@@ -59,7 +59,7 @@ serve(async (req) => {
   }
 
   try {
-    const { cv, template_id } = await req.json();
+    const { cv, template_id, lang } = await req.json();
 
     if (!cv || typeof cv !== "object") {
       return new Response(
@@ -71,8 +71,15 @@ serve(async (req) => {
     // Compact CV: remove nulls, empty strings, photo_base64
     const compacted = compactCV(cv);
 
+    // Detect target language for consistency enforcement
+    const normLang = lang?.toLowerCase().startsWith("en") ? "en" : "it";
+    const langRule = normLang === "en"
+      ? "Target language: ENGLISH. All CV text must be in English. Fix any Italian words/phrases that are not proper nouns or technical terms."
+      : "Lingua target: ITALIANO. Tutto il testo del CV deve essere in italiano. Correggi parole/frasi in inglese che non siano nomi propri o termini tecnici.";
+
     const userMessage =
       "Template: " + (template_id || "classico") +
+      "\n" + langRule +
       "\n\nCV:\n" + JSON.stringify(compacted);
 
     const result = await callAi({
