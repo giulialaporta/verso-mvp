@@ -254,8 +254,9 @@ export async function generateDocx(
     for (const exp of experience) {
       const role = clean(exp.role) || clean(exp.title) || "";
       const startDate = normalizeDate(exp.start);
+      const normLang = normalizeLang(lang);
       const endDate = exp.current
-        ? (lang === "en" ? "Present" : "Attuale")
+        ? (normLang === "en" ? "Present" : "Attuale")
         : normalizeDate(exp.end);
       const dateStr = [startDate, endDate].filter(Boolean).join(" - ");
 
