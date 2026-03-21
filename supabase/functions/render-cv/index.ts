@@ -45,6 +45,7 @@ interface PreparedData {
   linkedin: string;
   website: string;
   photoUrl: string;
+  initials: string;
   headline: string;
   summary: string;
   experience: { role: string; company: string; start: string; end: string; location: string; description: string; bullets: string[] }[];
@@ -54,20 +55,44 @@ interface PreparedData {
   certifications: { name: string; issuer?: string; year?: string }[];
   projects: { name: string; description?: string }[];
   extraSections: { title: string; items: string[] }[];
+  kpis: string[];
   headers: Record<string, string>;
+}
+
+function extractKpis(cv: Record<string, any>): string[] {
+  const kpis: string[] = [];
+  const regex = /(\d[\d.,]*[+]?\s*(%|[KMB]\b|anni|years|utenti|users|clienti|EUR|euro|\u20AC))/gi;
+  for (const exp of (cv.experience || [])) {
+    for (const b of (exp.bullets || [])) {
+      const matches = String(b).match(regex);
+      if (matches) {
+        for (const m of matches) {
+          if (kpis.length < 6 && !kpis.includes(m.trim())) kpis.push(m.trim());
+        }
+      }
+    }
+  }
+  return kpis;
+}
+
+function getInitials(name: string): string {
+  return name.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
 }
 
 function prepareData(cv: Record<string, any>, lang: string): PreparedData {
   const personal = cv.personal || {};
+  const nameStr = clean(personal.name) || "Nome Cognome";
+  const photoUrl = clean(cv.photo_url) || clean(cv.photo_base64) || clean(personal.photo_url) || clean(personal.photo_base64);
   return {
     lang: lang || "it",
-    name: clean(personal.name) || "Nome Cognome",
+    name: nameStr,
     email: clean(personal.email),
     phone: clean(personal.phone),
     location: clean(personal.location),
     linkedin: clean(personal.linkedin),
     website: clean(personal.website),
-    photoUrl: clean(cv.photo_url) || clean(cv.photo_base64) || clean(personal.photo_url) || clean(personal.photo_base64),
+    photoUrl: photoUrl,
+    initials: photoUrl ? "" : getInitials(nameStr),
     headline: clean(personal.headline),
     summary: clean(cv.summary),
     experience: (cv.experience || []).map((exp: any) => ({
@@ -92,6 +117,7 @@ function prepareData(cv: Record<string, any>, lang: string): PreparedData {
     certifications: (cv.certifications || []).filter((c: any) => clean(c.name)),
     projects: (cv.projects || []).filter((p: any) => clean(p.name)),
     extraSections: (cv.extra_sections || []).filter((s: any) => s.title && s.items?.length),
+    kpis: extractKpis(cv),
     headers: getHeaders(lang),
   };
 }
@@ -279,7 +305,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing cv" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const validTemplates = ["classico", "minimal", "executive", "moderno"];
+    const validTemplates = ["classico", "minimal", "executive", "moderno", "visual"];
     if (!validTemplates.includes(templateId)) {
       return new Response(JSON.stringify({ error: "Unknown template: " + templateId }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
