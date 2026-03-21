@@ -375,10 +375,10 @@ export function StepExport({
 
       {/* Download buttons — always visible */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Button onClick={handleDownloadPdf} disabled={downloading || !previewHtml} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
+        <Button onClick={handleDownloadPdf} disabled={downloading || !isReady} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
           {downloading ? <><SpinnerGap size={18} className="animate-spin" /> Generazione...</> : <><Printer size={18} /> Stampa / Salva PDF</>}
         </Button>
-        <Button variant="outline" onClick={handleDownloadDocx} disabled={downloadingDocx} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
+        <Button variant="outline" onClick={handleDownloadDocx} disabled={downloadingDocx || !isReady} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
           {downloadingDocx ? <><SpinnerGap size={18} className="animate-spin" /> Generazione DOCX...</> : <><FileDoc size={18} /> Scarica DOCX</>}
         </Button>
       </div>
@@ -393,7 +393,11 @@ export function StepExport({
             </div>
             <span className="rounded-full bg-primary/15 px-2.5 py-0.5 font-mono text-[11px] text-primary font-bold">PDF</span>
           </div>
-          <CVPreview cv={activeCv} templateId="visual" lang={effectiveLang} onHtmlLoaded={setPreviewHtml} />
+          {previewHtml ? (
+            <CVPreview html={previewHtml} />
+          ) : (
+            <Skeleton className="w-full aspect-[1/1.414] rounded-xl" />
+          )}
         </div>
 
         <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
