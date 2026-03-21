@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const TOTAL = 5;
+const TOTAL = 6;
 
 /* ─── Slide 1: Il problema + Target ─── */
 function Slide1() {
