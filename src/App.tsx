@@ -32,6 +32,7 @@ const Faq = lazy(() => import("./pages/Faq"));
 const LinkedInCard = lazy(() => import("./pages/LinkedInCard"));
 const Pitch = lazy(() => import("./pages/Pitch"));
 const Icon = lazy(() => import("./pages/Icon"));
+const Screen = lazy(() => import("./pages/Screen"));
 
 const queryClient = new QueryClient();
 
