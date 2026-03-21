@@ -9,19 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   ArrowLeft, ArrowRight, SpinnerGap,
-  Lock, FileDoc, CheckCircle, CaretDown, CaretUp, Pencil, Printer
+  Lock, FileDoc, CheckCircle, Printer
 } from "@phosphor-icons/react";
 import { generateDocx } from "@/components/cv-templates/docx-generator";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-
-type ReviewFix = {
-  section: string;
-  field: string;
-  problem: string;
-  correction: string;
-};
 
 type ReviewStatus = "idle" | "reviewing" | "done" | "error";
 type PipelineStatus = "reviewing" | "rendering" | "ready" | "error";
