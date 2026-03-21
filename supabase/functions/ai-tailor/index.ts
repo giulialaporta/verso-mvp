@@ -4,6 +4,7 @@ import { callAi } from "../_shared/ai-provider.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { checkIntegrity } from "../_shared/integrity-check.ts";
+import { runATSChecks } from "../_shared/ats-checks.ts";
 
 // --- Utility: apply patches to original CV with validation ---
 function applyPatches(
@@ -795,6 +796,15 @@ Deno.serve(async (req) => {
       server_validated: true,
       reverts: integrityResult.reverts,
     };
+
+    // --- DETERMINISTIC ATS CHECKS (Story 20.10) ---
+    const jdKeywords = [
+      ...(job_data?.required_skills || []),
+      ...(job_data?.nice_to_have || []),
+    ].map((s: string) => typeof s === "string" ? s.trim() : "").filter(Boolean);
+    const atsResult = runATSChecks(tailoredCV as Record<string, unknown>, jdKeywords);
+    result.ats_checks = atsResult.checks;
+    result.ats_score = atsResult.score;
 
     result.tailored_cv = tailoredCV;
     result.master_cv_id = masterCV.id;
