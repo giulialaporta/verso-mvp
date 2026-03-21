@@ -186,10 +186,9 @@ function Slide5() {
     { value: "2", unit: "provider AI", desc: "Claude + Gemini con fallback automatico" },
   ];
   const roadmap = [
-    "Template Pro aggiuntivi",
-    "LinkedIn import",
-    "Cover letter generation",
-    "Multi-lingua nativa",
+    "Friends & Family beta",
+    "RAG su centinaia di CV e migliaia di job posting per rafforzare la qualità AI",
+    "Validazione 4 rischi Marty Cagan (value, usability, feasibility, viability)",
   ];
   return (
     <div className="flex flex-col items-center justify-center h-full px-8 gap-10 text-center">
