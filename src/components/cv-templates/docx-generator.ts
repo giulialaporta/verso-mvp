@@ -80,7 +80,7 @@ function normalizeDate(d: string | undefined | null): string {
 
 function sectionTitle(text: string): Paragraph {
   return new Paragraph({
-    spacing: { before: 280, after: 100 },
+    spacing: { before: 360, after: 140 },
     border: {
       bottom: { style: BorderStyle.SINGLE, size: 2, color: SECTION_COLOR },
     },
@@ -147,7 +147,7 @@ export async function generateDocx(
   // ── Name ──
   children.push(
     new Paragraph({
-      spacing: { after: 60 },
+      spacing: { after: 80 },
       children: [
         new TextRun({
           text: sanitize(clean(personal.name) || "Nome Cognome"),
@@ -172,7 +172,7 @@ export async function generateDocx(
   if (contactParts.length > 0) {
     children.push(
       new Paragraph({
-        spacing: { after: 200 },
+        spacing: { after: 260 },
         children: [
           new TextRun({
             text: sanitize(contactParts.join("  |  ")),
@@ -191,7 +191,7 @@ export async function generateDocx(
     children.push(sectionTitle(headers.profile));
     children.push(
       new Paragraph({
-        spacing: { after: 120 },
+        spacing: { after: 160 },
         children: [
           new TextRun({ text: sanitize(summary), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
         ],
@@ -215,7 +215,7 @@ export async function generateDocx(
       // Role + date on same line (tab stop right)
       children.push(
         new Paragraph({
-          spacing: { before: 120, after: 20 },
+          spacing: { before: 200, after: 40 },
           tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
           children: [
             new TextRun({ text: sanitize(role), bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
@@ -231,7 +231,7 @@ export async function generateDocx(
       if (companyLine) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 60 },
             children: [
               new TextRun({ text: sanitize(companyLine), size: BODY_SIZE, font: FONT, color: "333333" }),
             ],
@@ -243,7 +243,7 @@ export async function generateDocx(
       if (clean(exp.description)) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 60 },
             children: [
               new TextRun({ text: sanitize(exp.description), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
             ],
@@ -257,7 +257,7 @@ export async function generateDocx(
         children.push(
           new Paragraph({
             numbering: { reference: "ats-bullets", level: 0 },
-            spacing: { after: 30 },
+            spacing: { after: 50 },
             children: [
               new TextRun({ text: sanitize(String(b)), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
             ],
@@ -278,7 +278,7 @@ export async function generateDocx(
 
       children.push(
         new Paragraph({
-          spacing: { before: 80, after: 20 },
+          spacing: { before: 160, after: 40 },
           tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
           children: [
             new TextRun({ text: sanitize(degreeField), bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
@@ -289,7 +289,7 @@ export async function generateDocx(
 
       children.push(
         new Paragraph({
-          spacing: { after: 40 },
+          spacing: { after: 60 },
           children: [
             new TextRun({ text: sanitize(ed.institution || ""), size: BODY_SIZE, font: FONT, color: "333333" }),
             ...(clean(ed.grade)
@@ -324,7 +324,7 @@ export async function generateDocx(
       for (const [label, items] of categories) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 60 },
             children: [
               new TextRun({ text: label + ": ", bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
               new TextRun({ text: sanitize(items.slice(0, MAX_SIDEBAR_SKILLS).join(", ")), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
@@ -335,7 +335,7 @@ export async function generateDocx(
     } else {
       children.push(
         new Paragraph({
-          spacing: { after: 80 },
+          spacing: { after: 100 },
           children: [
             new TextRun({
               text: sanitize(allSkills.slice(0, MAX_SIDEBAR_SKILLS).join(", ")),
@@ -358,7 +358,7 @@ export async function generateDocx(
       .join(", ");
     children.push(
       new Paragraph({
-        spacing: { after: 80 },
+        spacing: { after: 100 },
         children: [
           new TextRun({ text: sanitize(langText), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
         ],
@@ -375,7 +375,7 @@ export async function generateDocx(
       if (clean(cert.year)) parts.push(cert.year);
       children.push(
         new Paragraph({
-          spacing: { after: 40 },
+          spacing: { after: 60 },
           children: [
             new TextRun({ text: sanitize(parts.join(" | ")), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
           ],
@@ -390,7 +390,7 @@ export async function generateDocx(
     for (const proj of projects) {
       children.push(
         new Paragraph({
-          spacing: { before: 60, after: 20 },
+          spacing: { before: 120, after: 40 },
           children: [
             new TextRun({ text: sanitize(proj.name), bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
           ],
@@ -399,7 +399,7 @@ export async function generateDocx(
       if (clean(proj.description)) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 60 },
             children: [
               new TextRun({ text: sanitize(proj.description), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
             ],
@@ -417,7 +417,7 @@ export async function generateDocx(
       children.push(
         new Paragraph({
           numbering: { reference: "ats-bullets", level: 0 },
-          spacing: { after: 30 },
+          spacing: { after: 50 },
           children: [
             new TextRun({ text: sanitize(String(item)), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
           ],
