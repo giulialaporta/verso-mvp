@@ -80,7 +80,7 @@ function normalizeDate(d: string | undefined | null): string {
 
 function sectionTitle(text: string): Paragraph {
   return new Paragraph({
-    spacing: { before: 280, after: 100 },
+    spacing: { before: 360, after: 140 },
     border: {
       bottom: { style: BorderStyle.SINGLE, size: 2, color: SECTION_COLOR },
     },
