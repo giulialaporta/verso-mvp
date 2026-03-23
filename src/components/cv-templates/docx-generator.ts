@@ -324,7 +324,7 @@ export async function generateDocx(
       for (const [label, items] of categories) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 60 },
             children: [
               new TextRun({ text: label + ": ", bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
               new TextRun({ text: sanitize(items.slice(0, MAX_SIDEBAR_SKILLS).join(", ")), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
