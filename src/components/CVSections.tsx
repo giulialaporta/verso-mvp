@@ -346,7 +346,7 @@ export function CVSections({
       )}
 
       {/* Experience */}
-      {data.experience && data.experience.length > 0 && (
+      {Array.isArray(data.experience) && data.experience.length > 0 && (
         <Section
           icon={Briefcase}
           title="Esperienza"
@@ -400,7 +400,7 @@ export function CVSections({
       )}
 
       {/* Education */}
-      {data.education && data.education.length > 0 && (
+      {Array.isArray(data.education) && data.education.length > 0 && (
         <Section
           icon={GraduationCap}
           title="Formazione"
@@ -577,7 +577,7 @@ export function CVSections({
       )}
 
       {/* Certifications */}
-      {data.certifications && data.certifications.length > 0 && (
+      {Array.isArray(data.certifications) && data.certifications.length > 0 && (
         <Section icon={Certificate} title="Certificazioni" collapsible={collapsible} summary={`${data.certifications.length}`}>
           <div className="space-y-2">
             {data.certifications.map((cert, i) => (
@@ -608,7 +608,7 @@ export function CVSections({
       )}
 
       {/* Projects */}
-      {data.projects && data.projects.length > 0 && (
+      {Array.isArray(data.projects) && data.projects.length > 0 && (
         <Section icon={Lightbulb} title="Progetti" collapsible={collapsible} summary={`${data.projects.length}`}>
           <div className="space-y-3">
             {data.projects.map((proj, i) => (
@@ -650,7 +650,7 @@ export function CVSections({
       )}
 
       {/* Extra Sections */}
-      {data.extra_sections && data.extra_sections.length > 0 &&
+      {Array.isArray(data.extra_sections) && data.extra_sections.length > 0 &&
         data.extra_sections.map((section, i) => (
           <Section key={i} icon={ListBullets} title={section.title} collapsible={collapsible} summary={`${section.items.length}`}>
             {editable ? (
