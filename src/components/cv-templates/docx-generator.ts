@@ -257,7 +257,7 @@ export async function generateDocx(
         children.push(
           new Paragraph({
             numbering: { reference: "ats-bullets", level: 0 },
-            spacing: { after: 30 },
+            spacing: { after: 50 },
             children: [
               new TextRun({ text: sanitize(String(b)), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
             ],
