@@ -512,22 +512,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    const token = authHeader.replace("Bearer ", "");
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
+    );
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser(token);
+    if (userError || !userData.user) {
+      console.error("[ai-tailor] getUser failed:", userError?.message || "no user");
+      return new Response(JSON.stringify({ error: "Non autorizzato" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = userData.user.id;
+
+    // Client scoped to user for RLS queries
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !data?.claims) {
-      console.error("[ai-tailor] getClaims failed:", claimsError?.message || "no claims");
-      return new Response(JSON.stringify({ error: "Non autorizzato" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = data.claims.sub as string;
     const body = await req.json();
     const { job_data, user_answers, mode: requestMode, analyze_context } = body;
     const mode = requestMode || "analyze";
