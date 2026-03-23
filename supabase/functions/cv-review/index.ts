@@ -225,9 +225,8 @@ Deno.serve(async (req: Request) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Non autorizzato" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -263,7 +262,7 @@ ${JSON.stringify(cvForReview)}
 Apply all 11 rules. EVERY text field must be in "${lang}". Fix ALL bullets to start with action verbs. Remove all artifacts and clichés.
 CRITICAL: if ANY content in the tailored CV is not traceable to the original CV, revert it to the original.`;
 
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
     const aiResult = await callAi({
       task: "cv-review",
