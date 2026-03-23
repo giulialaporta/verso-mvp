@@ -346,7 +346,7 @@ export function CVSections({
       )}
 
       {/* Experience */}
-      {data.experience && data.experience.length > 0 && (
+      {Array.isArray(data.experience) && data.experience.length > 0 && (
         <Section
           icon={Briefcase}
           title="Esperienza"
