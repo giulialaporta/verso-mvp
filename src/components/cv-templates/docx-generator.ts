@@ -390,7 +390,7 @@ export async function generateDocx(
     for (const proj of projects) {
       children.push(
         new Paragraph({
-          spacing: { before: 60, after: 20 },
+          spacing: { before: 120, after: 40 },
           children: [
             new TextRun({ text: sanitize(proj.name), bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
           ],
