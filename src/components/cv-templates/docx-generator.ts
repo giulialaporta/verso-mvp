@@ -243,7 +243,7 @@ export async function generateDocx(
       if (clean(exp.description)) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 60 },
             children: [
               new TextRun({ text: sanitize(exp.description), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
             ],
