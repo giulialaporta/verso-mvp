@@ -400,7 +400,7 @@ export function CVSections({
       )}
 
       {/* Education */}
-      {data.education && data.education.length > 0 && (
+      {Array.isArray(data.education) && data.education.length > 0 && (
         <Section
           icon={GraduationCap}
           title="Formazione"
