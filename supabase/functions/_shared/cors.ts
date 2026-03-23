@@ -1,15 +1,32 @@
 /**
  * Shared CORS utility — dynamic origin whitelist.
- * US-S01: replaces Access-Control-Allow-Origin: * across all edge functions.
+ * Supports custom domains, Lovable preview/publish domains, and localhost.
  */
 
 const ALLOWED_ORIGINS = [
-  "https://verso-cv.lovable.app",       // produzione (published)
-  "https://id-preview--79973808-7997-4009-a8ef-6fba6ac3604e.lovable.app", // preview legacy
-  "https://79973808-7997-4009-a8ef-6fba6ac3604e.lovableproject.com",      // preview attuale
-  "http://localhost:5173",               // sviluppo locale
-  "http://localhost:8080",               // sviluppo locale alternativo
+  "https://verso-cv.lovable.app",
+  "https://versocv.com",
+  "https://www.versocv.com",
+  "https://versocv.it",
+  "https://www.versocv.it",
+  "http://localhost:5173",
+  "http://localhost:8080",
 ];
+
+const ALLOWED_PATTERNS = [
+  /\.lovable\.app$/,
+  /\.lovableproject\.com$/,
+];
+
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  try {
+    const hostname = new URL(origin).hostname;
+    return ALLOWED_PATTERNS.some((p) => p.test(hostname));
+  } catch {
+    return false;
+  }
+}
 
 const CORS_HEADERS_BASE = {
   "Access-Control-Allow-Headers":
@@ -17,17 +34,13 @@ const CORS_HEADERS_BASE = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-/**
- * Build CORS headers with dynamic origin check.
- * If origin is not in whitelist, falls back to the first allowed origin
- * (browser will block the response due to mismatch).
- */
 export function getCorsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const origin = req.headers.get("Origin") || "";
+  const allowed = isAllowedOrigin(origin);
 
   return {
-    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Origin": allowed ? origin : ALLOWED_ORIGINS[0],
+    "Vary": "Origin",
     ...CORS_HEADERS_BASE,
   };
 }
