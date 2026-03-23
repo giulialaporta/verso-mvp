@@ -178,29 +178,35 @@ export default function Nuova() {
       const prescreenBody: Record<string, unknown> = { job_data: data };
       if (profile?.salary_expectations) prescreenBody.salary_expectations = profile.salary_expectations;
 
-      // Launch prescreen + analyze in parallel
-      const [prescreenRes, analyzeRes] = await Promise.all([
+      // Launch prescreen + analyze in parallel — handle failures independently
+      const [prescreenRes, analyzeRes] = await Promise.allSettled([
         supabase.functions.invoke("ai-prescreen", { body: prescreenBody }),
         supabase.functions.invoke("ai-tailor", { body: { job_data: data, mode: "analyze" } }),
       ]);
 
-      // Handle prescreen result
-      if (prescreenRes.error) throw prescreenRes.error;
-      if (prescreenRes.data?.error) throw new Error(prescreenRes.data.error);
-      setPrescreenResult(prescreenRes.data);
-      if (appId) {
-        supabase.from("applications").update({ prescreen_data: prescreenRes.data } as any).eq("id", appId).then(() => {});
+      // Handle prescreen result — non-blocking
+      if (prescreenRes.status === "fulfilled" && !prescreenRes.value.error && !prescreenRes.value.data?.error) {
+        setPrescreenResult(prescreenRes.value.data);
+        if (appId) {
+          supabase.from("applications").update({ prescreen_data: prescreenRes.value.data } as any).eq("id", appId).then(() => {});
+        }
+      } else {
+        console.warn("Pre-screening failed, continuing without it");
+        toast.warning("Pre-screening non disponibile. Puoi continuare comunque.");
       }
 
       // Cache analyze result (don't set state yet — user hasn't proceeded)
-      if (!analyzeRes.error && analyzeRes.data && !analyzeRes.data.error) {
-        cachedAnalyzeRef.current = analyzeRes.data;
+      if (analyzeRes.status === "fulfilled" && !analyzeRes.value.error && !analyzeRes.value.data?.error) {
+        cachedAnalyzeRef.current = analyzeRes.value.data;
         if (appId) {
-          supabase.from("applications").update({ match_score: analyzeRes.data.match_score } as any).eq("id", appId).then(() => {});
+          supabase.from("applications").update({ match_score: analyzeRes.value.data.match_score } as any).eq("id", appId).then(() => {});
         }
+      } else {
+        console.warn("Analyze failed, will retry at step 2");
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Errore durante il pre-screening");
+      // Only reset to step 0 if we couldn't even create the draft
+      toast.error(e instanceof Error ? e.message : "Errore durante il salvataggio della bozza");
       updateStep(0);
     } finally {
       setPrescreening(false);
