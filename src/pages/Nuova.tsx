@@ -137,7 +137,7 @@ export default function Nuova() {
           const draftBody: Record<string, unknown> = { job_data: { company_name: app.company_name, role_title: app.role_title, description: app.job_description, location: "", key_requirements: [], required_skills: [] } };
           if (draftProfile?.salary_expectations) draftBody.salary_expectations = draftProfile.salary_expectations;
           supabase.functions.invoke("ai-prescreen", { body: draftBody }).then(({ data: result, error }) => {
-            if (error || result?.error) { toast.error("Errore durante il pre-screening"); updateStep(0); }
+            if (error || result?.error) { toast.warning("Pre-screening non disponibile. Puoi continuare comunque."); }
             else {
               setPrescreenResult(result);
               supabase.from("applications").update({ prescreen_data: result } as any).eq("id", applicationId).then(() => {});
