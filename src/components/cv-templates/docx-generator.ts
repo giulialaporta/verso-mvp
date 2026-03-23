@@ -335,7 +335,7 @@ export async function generateDocx(
     } else {
       children.push(
         new Paragraph({
-          spacing: { after: 80 },
+          spacing: { after: 100 },
           children: [
             new TextRun({
               text: sanitize(allSkills.slice(0, MAX_SIDEBAR_SKILLS).join(", ")),
