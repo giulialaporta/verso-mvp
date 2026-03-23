@@ -506,32 +506,28 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("[ai-tailor] No Authorization header");
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Non autorizzato" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
-    console.info(`[ai-tailor] Auth: url=${supabaseUrl ? "set" : "MISSING"}, anonKey=${anonKey ? "set" : "MISSING"}, authHeader=${authHeader.substring(0, 20)}...`);
-
     const supabase = createClient(
-      supabaseUrl,
-      anonKey,
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      console.error("[ai-tailor] getUser failed:", userError?.message || "no user");
+    const token = authHeader.replace("Bearer ", "");
+    const { data, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !data?.claims) {
+      console.error("[ai-tailor] getClaims failed:", claimsError?.message || "no claims");
       return new Response(JSON.stringify({ error: "Non autorizzato" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = user.id;
+    const userId = data.claims.sub as string;
     const body = await req.json();
     const { job_data, user_answers, mode: requestMode, analyze_context } = body;
     const mode = requestMode || "analyze";

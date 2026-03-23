@@ -50,16 +50,15 @@ Deno.serve(async (req: Request) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData.user?.email) {
-      // Graceful: invalid token → not subscribed
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       logStep("User not authenticated, returning unsubscribed");
       return new Response(JSON.stringify({ subscribed: false, subscription_end: null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
-    const user = userData.user;
+    const user = { id: claimsData.claims.sub as string, email: claimsData.claims.email as string };
     logStep("User authenticated", { userId: user.id });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });

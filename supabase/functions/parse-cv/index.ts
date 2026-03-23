@@ -69,16 +69,15 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-    if (userError || !user) {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Non autorizzato" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const user = { id: claimsData.claims.sub as string };
 
     const { filePath } = await req.json();
     if (!filePath) {
