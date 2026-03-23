@@ -375,7 +375,7 @@ export async function generateDocx(
       if (clean(cert.year)) parts.push(cert.year);
       children.push(
         new Paragraph({
-          spacing: { after: 40 },
+          spacing: { after: 60 },
           children: [
             new TextRun({ text: sanitize(parts.join(" | ")), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
           ],
