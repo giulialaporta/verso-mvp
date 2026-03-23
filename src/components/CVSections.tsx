@@ -650,7 +650,7 @@ export function CVSections({
       )}
 
       {/* Extra Sections */}
-      {data.extra_sections && data.extra_sections.length > 0 &&
+      {Array.isArray(data.extra_sections) && data.extra_sections.length > 0 &&
         data.extra_sections.map((section, i) => (
           <Section key={i} icon={ListBullets} title={section.title} collapsible={collapsible} summary={`${section.items.length}`}>
             {editable ? (
