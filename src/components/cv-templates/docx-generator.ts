@@ -231,7 +231,7 @@ export async function generateDocx(
       if (companyLine) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 60 },
             children: [
               new TextRun({ text: sanitize(companyLine), size: BODY_SIZE, font: FONT, color: "333333" }),
             ],
