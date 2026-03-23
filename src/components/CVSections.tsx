@@ -577,7 +577,7 @@ export function CVSections({
       )}
 
       {/* Certifications */}
-      {data.certifications && data.certifications.length > 0 && (
+      {Array.isArray(data.certifications) && data.certifications.length > 0 && (
         <Section icon={Certificate} title="Certificazioni" collapsible={collapsible} summary={`${data.certifications.length}`}>
           <div className="space-y-2">
             {data.certifications.map((cert, i) => (
