@@ -358,7 +358,7 @@ export async function generateDocx(
       .join(", ");
     children.push(
       new Paragraph({
-        spacing: { after: 80 },
+        spacing: { after: 100 },
         children: [
           new TextRun({ text: sanitize(langText), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
         ],
