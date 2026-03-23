@@ -191,7 +191,7 @@ export async function generateDocx(
     children.push(sectionTitle(headers.profile));
     children.push(
       new Paragraph({
-        spacing: { after: 120 },
+        spacing: { after: 160 },
         children: [
           new TextRun({ text: sanitize(summary), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
         ],
