@@ -172,7 +172,7 @@ export async function generateDocx(
   if (contactParts.length > 0) {
     children.push(
       new Paragraph({
-        spacing: { after: 200 },
+        spacing: { after: 260 },
         children: [
           new TextRun({
             text: sanitize(contactParts.join("  |  ")),
