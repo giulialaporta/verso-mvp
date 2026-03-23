@@ -608,7 +608,7 @@ export function CVSections({
       )}
 
       {/* Projects */}
-      {data.projects && data.projects.length > 0 && (
+      {Array.isArray(data.projects) && data.projects.length > 0 && (
         <Section icon={Lightbulb} title="Progetti" collapsible={collapsible} summary={`${data.projects.length}`}>
           <div className="space-y-3">
             {data.projects.map((proj, i) => (
