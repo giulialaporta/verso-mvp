@@ -144,6 +144,13 @@ CRITICAL LANGUAGE RULE: Preserve the EXACT original language of the CV. If the C
 - Certifications = "Certificazioni", "Attestati", "Abilitazioni", "Certifications", "Licenses", "Zertifikate"
 - Projects = "Progetti", "Projects", "Portfolio", "Projekte"
 - Profile/Summary = "Profilo", "Summary", "About Me", "Chi sono", "Obiettivo", "Riepilogo"
+- Publications = "Pubblicazioni", "Publications", "Veröffentlichungen", "Articles", "Papers", "Articoli", "Ricerca"
+- Volunteering = "Volontariato", "Attività di volontariato", "Volunteer Work", "Volunteering", "Community Service", "Bénévolat", "Ehrenamt"
+- Awards = "Premi", "Riconoscimenti", "Premi e riconoscimenti", "Awards", "Honors", "Honours", "Auszeichnungen", "Prix"
+- Conferences = "Conferenze", "Presentazioni", "Convegni", "Conferences", "Speaking", "Talks", "Konferenzen", "Conférences"
+
+## STRUCTURED SECTIONS — DO NOT PUT IN extra_sections
+Publications, volunteering, awards, and conferences MUST be extracted into their dedicated structured fields (publications, volunteering, awards, conferences). Do NOT put them in extra_sections.
 
 ## MULTI-COLUMN LAYOUT
 If the CV has a two-column or multi-column layout:
