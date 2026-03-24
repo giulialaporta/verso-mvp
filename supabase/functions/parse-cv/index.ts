@@ -410,6 +410,10 @@ RULES:
 
     validateOutput("parse-cv", parsedCV);
 
+    // Sanitize: remove nulls, empty strings, placeholders
+    const sanitized = compactCV(parsedCV) as Record<string, unknown> | undefined;
+    const cleanCV = sanitized ?? parsedCV;
+
     // Extract photo info from AI response
     const aiDetectedPhoto = parsedCV.has_photo;
     delete parsedCV.has_photo;
