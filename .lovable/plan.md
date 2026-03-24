@@ -1,45 +1,64 @@
 
 
-# Fix: campi vuoti nel parsing del CV
+# Aggiungere 4 nuove sezioni al CV: Pubblicazioni, Volontariato, Premi, Conferenze
 
-## Problema
+## Panoramica
 
-Quando il CV viene parsato, l'AI restituisce campi con stringhe vuote `""`, `null`, o valori placeholder (es. "None", "N/A") per informazioni non presenti nel documento. Questi campi vuoti vengono poi mostrati nell'interfaccia di preview, creando un risultato disordinato. La utility `compactCV` che rimuove questi valori esiste gia' ma viene usata solo nel tailoring e prescreen — non dopo il parsing.
+Aggiungere supporto completo per 4 nuove sezioni strutturate nel CV: **Pubblicazioni accademiche**, **Volontariato**, **Premi e riconoscimenti**, **Conferenze e presentazioni**. Ogni sezione deve essere supportata end-to-end: tipo dati, parsing AI, tailoring AI, visualizzazione UI, editing, e generazione DOCX ATS.
 
-## Intervento
+## Interventi
 
-### 1) Applicare `compactCV` al risultato del parsing — server-side
+### 1) Tipo dati — `src/types/cv.ts`
 
-**File:** `supabase/functions/parse-cv/index.ts`
+Aggiungere 4 nuovi campi opzionali a `ParsedCV`:
 
-Dopo la validazione del risultato AI (`validateOutput`), applicare `compactCV` al `parsedCV` per rimuovere:
-- Stringhe vuote `""`
-- Valori `null` / `undefined`
-- Placeholder come "None", "N/A", "Non specificato"
-- Array vuoti
+- `publications?: { title, journal/publisher, year, doi/link, authors? }[]`
+- `volunteering?: { role, organization, start?, end?, current?, description? }[]`
+- `awards?: { name, issuer?, year?, description? }[]`
+- `conferences?: { title, event, year?, role? (speaker/attendee/organizer) }[]`
 
-Questo pulisce i dati PRIMA che arrivino al frontend.
+### 2) Parsing AI — `supabase/functions/parse-cv/index.ts`
 
-### 2) Rafforzare il prompt per ridurre i campi vuoti alla fonte
+- Aggiungere nel **section mapping** del system prompt i titoli di sezione multilingua (es. "Pubblicazioni", "Publications", "Veröffentlichungen", "Volontariato", "Volunteer Work", "Premi", "Awards", ecc.)
+- Aggiungere le **4 sezioni allo schema del tool** `extract_cv_data` con i campi strutturati
+- Istruire l'AI a estrarre queste sezioni quando presenti, e a NON metterle in `extra_sections`
 
-**File:** `supabase/functions/parse-cv/index.ts`
+### 3) Tailoring AI — `supabase/functions/ai-tailor/index.ts`
 
-Aggiornare la regola NULL HANDLING nel system prompt:
-- Istruire esplicitamente l'AI a **omettere completamente** i campi non presenti nel CV invece di restituire stringhe vuote
-- Aggiungere: "Do NOT return empty strings. If a field has no value, omit it entirely from the output."
+- Aggiungere le 4 sezioni allo schema del tool di tailoring
+- Regola: non rimuovere mai pubblicazioni, premi, volontariato o conferenze dal CV originale (come gia fatto per le certificazioni)
 
-### 3) Nascondere campi vuoti nella preview (non-editable)
+### 4) Visualizzazione UI — `src/components/CVSections.tsx`
 
-**File:** `src/components/CVSections.tsx`
+Aggiungere 4 nuove `Section` nella preview, con:
+- Icone appropriate (Book, HandHeart, Trophy, Microphone da Phosphor)
+- Supporto editing con drawer (aggiungere ai tipi di `editingItem`)
+- Pulsanti aggiungi/rimuovi/modifica come le sezioni esistenti
 
-Nella modalita' non-editable (onboarding preview), i campi con valore vuoto o assente non devono essere renderizzati. Verificare che le condizioni di rendering usino il pattern `value && <element>` invece di `value !== undefined`.
+### 5) Template DOCX ATS — `src/components/cv-templates/docx-generator.ts`
+
+- Aggiungere header multilingua per le 4 sezioni
+- Generare i blocchi DOCX con lo stesso stile delle sezioni esistenti (titolo + metadata)
+
+### 6) Template HTML (render-cv) — `supabase/functions/render-cv/templates/*.html`
+
+- Aggiungere i blocchi `{{#if publications}}...{{/if}}` nei 4 template HTML per i PDF visivi
 
 ## File da modificare
 
-- `supabase/functions/parse-cv/index.ts` — import compactCV + applicazione + prompt update
-- `src/components/CVSections.tsx` — nascondere campi vuoti in preview
+| File | Intervento |
+|------|-----------|
+| `src/types/cv.ts` | 4 nuovi tipi |
+| `supabase/functions/parse-cv/index.ts` | Prompt + schema tool |
+| `supabase/functions/ai-tailor/index.ts` | Schema tool + regola preservazione |
+| `src/components/CVSections.tsx` | 4 sezioni UI + editing drawer |
+| `src/components/cv-templates/docx-generator.ts` | 4 sezioni DOCX |
+| `supabase/functions/render-cv/templates/classico.html` | Blocchi HTML |
+| `supabase/functions/render-cv/templates/minimal.html` | Blocchi HTML |
+| `supabase/functions/render-cv/templates/moderno.html` | Blocchi HTML |
+| `supabase/functions/render-cv/templates/executive.html` | Blocchi HTML |
 
 ## Risultato atteso
 
-Il parsing restituisce solo campi effettivamente presenti nel CV. La preview mostra un risultato pulito senza righe vuote o placeholder.
+Un CV che puo contenere pubblicazioni accademiche, esperienze di volontariato, premi/riconoscimenti e conferenze come sezioni strutturate native — non piu relegate a `extra_sections` con testo libero.
 
