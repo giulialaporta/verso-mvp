@@ -700,6 +700,147 @@ export function CVSections({
         </Section>
       )}
 
+      {/* Publications */}
+      {Array.isArray(data.publications) && data.publications.length > 0 && (
+        <Section icon={BookOpen} title="Pubblicazioni" collapsible={collapsible} summary={`${data.publications.length}`}>
+          <div className="space-y-2">
+            {data.publications.map((pub, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{pub.title}</p>
+                  {pub.journal && <p className="text-xs text-muted-foreground">{pub.journal}</p>}
+                  <div className="flex gap-2 text-xs text-muted-foreground/60">
+                    {pub.year && <span>{pub.year}</span>}
+                    {pub.authors && <span>· {pub.authors}</span>}
+                  </div>
+                  {pub.doi && (
+                    <a href={pub.doi.startsWith("http") ? pub.doi : `https://doi.org/${pub.doi}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-secondary hover:underline mt-0.5">
+                      <LinkIcon size={12} /> {pub.doi}
+                    </a>
+                  )}
+                </div>
+                {editable && (
+                  <ItemActions
+                    onEdit={() => setEditingItem({ type: "publication", index: i })}
+                    onRemove={() => {
+                      const updated = data.publications!.filter((_, j) => j !== i);
+                      onUpdate?.({ ...data, publications: updated });
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          {editable && (
+            <AddButton onClick={() => {
+              onUpdate?.({ ...data, publications: [...(data.publications || []), { title: "" }] });
+            }} label="Pubblicazione" />
+          )}
+        </Section>
+      )}
+
+      {/* Volunteering */}
+      {Array.isArray(data.volunteering) && data.volunteering.length > 0 && (
+        <Section icon={HandHeart} title="Volontariato" collapsible={collapsible} summary={`${data.volunteering.length}`}>
+          <div className="space-y-3">
+            {data.volunteering.map((vol, i) => (
+              <div key={i} className="border-l-2 border-primary/30 pl-3 relative">
+                {editable && (
+                  <div className="absolute right-0 top-0">
+                    <ItemActions
+                      onEdit={() => setEditingItem({ type: "volunteering", index: i })}
+                      onRemove={() => {
+                        const updated = data.volunteering!.filter((_, j) => j !== i);
+                        onUpdate?.({ ...data, volunteering: updated });
+                      }}
+                    />
+                  </div>
+                )}
+                <p className="font-medium text-sm pr-14">{vol.role}</p>
+                <p className="text-xs text-muted-foreground">{vol.organization}</p>
+                <p className="text-xs text-muted-foreground/60">
+                  {vol.start || ""}{" – "}{vol.end || (vol.current ? "Attuale" : "")}
+                </p>
+                {vol.description && <p className="text-xs text-foreground/70 mt-1">{vol.description}</p>}
+              </div>
+            ))}
+          </div>
+          {editable && (
+            <AddButton onClick={() => {
+              onUpdate?.({ ...data, volunteering: [...(data.volunteering || []), { role: "", organization: "" }] });
+            }} label="Volontariato" />
+          )}
+        </Section>
+      )}
+
+      {/* Awards */}
+      {Array.isArray(data.awards) && data.awards.length > 0 && (
+        <Section icon={Trophy} title="Premi e riconoscimenti" collapsible={collapsible} summary={`${data.awards.length}`}>
+          <div className="space-y-2">
+            {data.awards.map((award, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{award.name}</p>
+                  <div className="flex gap-2 text-xs text-muted-foreground">
+                    {award.issuer && <span>{award.issuer}</span>}
+                    {award.year && <span>({award.year})</span>}
+                  </div>
+                  {award.description && <p className="text-xs text-foreground/70 mt-0.5">{award.description}</p>}
+                </div>
+                {editable && (
+                  <ItemActions
+                    onEdit={() => setEditingItem({ type: "award", index: i })}
+                    onRemove={() => {
+                      const updated = data.awards!.filter((_, j) => j !== i);
+                      onUpdate?.({ ...data, awards: updated });
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          {editable && (
+            <AddButton onClick={() => {
+              onUpdate?.({ ...data, awards: [...(data.awards || []), { name: "" }] });
+            }} label="Premio" />
+          )}
+        </Section>
+      )}
+
+      {/* Conferences */}
+      {Array.isArray(data.conferences) && data.conferences.length > 0 && (
+        <Section icon={Microphone} title="Conferenze e presentazioni" collapsible={collapsible} summary={`${data.conferences.length}`}>
+          <div className="space-y-2">
+            {data.conferences.map((conf, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{conf.title}</p>
+                  <div className="flex gap-2 text-xs text-muted-foreground">
+                    <span>{conf.event}</span>
+                    {conf.year && <span>({conf.year})</span>}
+                    {conf.role && <span className="capitalize">· {conf.role}</span>}
+                  </div>
+                </div>
+                {editable && (
+                  <ItemActions
+                    onEdit={() => setEditingItem({ type: "conference", index: i })}
+                    onRemove={() => {
+                      const updated = data.conferences!.filter((_, j) => j !== i);
+                      onUpdate?.({ ...data, conferences: updated });
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          {editable && (
+            <AddButton onClick={() => {
+              onUpdate?.({ ...data, conferences: [...(data.conferences || []), { title: "", event: "" }] });
+            }} label="Conferenza" />
+          )}
+        </Section>
+      )}
+
       {/* Extra Sections */}
       {Array.isArray(data.extra_sections) && data.extra_sections.length > 0 &&
         data.extra_sections.map((section, i) => (
