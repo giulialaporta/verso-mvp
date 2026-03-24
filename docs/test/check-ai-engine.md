@@ -8,8 +8,11 @@
 
 - [x] **A1** — Endpoint `POST /functions/v1/parse-cv` risponde correttamente (verificato: utente ha CV parsato in DB)
 - [x] **A2** — Richiede autenticazione (senza token: errore 401) (verificato da code review)
-- [x] **A3** — PDF standard: output JSON con tutti i campi (personal, summary, experience, education, skills, certifications, projects, extra) (verificato da DB: parsed_data completo)
-- [x] **A4** — Campi mancanti nel CV: restituiti come vuoti/null (non inventati) (verificato da code review: prompt specifica)
+- [x] **A3** — PDF standard: output JSON con tutti i campi (personal, summary, experience, education, skills, certifications, projects, publications, volunteering, awards, conferences, extra_sections) (verificato da code review: prompt estratte 4 nuove sezioni)
+- [x] **A4** — Campi mancanti nel CV: omessi dall'output (non null, non stringa vuota) (verificato da code review: prompt specifica "OMIT IT ENTIRELY")
+- [ ] **A11** — CV con ruoli multipli nella stessa azienda: ogni ruolo è un'entry separata in `experience`
+- [ ] **A12** — CV con sezione "Pubblicazioni": estratta in `publications`, non in `extra_sections`
+- [ ] **A13** — CV con sezione "Volontariato": estratta in `volunteering`, non in `extra_sections`
 - [x] **A5** — Foto presente nel PDF: estratta e caricata su Storage con URL firmato (verificato da DB: photo_url presente)
 - [x] **A6** — Foto assente: `photo_url` null, nessun errore (verificato da code review)
 - [x] **A7** — Summary assente nel CV: ne viene generato uno automaticamente (verificato da code review: prompt specifica)

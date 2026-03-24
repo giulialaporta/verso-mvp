@@ -24,8 +24,10 @@ Pagina `/app/nuova` — wizard a 6 step che guida l'utente dall'inserimento dell
 - Textarea per incollare il testo dell'annuncio direttamente
 - Invio diretto a AI per estrazione dati
 
+**Campo azienda:** opzionale. Se lasciato vuoto e l'AI non lo estrae dall'annuncio → fallback "Azienda riservata".
+
 **Dati estratti dall'annuncio:**
-- `company_name` — nome azienda
+- `company_name` — nome azienda (opzionale lato utente, estratto dall'AI se presente)
 - `role_title` — titolo ruolo
 - `location` — sede
 - `job_type` — tipo contratto
@@ -33,10 +35,14 @@ Pagina `/app/nuova` — wizard a 6 step che guida l'utente dall'inserimento dell
 - `requirements` — requisiti chiave
 - `required_skills` — competenze richieste
 - `nice_to_have` — competenze preferenziali
+- `is_staffing_agency` — `true` se l'annuncio è pubblicato da un'agenzia di selezione
+- `end_client` — nome del cliente finale (se dichiarato nell'annuncio)
 
-**Preview card:** mostra dati estratti (azienda, ruolo, requisiti) — editabili inline.
+**Preview card:** mostra dati estratti (azienda, ruolo, requisiti). Se `is_staffing_agency = true`: badge "Tramite agenzia". Se `end_client` presente: "Per conto di: [cliente]".
 
 **Errore URL:** messaggio di errore + suggerimento di incollare il testo direttamente.
+
+**Parallelismo non-bloccante:** al confirm dell'annuncio, il frontend lancia `ai-prescreen` e `ai-tailor` (analyze) in parallelo con `Promise.allSettled`. Se uno fallisce, l'utente riceve un warning ma può continuare (non viene rimandato allo step 0).
 
 ---
 

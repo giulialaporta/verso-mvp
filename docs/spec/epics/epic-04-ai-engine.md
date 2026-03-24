@@ -29,11 +29,15 @@ Tredici Supabase Edge Functions (Deno): 8 AI + 5 Stripe/account. Le funzioni AI 
     "personal": { "name": "", "email": "", "phone": "", "location": "", "linkedin": "", "website": "" },
     "summary": "",
     "experience": [{ "company": "", "role": "", "start": "", "end": "", "current": false, "description": "", "bullets": [] }],
-    "education": [{ "institution": "", "degree": "", "field": "", "start": "", "end": "", "grades": "", "honors": "", "programs": "", "publications": "" }],
+    "education": [{ "institution": "", "degree": "", "field": "", "start": "", "end": "", "grades": "", "honors": "" }],
     "skills": { "technical": [], "soft": [], "tools": [], "languages": [{ "language": "", "level": "" }] },
     "certifications": [{ "name": "", "issuer": "", "year": "" }],
     "projects": [{ "name": "", "description": "" }],
-    "extra": []
+    "publications": [{ "title": "", "journal": "", "year": "", "doi": "", "authors": "" }],
+    "volunteering": [{ "role": "", "organization": "", "start": "", "end": "", "current": false, "description": "" }],
+    "awards": [{ "name": "", "issuer": "", "year": "", "description": "" }],
+    "conferences": [{ "title": "", "event": "", "year": "", "role": "" }],
+    "extra_sections": [{ "title": "", "items": [] }]
   },
   "photo_url": "...",
   "raw_text": "..."
@@ -44,7 +48,10 @@ Tredici Supabase Edge Functions (Deno): 8 AI + 5 Stripe/account. Le funzioni AI 
 - Preserva la lingua originale del CV
 - Se il summary non è presente, ne sintetizza uno dai dati disponibili
 - Lingue con livello CEFR (A1-C2) quando specificato
-- Non inventa nulla — se un campo manca, lo lascia vuoto
+- Non inventa nulla — se un campo manca, lo **omette** (mai null, stringa vuota o placeholder)
+- Ruoli multipli nella stessa azienda → entry separate nell'array `experience` (non raggruppate)
+- `publications`, `volunteering`, `awards`, `conferences` estratti nelle sezioni strutturate dedicate — non in `extra_sections`
+- Tutte le certificazioni estratte (anche da experience, education, menzioni inline)
 
 ---
 

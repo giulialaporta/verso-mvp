@@ -12,6 +12,10 @@ Checklist per verificare il wizard a 6 step: Job Input, Pre-screening, Tailoring
 - [ ] **A4** — I dati nella preview card sono editabili inline
 - [ ] **A5** — Se l'URL non e' raggiungibile: errore + suggerimento di incollare il testo
 - [ ] **A6** — Un secondo scraping dello stesso URL usa la cache (risposta piu' veloce)
+- [ ] **A7** — Campo azienda opzionale: se lasciato vuoto e non estratto dall'AI → fallback "Azienda riservata"
+- [ ] **A8** — Annuncio di agenzia: badge "Tramite agenzia" visibile nella preview card
+- [ ] **A9** — Annuncio con cliente finale dichiarato: "Per conto di: [cliente]" visibile nella preview card
+- [ ] **A10** — Se prescreen o analyze falliscono: warning toast + il wizard continua (non reset allo step 0)
 
 ---
 

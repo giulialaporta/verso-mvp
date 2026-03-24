@@ -7,7 +7,7 @@
 
 ---
 
-## Story P0.1 — Sicurezza `cv-formal-review` (CRITICO)
+## Story P0.1 — Sicurezza `cv-formal-review` (CRITICO) ⚠️ ancora aperta — verificato al 2026-03-24
 
 ### Problema
 
@@ -28,6 +28,37 @@ Due edge function (`cv-formal-review` e `compact-headline`) hanno:
 - [ ] `compact-headline` usa `getCorsHeaders(req)` da `_shared/cors.ts`
 - [ ] `compact-headline` verifica il Bearer token (401 se assente/invalido)
 - [ ] Nessuna edge function usa `Access-Control-Allow-Origin: *`
+
+---
+
+## Story P3.8 — Fix layout DOCX ATS: ruolo e data su righe separate
+
+### Problema
+
+Nel DOCX ATS, il layout ruolo + data sulla stessa riga usa tab stop (`TabStopPosition.MAX`) che non funziona in LibreOffice e Google Docs — la data finisce attaccata al ruolo senza spaziatura.
+
+### File coinvolti
+
+`src/components/cv-templates/docx-generator.ts`
+
+### Cosa fare
+
+Nel blocco experience (e education), sostituire l'approccio tab stop con 2 righe separate:
+
+- **Riga 1:** ruolo bold (`spacing: { before: 320, after: 40 }`)
+- **Riga 2:** azienda · data, italic muted (`spacing: { after: 100 }`) — separatore `·` (U+00B7)
+
+Stessa logica per education: riga 1 = titolo laurea, riga 2 = istituzione · periodo · voto.
+
+Rimuovere gli import `TabStopType`, `TabStopPosition` se non usati altrove.
+
+### Criteri di accettazione
+
+- [ ] Ruolo su riga 1 (bold), azienda + data su riga 2 (italic muted) — nessun tab stop
+- [ ] Il DOCX aperto in Word, LibreOffice e Google Docs mostra il layout correttamente
+- [ ] Le date non sono mai attaccate al ruolo
+- [ ] Stessa struttura in Formazione (degree su riga 1, istituzione + periodo su riga 2)
+- [ ] Nessun `TabStopType.RIGHT` / `TabStopPosition.MAX` nel blocco experience/education
 
 ---
 
