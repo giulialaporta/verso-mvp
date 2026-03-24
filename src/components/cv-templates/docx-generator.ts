@@ -274,7 +274,11 @@ export async function generateDocx(
   if (education.length > 0) {
     children.push(sectionTitle(headers.education));
     for (const ed of education) {
-      const degreeField = [ed.degree, clean(ed.field)].filter(Boolean).join(" in ");
+      const degree = ed.degree || "";
+      const field = clean(ed.field) || "";
+      const degreeField = field && !degree.toLowerCase().includes(field.toLowerCase())
+        ? `${degree} in ${field}`
+        : degree;
       const startDate = normalizeDate(ed.start);
       const endDate = normalizeDate(ed.end);
       const period = [startDate, endDate].filter(Boolean).join(" - ");
