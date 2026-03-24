@@ -185,18 +185,21 @@ export async function generateDocx(
     );
   }
 
-  // ── Summary / Professional Profile ──
+  // ── Summary / Professional Profile (multi-paragraph) ──
   const summary = clean(cv.summary);
   if (summary) {
     children.push(sectionTitle(headers.profile));
-    children.push(
-      new Paragraph({
-        spacing: { after: 200 },
-        children: [
-          new TextRun({ text: sanitize(summary), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
-        ],
-      })
-    );
+    const summaryParagraphs = summary.split(/\n\n+/).filter((p: string) => p.trim());
+    for (const para of summaryParagraphs) {
+      children.push(
+        new Paragraph({
+          spacing: { after: 160 },
+          children: [
+            new TextRun({ text: sanitize(para.trim()), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+          ],
+        })
+      );
+    }
   }
 
   // ── Experience ──
