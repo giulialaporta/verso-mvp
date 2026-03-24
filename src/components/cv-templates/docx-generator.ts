@@ -148,6 +148,10 @@ export async function generateDocx(
   const skills = cv.skills;
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
   const projects = Array.isArray(cv.projects) ? cv.projects : [];
+  const publications = Array.isArray(cv.publications) ? cv.publications : [];
+  const volunteering = Array.isArray(cv.volunteering) ? cv.volunteering : [];
+  const awards = Array.isArray(cv.awards) ? cv.awards : [];
+  const conferences = Array.isArray(cv.conferences) ? cv.conferences : [];
   const extraSections = Array.isArray(cv.extra_sections) ? cv.extra_sections : [];
 
   const children: Paragraph[] = [];
