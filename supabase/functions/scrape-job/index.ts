@@ -226,7 +226,15 @@ This rule is ABSOLUTE. No exceptions. Never translate content.
 - Extract ONLY requirements EXPLICITLY stated in the job posting text
 - Do NOT infer, assume, or add requirements not written in the text
 - nice_to_have: ONLY if the posting uses explicit words like "nice to have", "preferred", "bonus", "plus", "ideale", "gradito", "preferibile"
-- If a requirement is ambiguous (not clearly mandatory or optional), classify as "preferred" in key_requirements, do NOT add to required_skills`;
+- If a requirement is ambiguous (not clearly mandatory or optional), classify as "preferred" in key_requirements, do NOT add to required_skills
+
+## STAFFING AGENCIES
+If the job posting is published by a staffing/recruiting agency (e.g. Randstad, Adecco, ManpowerGroup, Gi Group, Hays, Michael Page, Kelly Services, Page Personnel, Synergie, Umana, Orienta, Openjobmetis, Ali Lavoro, Etjca):
+- Set is_staffing_agency to true
+- Use the agency name as company_name
+- If the posting mentions the end client company, extract it in end_client
+- If the end client is not mentioned, omit end_client
+If the posting is NOT from an agency, set is_staffing_agency to false and omit end_client.`;
 
   const toolSchema = {
     type: "function" as const,
@@ -248,6 +256,8 @@ This rule is ABSOLUTE. No exceptions. Never translate content.
           salary_range: { type: "string", description: "Salary range if mentioned" },
           company_size: { type: "string", description: "Company size if detectable (startup, PMI, mid-size, enterprise, or employee count)" },
           industry: { type: "string", description: "Industry/sector if detectable" },
+          is_staffing_agency: { type: "boolean", description: "true if the posting is from a staffing/recruiting agency" },
+          end_client: { type: "string", description: "Name of the end client company if mentioned and is_staffing_agency is true" },
         },
         required: ["company_name", "role_title", "description", "key_requirements", "required_skills"],
       },

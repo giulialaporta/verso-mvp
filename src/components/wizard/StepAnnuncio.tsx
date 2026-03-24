@@ -40,7 +40,7 @@ export function StepAnnuncio({
   }, []);
 
   const handleAnalyze = useCallback(async () => {
-    if (!companyName.trim()) { toast.error("Inserisci il nome dell'azienda"); return; }
+    // Company name is optional — will fallback to AI-extracted or "Azienda riservata"
     setLoading(true);
     setJobData(null);
     const controller = new AbortController();
@@ -59,7 +59,7 @@ export function StepAnnuncio({
       const { data, error } = await supabase.functions.invoke("scrape-job", { body, signal: controller.signal as AbortSignal });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      const merged = { ...data.job_data, company_name: companyName.trim() || data.job_data.company_name };
+      const merged = { ...data.job_data, company_name: companyName.trim() || data.job_data.company_name || "Azienda riservata" };
       setJobData(merged);
     } catch (e: unknown) {
       if (controller.signal.aborted) {
@@ -97,6 +97,7 @@ export function StepAnnuncio({
               <Buildings size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input placeholder="Es. Google, Accenture, Intesa Sanpaolo..." value={companyName} onChange={(e) => setCompanyName(e.target.value)} disabled={loading} className="pl-9" />
             </div>
+            <p className="text-[11px] text-muted-foreground -mt-2">Se l'annuncio è di un'agenzia e non conosci l'azienda, lascia vuoto.</p>
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="w-full">
                 <TabsTrigger value="text" className="flex-1 gap-2"><TextAa size={16} /> Testo</TabsTrigger>
@@ -155,6 +156,12 @@ export function StepAnnuncio({
                 <Buildings size={24} className="text-info mt-0.5 shrink-0" />
                 <div className="min-w-0">
                   <h3 className="font-display text-lg font-bold">{jobData.company_name}</h3>
+                  {jobData.is_staffing_agency && (
+                    <span className="inline-flex items-center rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-mono text-warning">Tramite agenzia</span>
+                  )}
+                  {jobData.end_client && (
+                    <p className="text-xs text-muted-foreground">Per conto di: <span className="text-foreground font-medium">{jobData.end_client}</span></p>
+                  )}
                   <p className="text-primary font-medium">{jobData.role_title}</p>
                   {jobData.location && <p className="text-sm text-muted-foreground">{jobData.location}</p>}
                 </div>
