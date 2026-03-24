@@ -59,7 +59,7 @@ export function StepAnnuncio({
       const { data, error } = await supabase.functions.invoke("scrape-job", { body, signal: controller.signal as AbortSignal });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      const merged = { ...data.job_data, company_name: companyName.trim() || data.job_data.company_name };
+      const merged = { ...data.job_data, company_name: companyName.trim() || data.job_data.company_name || "Azienda riservata" };
       setJobData(merged);
     } catch (e: unknown) {
       if (controller.signal.aborted) {
