@@ -215,7 +215,7 @@ export async function generateDocx(
       // Role + date on same line (tab stop right)
       children.push(
         new Paragraph({
-          spacing: { before: 200, after: 40 },
+          spacing: { before: 320, after: 60 },
           tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
           children: [
             new TextRun({ text: sanitize(role), bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
