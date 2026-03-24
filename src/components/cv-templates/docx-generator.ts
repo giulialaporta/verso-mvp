@@ -114,6 +114,10 @@ function getHeaders(lang?: string): Record<string, string> {
       certifications: "Certifications",
       languages: "Languages",
       projects: "Projects",
+      publications: "Publications",
+      volunteering: "Volunteering",
+      awards: "Awards & Recognitions",
+      conferences: "Conferences & Presentations",
     };
   }
   return {
@@ -124,6 +128,10 @@ function getHeaders(lang?: string): Record<string, string> {
     certifications: "Certificazioni",
     languages: "Lingue",
     projects: "Progetti",
+    publications: "Pubblicazioni",
+    volunteering: "Volontariato",
+    awards: "Premi e riconoscimenti",
+    conferences: "Conferenze e presentazioni",
   };
 }
 
