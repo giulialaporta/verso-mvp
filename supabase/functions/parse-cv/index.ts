@@ -169,10 +169,12 @@ Always extract language proficiency and map to CEFR when possible:
 - If an explicit CEFR level is given (e.g. "B2"), use it directly
 - Always populate BOTH "level" (CEFR code) and "descriptor" (original text)
 
-## NULL HANDLING
-- If a field is genuinely not present in the CV, set it to null (not empty string "")
-- Only use empty string "" if the CV explicitly shows the field but it's blank
-- This applies to: grade, honors, program, publication, location, linkedin, website
+## NULL HANDLING — CRITICAL
+- If a field is genuinely not present in the CV, OMIT IT ENTIRELY from the output. Do NOT return null, empty string "", or any placeholder.
+- Do NOT return empty strings "". If a value is not found, simply do not include the key in the JSON.
+- Do NOT return placeholder values like "None", "N/A", "Not specified", "Non specificato".
+- Only include a field if it has a real, meaningful value extracted from the CV.
+- This applies to ALL fields, especially: grade, honors, program, publication, location, linkedin, website, description, end date.
 
 ## PHOTO DETECTION
 - has_photo: set to true ONLY if the CV contains a visible photograph of a person (headshot, portrait, ID photo)
