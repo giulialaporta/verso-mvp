@@ -62,6 +62,10 @@ interface PreparedData {
   languages: { language: string; level: string }[];
   certifications: { name: string; issuer?: string; year?: string }[];
   projects: { name: string; description?: string }[];
+  publications: { title: string; journal?: string; year?: string; doi?: string; authors?: string }[];
+  volunteering: { role: string; organization: string; start?: string; end?: string; description?: string }[];
+  awards: { name: string; issuer?: string; year?: string; description?: string }[];
+  conferences: { title: string; event: string; year?: string; role?: string }[];
   extraSections: { title: string; items: string[] }[];
   headers: Record<string, string>;
 }
