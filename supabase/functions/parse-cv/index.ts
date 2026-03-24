@@ -370,6 +370,65 @@ RULES:
                 required: ["name"],
               },
             },
+            publications: {
+              type: "array",
+              description: "Academic publications, papers, articles, books",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  journal: { type: "string", description: "Journal, publisher, or conference proceedings" },
+                  year: { type: "string" },
+                  doi: { type: "string", description: "DOI or URL link" },
+                  authors: { type: "string", description: "Co-authors if any" },
+                },
+                required: ["title"],
+              },
+            },
+            volunteering: {
+              type: "array",
+              description: "Volunteer work, community service, pro-bono activities",
+              items: {
+                type: "object",
+                properties: {
+                  role: { type: "string" },
+                  organization: { type: "string" },
+                  start: { type: "string" },
+                  end: { type: "string" },
+                  current: { type: "boolean" },
+                  description: { type: "string" },
+                },
+                required: ["role", "organization"],
+              },
+            },
+            awards: {
+              type: "array",
+              description: "Awards, honors, prizes, scholarships, recognitions",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  issuer: { type: "string" },
+                  year: { type: "string" },
+                  description: { type: "string" },
+                },
+                required: ["name"],
+              },
+            },
+            conferences: {
+              type: "array",
+              description: "Conferences, talks, presentations, keynotes, workshops",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  event: { type: "string" },
+                  year: { type: "string" },
+                  role: { type: "string", enum: ["speaker", "attendee", "organizer", "panelist", "moderator"] },
+                },
+                required: ["title", "event"],
+              },
+            },
             extra_sections: {
               type: "array",
               items: {
