@@ -289,9 +289,9 @@ export async function generateDocx(
 
       children.push(
         new Paragraph({
-          spacing: { after: 60 },
+          spacing: { after: 100 },
           children: [
-            new TextRun({ text: sanitize(ed.institution || ""), size: BODY_SIZE, font: FONT, color: "333333" }),
+            new TextRun({ text: sanitize(ed.institution || ""), size: BODY_SIZE, font: FONT, color: TEXT_COLOR, italics: true }),
             ...(clean(ed.grade)
               ? [new TextRun({ text: " | " + sanitize(ed.grade) + (clean(ed.honors) ? " " + sanitize(ed.honors) : ""), size: META_SIZE, font: FONT, color: MUTED_COLOR })]
               : []),
