@@ -112,6 +112,16 @@ function prepareData(cv: Record<string, any>, lang: string): PreparedData {
     languages: cv.skills?.languages || [],
     certifications: (cv.certifications || []).filter((c: any) => clean(c.name)),
     projects: (cv.projects || []).filter((p: any) => clean(p.name)),
+    publications: (cv.publications || []).filter((p: any) => clean(p.title)),
+    volunteering: (cv.volunteering || []).map((v: any) => ({
+      role: clean(v.role),
+      organization: clean(v.organization),
+      start: v.start || "",
+      end: v.end || (v.current ? (lang === "it" ? "Attuale" : "Present") : ""),
+      description: clean(v.description),
+    })),
+    awards: (cv.awards || []).filter((a: any) => clean(a.name)),
+    conferences: (cv.conferences || []).filter((c: any) => clean(c.title)),
     extraSections: (cv.extra_sections || []).filter((s: any) => s.title && s.items?.length),
     headers: getHeaders(lang),
   };
