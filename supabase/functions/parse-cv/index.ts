@@ -218,6 +218,15 @@ EXPECTED OUTPUT:
   }
 }
 
+## MULTIPLE ROLES AT SAME COMPANY
+If a person held multiple roles/positions at the same company (e.g. promotions, role changes), each role MUST be a SEPARATE entry in the "experience" array.
+Do NOT group or merge them into a single entry.
+Each entry must have its own role title, dates, description, and bullets.
+The company name will be repeated — this is correct and expected.
+
+Example: if someone was "Junior Developer" then "Senior Developer" at Acme Corp,
+output TWO separate experience entries, both with company "Acme Corp".
+
 RULES:
 - The "summary" field is REQUIRED. If the CV has an explicit section (Profile, Summary, Objective, About Me, Profilo, Chi sono), use it verbatim. If NO such section exists, synthesize a 2-3 sentence professional profile based on: current role, years of experience, main sector, distinctive skills. Do not invent anything: use only information present in the CV.
 - For experience, ALWAYS separate narrative text (description) from bullet points (bullets).
