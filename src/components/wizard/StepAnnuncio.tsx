@@ -97,6 +97,7 @@ export function StepAnnuncio({
               <Buildings size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input placeholder="Es. Google, Accenture, Intesa Sanpaolo..." value={companyName} onChange={(e) => setCompanyName(e.target.value)} disabled={loading} className="pl-9" />
             </div>
+            <p className="text-[11px] text-muted-foreground -mt-2">Se l'annuncio è di un'agenzia e non conosci l'azienda, lascia vuoto.</p>
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="w-full">
                 <TabsTrigger value="text" className="flex-1 gap-2"><TextAa size={16} /> Testo</TabsTrigger>
