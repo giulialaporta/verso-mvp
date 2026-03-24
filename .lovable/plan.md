@@ -2,31 +2,41 @@
 
 ## Obiettivo
 
-Aggiungere un'istruzione esplicita nel system prompt di `parse-cv` per impedire il raggruppamento di ruoli multipli nella stessa azienda. Ogni posizione deve essere un elemento separato nell'array `experience`.
-
-## Problema attuale
-
-Il prompt non specifica come gestire il caso di una persona che ha avuto piu ruoli nella stessa azienda (es. promozioni, cambi di ruolo). L'AI potrebbe raggruppare tutto sotto un unico blocco aziendale, perdendo la cronologia delle singole posizioni.
+Gestire annunci pubblicati da agenzie di recruiting dove l'azienda finale è sconosciuta. Oggi il campo "Nome azienda" è obbligatorio e blocca il flusso se non compilato.
 
 ## Intervento
 
-### Aggiungere regola nel system prompt di `parse-cv/index.ts`
+### 1) Rendere il campo azienda opzionale con fallback intelligente
 
-Nella sezione delle regole del system prompt, aggiungere una regola chiara:
+In `src/components/wizard/StepAnnuncio.tsx`:
+- Rimuovere la validazione obbligatoria su `companyName` (riga 43: `if (!companyName.trim())`)
+- Se il campo è vuoto, usare come fallback il `company_name` estratto dall'AI
+- Se anche l'AI non trova un'azienda, usare il placeholder `"Azienda riservata"`
+- Aggiungere un hint sotto il campo: "Se l'annuncio è di un'agenzia e non conosci l'azienda, lascia vuoto"
 
-```
-## MULTIPLE ROLES AT SAME COMPANY
-If a person held multiple roles/positions at the same company (e.g. promotions, 
-role changes), each role MUST be a SEPARATE entry in the "experience" array.
-Do NOT group or merge them into a single entry.
-Each entry must have its own role title, dates, description, and bullets.
-The company name will be repeated — this is correct and expected.
+### 2) Aggiornare il prompt di `scrape-job` per riconoscere agenzie
 
-Example: if someone was "Junior Developer" then "Senior Developer" at Acme Corp,
-output TWO separate experience entries, both with company "Acme Corp".
-```
+In `supabase/functions/scrape-job/index.ts`, aggiungere una regola nel system prompt:
+- Se l'annuncio è pubblicato da un'agenzia di recruiting (es. Randstad, Adecco, ManpowerGroup, Gi Group), estrarre il nome dell'agenzia in `company_name` e aggiungere un campo `is_staffing_agency: true`
+- Se l'annuncio menziona il cliente finale, estrarlo in un nuovo campo `end_client`
+
+Aggiungere `is_staffing_agency` (boolean) e `end_client` (string, opzionale) allo schema del tool `extract_job_data`.
+
+### 3) Mostrare l'informazione agenzia nella preview card
+
+In `StepAnnuncio.tsx`, nella card di preview (riga 152+):
+- Se `is_staffing_agency` è true, mostrare sotto il nome azienda un badge "Tramite agenzia"
+- Se `end_client` è presente, mostrare "Per conto di: {end_client}"
+
+### 4) Aggiornare il tipo `JobData`
+
+In `src/components/wizard/wizard-types.ts`, aggiungere:
+- `is_staffing_agency?: boolean`
+- `end_client?: string`
 
 ## File da modificare
 
-- `supabase/functions/parse-cv/index.ts` — aggiunta regola nel system prompt
+- `src/components/wizard/StepAnnuncio.tsx` — campo opzionale + hint + badge agenzia
+- `src/components/wizard/wizard-types.ts` — nuovi campi tipo
+- `supabase/functions/scrape-job/index.ts` — prompt + schema tool aggiornati
 
