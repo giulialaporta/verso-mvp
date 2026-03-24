@@ -147,7 +147,7 @@ export async function generateDocx(
   // ── Name ──
   children.push(
     new Paragraph({
-      spacing: { after: 80 },
+      spacing: { after: 120 },
       children: [
         new TextRun({
           text: sanitize(clean(personal.name) || "Nome Cognome"),
