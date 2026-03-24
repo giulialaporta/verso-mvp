@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAi } from "../_shared/ai-provider.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { compactCV } from "../_shared/compact-cv.ts";
 
 function extractFirstImage(bytes: Uint8Array): { data: Uint8Array; ext: string } | null {
   const candidates: Array<{ data: Uint8Array; ext: string; size: number }> = [];
