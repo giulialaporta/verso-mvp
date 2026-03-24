@@ -111,6 +111,22 @@ p { orphans: 2; widows: 2; }
     <div class="section-title">{{headers.projects}}</div>
     {{#each projects}}<div class="project-block"><span class="project-name">{{this.name}}</span>{{#if this.description}}<div class="project-desc">{{this.description}}</div>{{/if}}</div>{{/each}}
     {{/if}}
+    {{#if publications.length}}
+    <div class="section-title">{{headers.publications}}</div>
+    {{#each publications}}<div class="project-block"><span class="project-name">{{this.title}}</span>{{#if this.journal}}<div class="project-desc">{{this.journal}}{{#if this.year}} · {{this.year}}{{/if}}</div>{{/if}}</div>{{/each}}
+    {{/if}}
+    {{#if volunteering.length}}
+    <div class="section-title">{{headers.volunteering}}</div>
+    {{#each volunteering}}<div class="experience-block"><div class="exp-header"><span class="exp-role">{{this.role}}</span><span class="exp-meta">{{this.start}} – {{this.end}}</span></div><div class="exp-company">{{this.organization}}</div>{{#if this.description}}<p class="summary-text">{{this.description}}</p>{{/if}}</div>{{/each}}
+    {{/if}}
+    {{#if awards.length}}
+    <div class="section-title">{{headers.awards}}</div>
+    {{#each awards}}<div class="project-block"><span class="project-name">{{this.name}}</span>{{#if this.issuer}}<div class="project-desc">{{this.issuer}}{{#if this.year}} · {{this.year}}{{/if}}</div>{{/if}}</div>{{/each}}
+    {{/if}}
+    {{#if conferences.length}}
+    <div class="section-title">{{headers.conferences}}</div>
+    {{#each conferences}}<div class="project-block"><span class="project-name">{{this.title}}</span><div class="project-desc">{{this.event}}{{#if this.year}} · {{this.year}}{{/if}}</div></div>{{/each}}
+    {{/if}}
     {{#each extraSections}}<div><div class="section-title">{{this.title}}</div><ul>{{#each this.items}}<li>{{this}}</li>{{/each}}</ul></div>{{/each}}
   </div>
 </div>

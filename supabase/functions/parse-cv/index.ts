@@ -144,6 +144,13 @@ CRITICAL LANGUAGE RULE: Preserve the EXACT original language of the CV. If the C
 - Certifications = "Certificazioni", "Attestati", "Abilitazioni", "Certifications", "Licenses", "Zertifikate"
 - Projects = "Progetti", "Projects", "Portfolio", "Projekte"
 - Profile/Summary = "Profilo", "Summary", "About Me", "Chi sono", "Obiettivo", "Riepilogo"
+- Publications = "Pubblicazioni", "Publications", "Veröffentlichungen", "Articles", "Papers", "Articoli", "Ricerca"
+- Volunteering = "Volontariato", "Attività di volontariato", "Volunteer Work", "Volunteering", "Community Service", "Bénévolat", "Ehrenamt"
+- Awards = "Premi", "Riconoscimenti", "Premi e riconoscimenti", "Awards", "Honors", "Honours", "Auszeichnungen", "Prix"
+- Conferences = "Conferenze", "Presentazioni", "Convegni", "Conferences", "Speaking", "Talks", "Konferenzen", "Conférences"
+
+## STRUCTURED SECTIONS — DO NOT PUT IN extra_sections
+Publications, volunteering, awards, and conferences MUST be extracted into their dedicated structured fields (publications, volunteering, awards, conferences). Do NOT put them in extra_sections.
 
 ## MULTI-COLUMN LAYOUT
 If the CV has a two-column or multi-column layout:
@@ -361,6 +368,65 @@ RULES:
                   description: { type: "string" },
                 },
                 required: ["name"],
+              },
+            },
+            publications: {
+              type: "array",
+              description: "Academic publications, papers, articles, books",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  journal: { type: "string", description: "Journal, publisher, or conference proceedings" },
+                  year: { type: "string" },
+                  doi: { type: "string", description: "DOI or URL link" },
+                  authors: { type: "string", description: "Co-authors if any" },
+                },
+                required: ["title"],
+              },
+            },
+            volunteering: {
+              type: "array",
+              description: "Volunteer work, community service, pro-bono activities",
+              items: {
+                type: "object",
+                properties: {
+                  role: { type: "string" },
+                  organization: { type: "string" },
+                  start: { type: "string" },
+                  end: { type: "string" },
+                  current: { type: "boolean" },
+                  description: { type: "string" },
+                },
+                required: ["role", "organization"],
+              },
+            },
+            awards: {
+              type: "array",
+              description: "Awards, honors, prizes, scholarships, recognitions",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  issuer: { type: "string" },
+                  year: { type: "string" },
+                  description: { type: "string" },
+                },
+                required: ["name"],
+              },
+            },
+            conferences: {
+              type: "array",
+              description: "Conferences, talks, presentations, keynotes, workshops",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  event: { type: "string" },
+                  year: { type: "string" },
+                  role: { type: "string", enum: ["speaker", "attendee", "organizer", "panelist", "moderator"] },
+                },
+                required: ["title", "event"],
               },
             },
             extra_sections: {

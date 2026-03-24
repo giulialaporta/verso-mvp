@@ -18,9 +18,9 @@ function normalizeLang(lang: string | undefined | null): string {
 function getHeaders(lang: string): Record<string, string> {
   const norm = normalizeLang(lang);
   if (norm === "en") {
-    return { contact: "Contact", skills: "Skills", languages: "Languages", certifications: "Certifications", profile: "Profile", experience: "Experience", education: "Education", projects: "Projects" };
+    return { contact: "Contact", skills: "Skills", languages: "Languages", certifications: "Certifications", profile: "Profile", experience: "Experience", education: "Education", projects: "Projects", publications: "Publications", volunteering: "Volunteering", awards: "Awards & Recognitions", conferences: "Conferences & Presentations" };
   }
-  return { contact: "Contatti", skills: "Competenze", languages: "Lingue", certifications: "Certificazioni", profile: "Profilo", experience: "Esperienza", education: "Formazione", projects: "Progetti" };
+  return { contact: "Contatti", skills: "Competenze", languages: "Lingue", certifications: "Certificazioni", profile: "Profilo", experience: "Esperienza", education: "Formazione", projects: "Progetti", publications: "Pubblicazioni", volunteering: "Volontariato", awards: "Premi e riconoscimenti", conferences: "Conferenze e presentazioni" };
 }
 
 // --- Data preparation ---
@@ -62,6 +62,10 @@ interface PreparedData {
   languages: { language: string; level: string }[];
   certifications: { name: string; issuer?: string; year?: string }[];
   projects: { name: string; description?: string }[];
+  publications: { title: string; journal?: string; year?: string; doi?: string; authors?: string }[];
+  volunteering: { role: string; organization: string; start?: string; end?: string; description?: string }[];
+  awards: { name: string; issuer?: string; year?: string; description?: string }[];
+  conferences: { title: string; event: string; year?: string; role?: string }[];
   extraSections: { title: string; items: string[] }[];
   headers: Record<string, string>;
 }
@@ -108,6 +112,16 @@ function prepareData(cv: Record<string, any>, lang: string): PreparedData {
     languages: cv.skills?.languages || [],
     certifications: (cv.certifications || []).filter((c: any) => clean(c.name)),
     projects: (cv.projects || []).filter((p: any) => clean(p.name)),
+    publications: (cv.publications || []).filter((p: any) => clean(p.title)),
+    volunteering: (cv.volunteering || []).map((v: any) => ({
+      role: clean(v.role),
+      organization: clean(v.organization),
+      start: v.start || "",
+      end: v.end || (v.current ? (lang === "it" ? "Attuale" : "Present") : ""),
+      description: clean(v.description),
+    })),
+    awards: (cv.awards || []).filter((a: any) => clean(a.name)),
+    conferences: (cv.conferences || []).filter((c: any) => clean(c.title)),
     extraSections: (cv.extra_sections || []).filter((s: any) => s.title && s.items?.length),
     headers: getHeaders(lang),
   };

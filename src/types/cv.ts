@@ -58,6 +58,37 @@ export type ParsedCV = {
     link?: string;
   }[];
 
+  publications?: {
+    title: string;
+    journal?: string;
+    year?: string;
+    doi?: string;
+    authors?: string;
+  }[];
+
+  volunteering?: {
+    role: string;
+    organization: string;
+    start?: string;
+    end?: string;
+    current?: boolean;
+    description?: string;
+  }[];
+
+  awards?: {
+    name: string;
+    issuer?: string;
+    year?: string;
+    description?: string;
+  }[];
+
+  conferences?: {
+    title: string;
+    event: string;
+    year?: string;
+    role?: string;
+  }[];
+
   extra_sections?: {
     title: string;
     items: string[];

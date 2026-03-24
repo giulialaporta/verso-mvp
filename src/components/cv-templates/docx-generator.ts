@@ -114,6 +114,10 @@ function getHeaders(lang?: string): Record<string, string> {
       certifications: "Certifications",
       languages: "Languages",
       projects: "Projects",
+      publications: "Publications",
+      volunteering: "Volunteering",
+      awards: "Awards & Recognitions",
+      conferences: "Conferences & Presentations",
     };
   }
   return {
@@ -124,6 +128,10 @@ function getHeaders(lang?: string): Record<string, string> {
     certifications: "Certificazioni",
     languages: "Lingue",
     projects: "Progetti",
+    publications: "Pubblicazioni",
+    volunteering: "Volontariato",
+    awards: "Premi e riconoscimenti",
+    conferences: "Conferenze e presentazioni",
   };
 }
 
@@ -140,6 +148,10 @@ export async function generateDocx(
   const skills = cv.skills;
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
   const projects = Array.isArray(cv.projects) ? cv.projects : [];
+  const publications = Array.isArray(cv.publications) ? cv.publications : [];
+  const volunteering = Array.isArray(cv.volunteering) ? cv.volunteering : [];
+  const awards = Array.isArray(cv.awards) ? cv.awards : [];
+  const conferences = Array.isArray(cv.conferences) ? cv.conferences : [];
   const extraSections = Array.isArray(cv.extra_sections) ? cv.extra_sections : [];
 
   const children: Paragraph[] = [];
@@ -413,6 +425,114 @@ export async function generateDocx(
           })
         );
       }
+    }
+  }
+
+  // ── Publications ──
+  if (publications.length > 0) {
+    children.push(sectionTitle(headers.publications));
+    for (const pub of publications) {
+      const parts = [pub.title];
+      if (clean(pub.journal)) parts.push(pub.journal);
+      if (clean(pub.year)) parts.push(pub.year);
+      if (clean(pub.authors)) parts.push(pub.authors);
+      children.push(
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [
+            new TextRun({ text: sanitize(parts.join(" | ")), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+          ],
+        })
+      );
+    }
+  }
+
+  // ── Volunteering ──
+  if (volunteering.length > 0) {
+    children.push(sectionTitle(headers.volunteering));
+    for (const vol of volunteering) {
+      const normLang = normalizeLang(lang);
+      const endDate = vol.current
+        ? (normLang === "en" ? "Present" : "Attuale")
+        : normalizeDate(vol.end);
+      const dateStr = [normalizeDate(vol.start), endDate].filter(Boolean).join(" - ");
+
+      children.push(
+        new Paragraph({
+          spacing: { before: 200, after: 60 },
+          tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+          children: [
+            new TextRun({ text: sanitize(vol.role), bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+            ...(dateStr ? [new TextRun({ text: "\t" + sanitize(dateStr), size: META_SIZE, font: FONT, color: MUTED_COLOR })] : []),
+          ],
+        })
+      );
+      if (clean(vol.organization)) {
+        children.push(
+          new Paragraph({
+            spacing: { after: 60 },
+            children: [
+              new TextRun({ text: sanitize(vol.organization), size: BODY_SIZE, font: FONT, color: TEXT_COLOR, italics: true }),
+            ],
+          })
+        );
+      }
+      if (clean(vol.description)) {
+        children.push(
+          new Paragraph({
+            spacing: { after: 60 },
+            children: [
+              new TextRun({ text: sanitize(vol.description), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+            ],
+          })
+        );
+      }
+    }
+  }
+
+  // ── Awards ──
+  if (awards.length > 0) {
+    children.push(sectionTitle(headers.awards));
+    for (const award of awards) {
+      const parts = [award.name];
+      if (clean(award.issuer)) parts.push(award.issuer);
+      if (clean(award.year)) parts.push(award.year);
+      children.push(
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [
+            new TextRun({ text: sanitize(parts.join(" | ")), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+          ],
+        })
+      );
+      if (clean(award.description)) {
+        children.push(
+          new Paragraph({
+            spacing: { after: 40 },
+            children: [
+              new TextRun({ text: sanitize(award.description), size: BODY_SIZE, font: FONT, color: MUTED_COLOR }),
+            ],
+          })
+        );
+      }
+    }
+  }
+
+  // ── Conferences ──
+  if (conferences.length > 0) {
+    children.push(sectionTitle(headers.conferences));
+    for (const conf of conferences) {
+      const parts = [conf.title, conf.event];
+      if (clean(conf.year)) parts.push(conf.year);
+      if (clean(conf.role)) parts.push(conf.role);
+      children.push(
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [
+            new TextRun({ text: sanitize(parts.join(" | ")), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+          ],
+        })
+      );
     }
   }
 

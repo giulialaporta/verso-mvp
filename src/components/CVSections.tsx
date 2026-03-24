@@ -19,6 +19,10 @@ import {
   Trash,
   Link as LinkIcon,
   PencilSimple,
+  BookOpen,
+  HandHeart,
+  Trophy,
+  Microphone,
 } from "@phosphor-icons/react";
 import {
   Collapsible,
@@ -161,7 +165,7 @@ export function CVSections({
   onUpdate?: (data: ParsedCV) => void;
 }) {
   const [editingItem, setEditingItem] = useState<{
-    type: "experience" | "education" | "certification" | "project";
+    type: "experience" | "education" | "certification" | "project" | "publication" | "volunteering" | "award" | "conference";
     index: number;
   } | null>(null);
 
@@ -215,18 +219,65 @@ export function CVSections({
         { key: "link", label: "Link", value: proj.link || "", placeholder: "https://..." },
       ];
     }
+    if (type === "publication" && data.publications?.[index]) {
+      const pub = data.publications[index];
+      return [
+        { key: "title", label: "Titolo", value: pub.title || "", placeholder: "Titolo pubblicazione" },
+        { key: "journal", label: "Rivista / Editore", value: pub.journal || "", placeholder: "Nome rivista o editore" },
+        { key: "year", label: "Anno", value: pub.year || "", placeholder: "es. 2023" },
+        { key: "doi", label: "DOI / Link", value: pub.doi || "", placeholder: "https://doi.org/..." },
+        { key: "authors", label: "Autori", value: pub.authors || "", placeholder: "Co-autori" },
+      ];
+    }
+    if (type === "volunteering" && data.volunteering?.[index]) {
+      const vol = data.volunteering[index];
+      return [
+        { key: "role", label: "Ruolo", value: vol.role || "", placeholder: "Ruolo" },
+        { key: "organization", label: "Organizzazione", value: vol.organization || "", placeholder: "Organizzazione" },
+        { key: "start", label: "Data inizio", value: vol.start || "", placeholder: "es. Gen 2020" },
+        { key: "end", label: "Data fine", value: vol.end || (vol.current ? "Attuale" : ""), placeholder: "es. Dic 2023" },
+        { key: "description", label: "Descrizione", value: vol.description || "", multiline: true, placeholder: "Descrizione..." },
+      ];
+    }
+    if (type === "award" && data.awards?.[index]) {
+      const award = data.awards[index];
+      return [
+        { key: "name", label: "Nome", value: award.name || "", placeholder: "Nome premio" },
+        { key: "issuer", label: "Ente", value: award.issuer || "", placeholder: "Ente conferitore" },
+        { key: "year", label: "Anno", value: award.year || "", placeholder: "es. 2023" },
+        { key: "description", label: "Descrizione", value: award.description || "", multiline: true, placeholder: "Descrizione..." },
+      ];
+    }
+    if (type === "conference" && data.conferences?.[index]) {
+      const conf = data.conferences[index];
+      return [
+        { key: "title", label: "Titolo", value: conf.title || "", placeholder: "Titolo presentazione" },
+        { key: "event", label: "Evento", value: conf.event || "", placeholder: "Nome evento / conferenza" },
+        { key: "year", label: "Anno", value: conf.year || "", placeholder: "es. 2023" },
+        { key: "role", label: "Ruolo", value: conf.role || "", placeholder: "es. speaker, organizer" },
+      ];
+    }
     return [];
   }, [editingItem, data]);
 
   const drawerTitle = editingItem
-    ? { experience: "Modifica esperienza", education: "Modifica formazione", certification: "Modifica certificazione", project: "Modifica progetto" }[editingItem.type]
+    ? {
+        experience: "Modifica esperienza",
+        education: "Modifica formazione",
+        certification: "Modifica certificazione",
+        project: "Modifica progetto",
+        publication: "Modifica pubblicazione",
+        volunteering: "Modifica volontariato",
+        award: "Modifica premio",
+        conference: "Modifica conferenza",
+      }[editingItem.type]
     : "";
 
   const handleDrawerSave = (values: Record<string, string | string[]>) => {
     if (!editingItem || !onUpdate) return;
     const { type, index } = editingItem;
     const copy = JSON.parse(JSON.stringify(data));
-    const arrayKey = type === "certification" ? "certifications" : type === "project" ? "projects" : type === "experience" ? "experience" : "education";
+    const arrayKey = type === "certification" ? "certifications" : type === "project" ? "projects" : type === "experience" ? "experience" : type === "education" ? "education" : type === "publication" ? "publications" : type === "volunteering" ? "volunteering" : type === "award" ? "awards" : "conferences";
     if (copy[arrayKey]?.[index]) {
       Object.entries(values).forEach(([k, v]) => {
         if (Array.isArray(v)) {
@@ -645,6 +696,147 @@ export function CVSections({
             <AddButton onClick={() => {
               onUpdate?.({ ...data, projects: [...(data.projects || []), { name: "", link: "" }] });
             }} label="Progetto" />
+          )}
+        </Section>
+      )}
+
+      {/* Publications */}
+      {Array.isArray(data.publications) && data.publications.length > 0 && (
+        <Section icon={BookOpen} title="Pubblicazioni" collapsible={collapsible} summary={`${data.publications.length}`}>
+          <div className="space-y-2">
+            {data.publications.map((pub, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{pub.title}</p>
+                  {pub.journal && <p className="text-xs text-muted-foreground">{pub.journal}</p>}
+                  <div className="flex gap-2 text-xs text-muted-foreground/60">
+                    {pub.year && <span>{pub.year}</span>}
+                    {pub.authors && <span>· {pub.authors}</span>}
+                  </div>
+                  {pub.doi && (
+                    <a href={pub.doi.startsWith("http") ? pub.doi : `https://doi.org/${pub.doi}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-secondary hover:underline mt-0.5">
+                      <LinkIcon size={12} /> {pub.doi}
+                    </a>
+                  )}
+                </div>
+                {editable && (
+                  <ItemActions
+                    onEdit={() => setEditingItem({ type: "publication", index: i })}
+                    onRemove={() => {
+                      const updated = data.publications!.filter((_, j) => j !== i);
+                      onUpdate?.({ ...data, publications: updated });
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          {editable && (
+            <AddButton onClick={() => {
+              onUpdate?.({ ...data, publications: [...(data.publications || []), { title: "" }] });
+            }} label="Pubblicazione" />
+          )}
+        </Section>
+      )}
+
+      {/* Volunteering */}
+      {Array.isArray(data.volunteering) && data.volunteering.length > 0 && (
+        <Section icon={HandHeart} title="Volontariato" collapsible={collapsible} summary={`${data.volunteering.length}`}>
+          <div className="space-y-3">
+            {data.volunteering.map((vol, i) => (
+              <div key={i} className="border-l-2 border-primary/30 pl-3 relative">
+                {editable && (
+                  <div className="absolute right-0 top-0">
+                    <ItemActions
+                      onEdit={() => setEditingItem({ type: "volunteering", index: i })}
+                      onRemove={() => {
+                        const updated = data.volunteering!.filter((_, j) => j !== i);
+                        onUpdate?.({ ...data, volunteering: updated });
+                      }}
+                    />
+                  </div>
+                )}
+                <p className="font-medium text-sm pr-14">{vol.role}</p>
+                <p className="text-xs text-muted-foreground">{vol.organization}</p>
+                <p className="text-xs text-muted-foreground/60">
+                  {vol.start || ""}{" – "}{vol.end || (vol.current ? "Attuale" : "")}
+                </p>
+                {vol.description && <p className="text-xs text-foreground/70 mt-1">{vol.description}</p>}
+              </div>
+            ))}
+          </div>
+          {editable && (
+            <AddButton onClick={() => {
+              onUpdate?.({ ...data, volunteering: [...(data.volunteering || []), { role: "", organization: "" }] });
+            }} label="Volontariato" />
+          )}
+        </Section>
+      )}
+
+      {/* Awards */}
+      {Array.isArray(data.awards) && data.awards.length > 0 && (
+        <Section icon={Trophy} title="Premi e riconoscimenti" collapsible={collapsible} summary={`${data.awards.length}`}>
+          <div className="space-y-2">
+            {data.awards.map((award, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{award.name}</p>
+                  <div className="flex gap-2 text-xs text-muted-foreground">
+                    {award.issuer && <span>{award.issuer}</span>}
+                    {award.year && <span>({award.year})</span>}
+                  </div>
+                  {award.description && <p className="text-xs text-foreground/70 mt-0.5">{award.description}</p>}
+                </div>
+                {editable && (
+                  <ItemActions
+                    onEdit={() => setEditingItem({ type: "award", index: i })}
+                    onRemove={() => {
+                      const updated = data.awards!.filter((_, j) => j !== i);
+                      onUpdate?.({ ...data, awards: updated });
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          {editable && (
+            <AddButton onClick={() => {
+              onUpdate?.({ ...data, awards: [...(data.awards || []), { name: "" }] });
+            }} label="Premio" />
+          )}
+        </Section>
+      )}
+
+      {/* Conferences */}
+      {Array.isArray(data.conferences) && data.conferences.length > 0 && (
+        <Section icon={Microphone} title="Conferenze e presentazioni" collapsible={collapsible} summary={`${data.conferences.length}`}>
+          <div className="space-y-2">
+            {data.conferences.map((conf, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{conf.title}</p>
+                  <div className="flex gap-2 text-xs text-muted-foreground">
+                    <span>{conf.event}</span>
+                    {conf.year && <span>({conf.year})</span>}
+                    {conf.role && <span className="capitalize">· {conf.role}</span>}
+                  </div>
+                </div>
+                {editable && (
+                  <ItemActions
+                    onEdit={() => setEditingItem({ type: "conference", index: i })}
+                    onRemove={() => {
+                      const updated = data.conferences!.filter((_, j) => j !== i);
+                      onUpdate?.({ ...data, conferences: updated });
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          {editable && (
+            <AddButton onClick={() => {
+              onUpdate?.({ ...data, conferences: [...(data.conferences || []), { title: "", event: "" }] });
+            }} label="Conferenza" />
           )}
         </Section>
       )}
