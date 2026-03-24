@@ -40,7 +40,7 @@ export function StepAnnuncio({
   }, []);
 
   const handleAnalyze = useCallback(async () => {
-    if (!companyName.trim()) { toast.error("Inserisci il nome dell'azienda"); return; }
+    // Company name is optional — will fallback to AI-extracted or "Azienda riservata"
     setLoading(true);
     setJobData(null);
     const controller = new AbortController();
