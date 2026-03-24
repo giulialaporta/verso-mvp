@@ -195,7 +195,13 @@ The ENTIRE tailored CV must be in ONE language: the target language.
 Rephrase with action verb + what the candidate did. If the original has metrics, keep them. If not, describe the impact qualitatively using ONLY information already present.
 
 ### Summary
-2-3 sentences. Who the candidate is + what makes them relevant for this specific role. Based on real experience and skills only.
+Write a NARRATIVE, PERSONAL summary in FIRST PERSON, structured as 3-4 SHORT paragraphs separated by \n\n:
+- Paragraph 1: Who the candidate is — current role, career trajectory, years of experience
+- Paragraph 2: What they do today — team scope, current mandate, key responsibilities
+- Paragraph 3: Strategic positioning — where they sit between strategy and execution
+- Paragraph 4 (optional): Values and approach (e.g. responsible AI, organizational readiness)
+FORBIDDEN: generic buzzword lists like "data-driven mindset with AI governance expertise". Each sentence must be specific and grounded in the candidate's real experience.
+The summary must feel like a person speaking, not a LinkedIn headline generator.
 
 ### Skill ordering
 Order by relevance to the job posting:
@@ -213,6 +219,7 @@ Condense to max 4-5 bullets per experience. Merge similar bullets, remove irrele
 ## DATA INTEGRITY
 
 - Certifications MUST NEVER appear in the experience array. Move misplaced certs to certifications.
+- **NEVER REMOVE CERTIFICATIONS.** All certifications from the original CV MUST appear in the tailored CV. You may reorder them by relevance but MUST NOT delete any.
 - An experience entry MUST have: role, company, start date. If missing, it's not an experience.
 - You CANNOT invent new experiences, degrees, or certifications.
 - You CANNOT touch personal data or photo fields.

@@ -185,18 +185,21 @@ export async function generateDocx(
     );
   }
 
-  // ── Summary / Professional Profile ──
+  // ── Summary / Professional Profile (multi-paragraph) ──
   const summary = clean(cv.summary);
   if (summary) {
     children.push(sectionTitle(headers.profile));
-    children.push(
-      new Paragraph({
-        spacing: { after: 200 },
-        children: [
-          new TextRun({ text: sanitize(summary), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
-        ],
-      })
-    );
+    const summaryParagraphs = summary.split(/\n\n+/).filter((p: string) => p.trim());
+    for (const para of summaryParagraphs) {
+      children.push(
+        new Paragraph({
+          spacing: { after: 160 },
+          children: [
+            new TextRun({ text: sanitize(para.trim()), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+          ],
+        })
+      );
+    }
   }
 
   // ── Experience ──
@@ -271,7 +274,11 @@ export async function generateDocx(
   if (education.length > 0) {
     children.push(sectionTitle(headers.education));
     for (const ed of education) {
-      const degreeField = [ed.degree, clean(ed.field)].filter(Boolean).join(" in ");
+      const degree = ed.degree || "";
+      const field = clean(ed.field) || "";
+      const degreeField = field && !degree.toLowerCase().includes(field.toLowerCase())
+        ? `${degree} in ${field}`
+        : degree;
       const startDate = normalizeDate(ed.start);
       const endDate = normalizeDate(ed.end);
       const period = [startDate, endDate].filter(Boolean).join(" - ");
@@ -349,21 +356,21 @@ export async function generateDocx(
     }
   }
 
-  // ── Languages ──
+  // ── Languages (one per line, compact format) ──
   const languages = skills?.languages && Array.isArray(skills.languages) ? skills.languages : [];
   if (languages.length > 0) {
     children.push(sectionTitle(headers.languages));
-    const langText = languages
-      .map((l: any) => l.language + (clean(l.level) ? " - " + l.level : "") + (clean(l.descriptor) ? ` (${l.descriptor})` : ""))
-      .join(", ");
-    children.push(
-      new Paragraph({
-        spacing: { after: 100 },
-        children: [
-          new TextRun({ text: sanitize(langText), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
-        ],
-      })
-    );
+    for (const l of languages) {
+      const langLine = l.language + (clean(l.level) ? " - " + l.level : "");
+      children.push(
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [
+            new TextRun({ text: sanitize(langLine), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+          ],
+        })
+      );
+    }
   }
 
   // ── Certifications ──
@@ -409,20 +416,34 @@ export async function generateDocx(
     }
   }
 
-  // ── Extra sections ──
+  // ── Extra sections (hobbies/interests inline, others as bullets) ──
+  const INLINE_PATTERN = /hobb|interest|interess|passioni/i;
   for (const sec of extraSections) {
     children.push(sectionTitle(sec.title));
     const items = (sec.items || []).filter((item: string) => clean(item));
-    for (const item of items) {
+
+    if (INLINE_PATTERN.test(sec.title)) {
+      // Inline comma-separated for hobbies/interests
       children.push(
         new Paragraph({
-          numbering: { reference: "ats-bullets", level: 0 },
-          spacing: { after: 50 },
+          spacing: { after: 100 },
           children: [
-            new TextRun({ text: sanitize(String(item)), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+            new TextRun({ text: sanitize(items.join(", ")), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
           ],
         })
       );
+    } else {
+      for (const item of items) {
+        children.push(
+          new Paragraph({
+            numbering: { reference: "ats-bullets", level: 0 },
+            spacing: { after: 50 },
+            children: [
+              new TextRun({ text: sanitize(String(item)), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+            ],
+          })
+        );
+      }
     }
   }
 

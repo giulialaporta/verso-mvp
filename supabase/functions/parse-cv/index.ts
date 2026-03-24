@@ -227,6 +227,17 @@ The company name will be repeated — this is correct and expected.
 Example: if someone was "Junior Developer" then "Senior Developer" at Acme Corp,
 output TWO separate experience entries, both with company "Acme Corp".
 
+This also applies to SUB-PERIODS within a single role description. If the text contains
+explicit temporal markers like "From June 2023, as Head of..., I:" followed by bullets,
+then "From January 2021, as..., I:" followed by different bullets — each sub-period
+MUST become a SEPARATE experience entry with its own role title, dates, and bullets.
+
+## CERTIFICATIONS — COMPLETE EXTRACTION
+Extract ALL certifications, courses, training programs, professional qualifications, and licenses.
+Do NOT skip any. Include the full name, issuer/institution, and year when available.
+Look in ALL sections of the CV — certifications may appear in dedicated sections, in education,
+in extra sections, or even mentioned inline in experience descriptions.
+
 RULES:
 - The "summary" field is REQUIRED. If the CV has an explicit section (Profile, Summary, Objective, About Me, Profilo, Chi sono), use it verbatim. If NO such section exists, synthesize a 2-3 sentence professional profile based on: current role, years of experience, main sector, distinctive skills. Do not invent anything: use only information present in the CV.
 - For experience, ALWAYS separate narrative text (description) from bullet points (bullets).
