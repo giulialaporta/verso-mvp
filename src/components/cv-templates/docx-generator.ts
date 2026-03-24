@@ -278,7 +278,7 @@ export async function generateDocx(
 
       children.push(
         new Paragraph({
-          spacing: { before: 160, after: 40 },
+          spacing: { before: 240, after: 60 },
           tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
           children: [
             new TextRun({ text: sanitize(degreeField), bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
