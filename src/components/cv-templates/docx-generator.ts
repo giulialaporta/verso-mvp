@@ -80,7 +80,7 @@ function normalizeDate(d: string | undefined | null): string {
 
 function sectionTitle(text: string): Paragraph {
   return new Paragraph({
-    spacing: { before: 360, after: 140 },
+    spacing: { before: 420, after: 180 },
     border: {
       bottom: { style: BorderStyle.SINGLE, size: 2, color: SECTION_COLOR },
     },
@@ -147,7 +147,7 @@ export async function generateDocx(
   // ── Name ──
   children.push(
     new Paragraph({
-      spacing: { after: 80 },
+      spacing: { after: 120 },
       children: [
         new TextRun({
           text: sanitize(clean(personal.name) || "Nome Cognome"),
@@ -172,7 +172,7 @@ export async function generateDocx(
   if (contactParts.length > 0) {
     children.push(
       new Paragraph({
-        spacing: { after: 260 },
+        spacing: { after: 300 },
         children: [
           new TextRun({
             text: sanitize(contactParts.join("  |  ")),
@@ -191,7 +191,7 @@ export async function generateDocx(
     children.push(sectionTitle(headers.profile));
     children.push(
       new Paragraph({
-        spacing: { after: 160 },
+        spacing: { after: 200 },
         children: [
           new TextRun({ text: sanitize(summary), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
         ],
@@ -215,7 +215,7 @@ export async function generateDocx(
       // Role + date on same line (tab stop right)
       children.push(
         new Paragraph({
-          spacing: { before: 200, after: 40 },
+          spacing: { before: 320, after: 60 },
           tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
           children: [
             new TextRun({ text: sanitize(role), bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
@@ -231,9 +231,9 @@ export async function generateDocx(
       if (companyLine) {
         children.push(
           new Paragraph({
-            spacing: { after: 60 },
+            spacing: { after: 100 },
             children: [
-              new TextRun({ text: sanitize(companyLine), size: BODY_SIZE, font: FONT, color: "333333" }),
+              new TextRun({ text: sanitize(companyLine), size: BODY_SIZE, font: FONT, color: TEXT_COLOR, italics: true }),
             ],
           })
         );
@@ -243,7 +243,7 @@ export async function generateDocx(
       if (clean(exp.description)) {
         children.push(
           new Paragraph({
-            spacing: { after: 60 },
+            spacing: { after: 80 },
             children: [
               new TextRun({ text: sanitize(exp.description), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
             ],
@@ -257,7 +257,7 @@ export async function generateDocx(
         children.push(
           new Paragraph({
             numbering: { reference: "ats-bullets", level: 0 },
-            spacing: { after: 50 },
+            spacing: { after: 70, line: 276 },
             children: [
               new TextRun({ text: sanitize(String(b)), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
             ],
@@ -278,7 +278,7 @@ export async function generateDocx(
 
       children.push(
         new Paragraph({
-          spacing: { before: 160, after: 40 },
+          spacing: { before: 240, after: 60 },
           tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
           children: [
             new TextRun({ text: sanitize(degreeField), bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
@@ -289,9 +289,9 @@ export async function generateDocx(
 
       children.push(
         new Paragraph({
-          spacing: { after: 60 },
+          spacing: { after: 100 },
           children: [
-            new TextRun({ text: sanitize(ed.institution || ""), size: BODY_SIZE, font: FONT, color: "333333" }),
+            new TextRun({ text: sanitize(ed.institution || ""), size: BODY_SIZE, font: FONT, color: TEXT_COLOR, italics: true }),
             ...(clean(ed.grade)
               ? [new TextRun({ text: " | " + sanitize(ed.grade) + (clean(ed.honors) ? " " + sanitize(ed.honors) : ""), size: META_SIZE, font: FONT, color: MUTED_COLOR })]
               : []),
@@ -324,7 +324,7 @@ export async function generateDocx(
       for (const [label, items] of categories) {
         children.push(
           new Paragraph({
-            spacing: { after: 60 },
+            spacing: { after: 80 },
             children: [
               new TextRun({ text: label + ": ", bold: true, size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
               new TextRun({ text: sanitize(items.slice(0, MAX_SIDEBAR_SKILLS).join(", ")), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
@@ -460,8 +460,8 @@ export async function generateDocx(
             margin: {
               top: convertMillimetersToTwip(20),
               bottom: convertMillimetersToTwip(20),
-              left: convertMillimetersToTwip(20),
-              right: convertMillimetersToTwip(20),
+              left: convertMillimetersToTwip(22),
+              right: convertMillimetersToTwip(22),
             },
           },
         },
