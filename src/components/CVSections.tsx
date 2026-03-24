@@ -277,7 +277,7 @@ export function CVSections({
     if (!editingItem || !onUpdate) return;
     const { type, index } = editingItem;
     const copy = JSON.parse(JSON.stringify(data));
-    const arrayKey = type === "certification" ? "certifications" : type === "project" ? "projects" : type === "experience" ? "experience" : "education";
+    const arrayKey = type === "certification" ? "certifications" : type === "project" ? "projects" : type === "experience" ? "experience" : type === "education" ? "education" : type === "publication" ? "publications" : type === "volunteering" ? "volunteering" : type === "award" ? "awards" : "conferences";
     if (copy[arrayKey]?.[index]) {
       Object.entries(values).forEach(([k, v]) => {
         if (Array.isArray(v)) {
