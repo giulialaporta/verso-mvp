@@ -415,9 +415,9 @@ RULES:
     const cleanCV = sanitized ?? parsedCV;
 
     // Extract photo info from AI response
-    const aiDetectedPhoto = parsedCV.has_photo;
-    delete parsedCV.has_photo;
-    delete parsedCV.photo_position;
+    const aiDetectedPhoto = cleanCV.has_photo;
+    delete cleanCV.has_photo;
+    delete cleanCV.photo_position;
 
     // Only attempt photo extraction if AI confirms a person photo exists
     let photoUrl: string | null = null;
