@@ -316,7 +316,7 @@ export function CVSections({
                     </a>
                   ) : null
                 )}
-                {data.personal?.website !== undefined && (
+                {(data.personal?.website || editable) && (
                   editable ? (
                     <p className="inline-flex items-center gap-1 text-sm text-secondary">
                       <Globe size={14} />
