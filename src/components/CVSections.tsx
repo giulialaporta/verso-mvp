@@ -219,6 +219,44 @@ export function CVSections({
         { key: "link", label: "Link", value: proj.link || "", placeholder: "https://..." },
       ];
     }
+    if (type === "publication" && data.publications?.[index]) {
+      const pub = data.publications[index];
+      return [
+        { key: "title", label: "Titolo", value: pub.title || "", placeholder: "Titolo pubblicazione" },
+        { key: "journal", label: "Rivista / Editore", value: pub.journal || "", placeholder: "Nome rivista o editore" },
+        { key: "year", label: "Anno", value: pub.year || "", placeholder: "es. 2023" },
+        { key: "doi", label: "DOI / Link", value: pub.doi || "", placeholder: "https://doi.org/..." },
+        { key: "authors", label: "Autori", value: pub.authors || "", placeholder: "Co-autori" },
+      ];
+    }
+    if (type === "volunteering" && data.volunteering?.[index]) {
+      const vol = data.volunteering[index];
+      return [
+        { key: "role", label: "Ruolo", value: vol.role || "", placeholder: "Ruolo" },
+        { key: "organization", label: "Organizzazione", value: vol.organization || "", placeholder: "Organizzazione" },
+        { key: "start", label: "Data inizio", value: vol.start || "", placeholder: "es. Gen 2020" },
+        { key: "end", label: "Data fine", value: vol.end || (vol.current ? "Attuale" : ""), placeholder: "es. Dic 2023" },
+        { key: "description", label: "Descrizione", value: vol.description || "", multiline: true, placeholder: "Descrizione..." },
+      ];
+    }
+    if (type === "award" && data.awards?.[index]) {
+      const award = data.awards[index];
+      return [
+        { key: "name", label: "Nome", value: award.name || "", placeholder: "Nome premio" },
+        { key: "issuer", label: "Ente", value: award.issuer || "", placeholder: "Ente conferitore" },
+        { key: "year", label: "Anno", value: award.year || "", placeholder: "es. 2023" },
+        { key: "description", label: "Descrizione", value: award.description || "", multiline: true, placeholder: "Descrizione..." },
+      ];
+    }
+    if (type === "conference" && data.conferences?.[index]) {
+      const conf = data.conferences[index];
+      return [
+        { key: "title", label: "Titolo", value: conf.title || "", placeholder: "Titolo presentazione" },
+        { key: "event", label: "Evento", value: conf.event || "", placeholder: "Nome evento / conferenza" },
+        { key: "year", label: "Anno", value: conf.year || "", placeholder: "es. 2023" },
+        { key: "role", label: "Ruolo", value: conf.role || "", placeholder: "es. speaker, organizer" },
+      ];
+    }
     return [];
   }, [editingItem, data]);
 
