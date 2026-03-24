@@ -442,12 +442,12 @@ RULES:
     }
 
     if (photoUrl) {
-      parsedCV.photo_base64 = photoUrl;
+      cleanCV.photo_base64 = photoUrl;
     }
 
     return new Response(
       JSON.stringify({
-        parsed_data: parsedCV,
+        parsed_data: cleanCV,
         raw_text: "multimodal",
         has_photo: aiDetectedPhoto || false,
         photo_url: photoUrl,

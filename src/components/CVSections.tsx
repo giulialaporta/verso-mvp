@@ -335,7 +335,7 @@ export function CVSections({
       )}
 
       {/* Summary */}
-      {(data.summary !== undefined || editable) && (
+      {(data.summary || editable) && (
         <Section icon={User} title="Profilo" collapsible={collapsible}>
           {editable ? (
             <E value={data.summary || ""} path="summary" multiline placeholder="Scrivi un breve profilo professionale..." showIcon />
