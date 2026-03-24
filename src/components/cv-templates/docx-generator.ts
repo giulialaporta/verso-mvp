@@ -356,21 +356,21 @@ export async function generateDocx(
     }
   }
 
-  // ── Languages ──
+  // ── Languages (one per line, compact format) ──
   const languages = skills?.languages && Array.isArray(skills.languages) ? skills.languages : [];
   if (languages.length > 0) {
     children.push(sectionTitle(headers.languages));
-    const langText = languages
-      .map((l: any) => l.language + (clean(l.level) ? " - " + l.level : "") + (clean(l.descriptor) ? ` (${l.descriptor})` : ""))
-      .join(", ");
-    children.push(
-      new Paragraph({
-        spacing: { after: 100 },
-        children: [
-          new TextRun({ text: sanitize(langText), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
-        ],
-      })
-    );
+    for (const l of languages) {
+      const langLine = l.language + (clean(l.level) ? " - " + l.level : "");
+      children.push(
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [
+            new TextRun({ text: sanitize(langLine), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+          ],
+        })
+      );
+    }
   }
 
   // ── Certifications ──
