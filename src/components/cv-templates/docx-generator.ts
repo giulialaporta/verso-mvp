@@ -231,9 +231,9 @@ export async function generateDocx(
       if (companyLine) {
         children.push(
           new Paragraph({
-            spacing: { after: 60 },
+            spacing: { after: 100 },
             children: [
-              new TextRun({ text: sanitize(companyLine), size: BODY_SIZE, font: FONT, color: "333333" }),
+              new TextRun({ text: sanitize(companyLine), size: BODY_SIZE, font: FONT, color: TEXT_COLOR, italics: true }),
             ],
           })
         );
