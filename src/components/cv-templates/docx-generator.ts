@@ -416,20 +416,34 @@ export async function generateDocx(
     }
   }
 
-  // ── Extra sections ──
+  // ── Extra sections (hobbies/interests inline, others as bullets) ──
+  const INLINE_PATTERN = /hobb|interest|interess|passioni/i;
   for (const sec of extraSections) {
     children.push(sectionTitle(sec.title));
     const items = (sec.items || []).filter((item: string) => clean(item));
-    for (const item of items) {
+
+    if (INLINE_PATTERN.test(sec.title)) {
+      // Inline comma-separated for hobbies/interests
       children.push(
         new Paragraph({
-          numbering: { reference: "ats-bullets", level: 0 },
-          spacing: { after: 50 },
+          spacing: { after: 100 },
           children: [
-            new TextRun({ text: sanitize(String(item)), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+            new TextRun({ text: sanitize(items.join(", ")), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
           ],
         })
       );
+    } else {
+      for (const item of items) {
+        children.push(
+          new Paragraph({
+            numbering: { reference: "ats-bullets", level: 0 },
+            spacing: { after: 50 },
+            children: [
+              new TextRun({ text: sanitize(String(item)), size: BODY_SIZE, font: FONT, color: TEXT_COLOR }),
+            ],
+          })
+        );
+      }
     }
   }
 

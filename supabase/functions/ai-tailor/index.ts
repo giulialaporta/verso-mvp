@@ -219,6 +219,7 @@ Condense to max 4-5 bullets per experience. Merge similar bullets, remove irrele
 ## DATA INTEGRITY
 
 - Certifications MUST NEVER appear in the experience array. Move misplaced certs to certifications.
+- **NEVER REMOVE CERTIFICATIONS.** All certifications from the original CV MUST appear in the tailored CV. You may reorder them by relevance but MUST NOT delete any.
 - An experience entry MUST have: role, company, start date. If missing, it's not an experience.
 - You CANNOT invent new experiences, degrees, or certifications.
 - You CANNOT touch personal data or photo fields.
