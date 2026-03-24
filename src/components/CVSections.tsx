@@ -261,7 +261,16 @@ export function CVSections({
   }, [editingItem, data]);
 
   const drawerTitle = editingItem
-    ? { experience: "Modifica esperienza", education: "Modifica formazione", certification: "Modifica certificazione", project: "Modifica progetto" }[editingItem.type]
+    ? {
+        experience: "Modifica esperienza",
+        education: "Modifica formazione",
+        certification: "Modifica certificazione",
+        project: "Modifica progetto",
+        publication: "Modifica pubblicazione",
+        volunteering: "Modifica volontariato",
+        award: "Modifica premio",
+        conference: "Modifica conferenza",
+      }[editingItem.type]
     : "";
 
   const handleDrawerSave = (values: Record<string, string | string[]>) => {
