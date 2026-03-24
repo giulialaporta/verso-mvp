@@ -19,6 +19,10 @@ import {
   Trash,
   Link as LinkIcon,
   PencilSimple,
+  BookOpen,
+  HandHeart,
+  Trophy,
+  Microphone,
 } from "@phosphor-icons/react";
 import {
   Collapsible,
