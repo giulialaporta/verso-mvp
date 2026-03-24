@@ -460,8 +460,8 @@ export async function generateDocx(
             margin: {
               top: convertMillimetersToTwip(20),
               bottom: convertMillimetersToTwip(20),
-              left: convertMillimetersToTwip(20),
-              right: convertMillimetersToTwip(20),
+              left: convertMillimetersToTwip(22),
+              right: convertMillimetersToTwip(22),
             },
           },
         },
