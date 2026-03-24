@@ -304,7 +304,7 @@ export function CVSections({
                 )}
               </div>
               <div className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5">
-                {data.personal?.linkedin !== undefined && (
+                {(data.personal?.linkedin || editable) && (
                   editable ? (
                     <p className="inline-flex items-center gap-1 text-sm text-secondary">
                       <LinkedinLogo size={14} />
