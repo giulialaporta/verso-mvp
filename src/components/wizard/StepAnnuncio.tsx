@@ -156,6 +156,12 @@ export function StepAnnuncio({
                 <Buildings size={24} className="text-info mt-0.5 shrink-0" />
                 <div className="min-w-0">
                   <h3 className="font-display text-lg font-bold">{jobData.company_name}</h3>
+                  {jobData.is_staffing_agency && (
+                    <span className="inline-flex items-center rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-mono text-warning">Tramite agenzia</span>
+                  )}
+                  {jobData.end_client && (
+                    <p className="text-xs text-muted-foreground">Per conto di: <span className="text-foreground font-medium">{jobData.end_client}</span></p>
+                  )}
                   <p className="text-primary font-medium">{jobData.role_title}</p>
                   {jobData.location && <p className="text-sm text-muted-foreground">{jobData.location}</p>}
                 </div>

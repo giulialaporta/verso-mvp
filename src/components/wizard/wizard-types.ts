@@ -9,6 +9,8 @@ export type JobData = {
   key_requirements: string[];
   required_skills: string[];
   nice_to_have?: string[];
+  is_staffing_agency?: boolean;
+  end_client?: string;
 };
 
 export type PrescreenResult = {

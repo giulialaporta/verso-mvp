@@ -256,6 +256,8 @@ If the posting is NOT from an agency, set is_staffing_agency to false and omit e
           salary_range: { type: "string", description: "Salary range if mentioned" },
           company_size: { type: "string", description: "Company size if detectable (startup, PMI, mid-size, enterprise, or employee count)" },
           industry: { type: "string", description: "Industry/sector if detectable" },
+          is_staffing_agency: { type: "boolean", description: "true if the posting is from a staffing/recruiting agency" },
+          end_client: { type: "string", description: "Name of the end client company if mentioned and is_staffing_agency is true" },
         },
         required: ["company_name", "role_title", "description", "key_requirements", "required_skills"],
       },
