@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAi } from "../_shared/ai-provider.ts";
 import { validateOutput } from "../_shared/validate-output.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { compactCV } from "../_shared/compact-cv.ts";
 
 function extractFirstImage(bytes: Uint8Array): { data: Uint8Array; ext: string } | null {
   const candidates: Array<{ data: Uint8Array; ext: string; size: number }> = [];
@@ -168,10 +169,12 @@ Always extract language proficiency and map to CEFR when possible:
 - If an explicit CEFR level is given (e.g. "B2"), use it directly
 - Always populate BOTH "level" (CEFR code) and "descriptor" (original text)
 
-## NULL HANDLING
-- If a field is genuinely not present in the CV, set it to null (not empty string "")
-- Only use empty string "" if the CV explicitly shows the field but it's blank
-- This applies to: grade, honors, program, publication, location, linkedin, website
+## NULL HANDLING — CRITICAL
+- If a field is genuinely not present in the CV, OMIT IT ENTIRELY from the output. Do NOT return null, empty string "", or any placeholder.
+- Do NOT return empty strings "". If a value is not found, simply do not include the key in the JSON.
+- Do NOT return placeholder values like "None", "N/A", "Not specified", "Non specificato".
+- Only include a field if it has a real, meaningful value extracted from the CV.
+- This applies to ALL fields, especially: grade, honors, program, publication, location, linkedin, website, description, end date.
 
 ## PHOTO DETECTION
 - has_photo: set to true ONLY if the CV contains a visible photograph of a person (headshot, portrait, ID photo)
@@ -407,10 +410,14 @@ RULES:
 
     validateOutput("parse-cv", parsedCV);
 
+    // Sanitize: remove nulls, empty strings, placeholders
+    const sanitized = compactCV(parsedCV) as Record<string, unknown> | undefined;
+    const cleanCV = sanitized ?? parsedCV;
+
     // Extract photo info from AI response
-    const aiDetectedPhoto = parsedCV.has_photo;
-    delete parsedCV.has_photo;
-    delete parsedCV.photo_position;
+    const aiDetectedPhoto = cleanCV.has_photo;
+    delete cleanCV.has_photo;
+    delete cleanCV.photo_position;
 
     // Only attempt photo extraction if AI confirms a person photo exists
     let photoUrl: string | null = null;
@@ -435,12 +442,12 @@ RULES:
     }
 
     if (photoUrl) {
-      parsedCV.photo_base64 = photoUrl;
+      cleanCV.photo_base64 = photoUrl;
     }
 
     return new Response(
       JSON.stringify({
-        parsed_data: parsedCV,
+        parsed_data: cleanCV,
         raw_text: "multimodal",
         has_photo: aiDetectedPhoto || false,
         photo_url: photoUrl,

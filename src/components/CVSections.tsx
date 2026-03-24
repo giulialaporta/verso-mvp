@@ -304,7 +304,7 @@ export function CVSections({
                 )}
               </div>
               <div className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5">
-                {data.personal?.linkedin !== undefined && (
+                {(data.personal?.linkedin || editable) && (
                   editable ? (
                     <p className="inline-flex items-center gap-1 text-sm text-secondary">
                       <LinkedinLogo size={14} />
@@ -316,7 +316,7 @@ export function CVSections({
                     </a>
                   ) : null
                 )}
-                {data.personal?.website !== undefined && (
+                {(data.personal?.website || editable) && (
                   editable ? (
                     <p className="inline-flex items-center gap-1 text-sm text-secondary">
                       <Globe size={14} />
@@ -335,7 +335,7 @@ export function CVSections({
       )}
 
       {/* Summary */}
-      {(data.summary !== undefined || editable) && (
+      {(data.summary || editable) && (
         <Section icon={User} title="Profilo" collapsible={collapsible}>
           {editable ? (
             <E value={data.summary || ""} path="summary" multiline placeholder="Scrivi un breve profilo professionale..." showIcon />
