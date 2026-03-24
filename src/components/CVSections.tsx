@@ -165,7 +165,7 @@ export function CVSections({
   onUpdate?: (data: ParsedCV) => void;
 }) {
   const [editingItem, setEditingItem] = useState<{
-    type: "experience" | "education" | "certification" | "project";
+    type: "experience" | "education" | "certification" | "project" | "publication" | "volunteering" | "award" | "conference";
     index: number;
   } | null>(null);
 
