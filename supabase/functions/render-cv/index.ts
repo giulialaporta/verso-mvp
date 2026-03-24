@@ -18,9 +18,9 @@ function normalizeLang(lang: string | undefined | null): string {
 function getHeaders(lang: string): Record<string, string> {
   const norm = normalizeLang(lang);
   if (norm === "en") {
-    return { contact: "Contact", skills: "Skills", languages: "Languages", certifications: "Certifications", profile: "Profile", experience: "Experience", education: "Education", projects: "Projects" };
+    return { contact: "Contact", skills: "Skills", languages: "Languages", certifications: "Certifications", profile: "Profile", experience: "Experience", education: "Education", projects: "Projects", publications: "Publications", volunteering: "Volunteering", awards: "Awards & Recognitions", conferences: "Conferences & Presentations" };
   }
-  return { contact: "Contatti", skills: "Competenze", languages: "Lingue", certifications: "Certificazioni", profile: "Profilo", experience: "Esperienza", education: "Formazione", projects: "Progetti" };
+  return { contact: "Contatti", skills: "Competenze", languages: "Lingue", certifications: "Certificazioni", profile: "Profilo", experience: "Esperienza", education: "Formazione", projects: "Progetti", publications: "Pubblicazioni", volunteering: "Volontariato", awards: "Premi e riconoscimenti", conferences: "Conferenze e presentazioni" };
 }
 
 // --- Data preparation ---
