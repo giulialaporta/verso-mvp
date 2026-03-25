@@ -8,131 +8,113 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
-  ArrowLeft, ArrowRight, SpinnerGap,
-  Lock, FileDoc, CheckCircle, Printer
+  ArrowLeft, ArrowRight, DownloadSimple, SpinnerGap,
+  Lock, Crown, FileDoc, CheckCircle, CaretDown, CaretUp, Pencil, Printer
 } from "@phosphor-icons/react";
+import { TEMPLATES, type TemplateId } from "@/components/cv-templates";
 import { generateDocx } from "@/components/cv-templates/docx-generator";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+
+type ReviewFix = {
+  section: string;
+  field: string;
+  problem: string;
+  correction: string;
+};
 
 type ReviewStatus = "idle" | "reviewing" | "done" | "error";
-type PipelineStatus = "reviewing" | "rendering" | "ready" | "error";
 
-// --- CV Preview with responsive scaling ---
-// Only renders when given pre-fetched HTML (no internal fetch)
-function CVPreview({ html }: { html: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.5);
+// --- CV Preview component ---
+function CVPreview({ cv, templateId, lang }: { cv: Record<string, unknown>; templateId: string; lang: string }) {
+  const [html, setHtml] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width ?? 400;
-      setScale(w / 794);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+    setLoading(true);
+    setError(false);
+    supabase.functions
+      .invoke("render-cv", {
+        body: { cv, template_id: templateId, format: "html", lang },
+      })
+      .then(({ data, error: err }) => {
+        if (err || !data) {
+          console.error("render-cv error:", err);
+          setError(true);
+          setLoading(false);
+          return;
+        }
+        const htmlStr = typeof data === "string" ? data : "";
+        setHtml(htmlStr);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
+  }, [cv, templateId, lang]);
+
+  if (loading) {
+    return <Skeleton className="w-full aspect-[1/1.414] rounded-xl" />;
+  }
+
+  if (error || !html) {
+    return (
+      <div className="w-full aspect-[1/1.414] rounded-xl border border-border/30 bg-card/50 flex items-center justify-center text-sm text-muted-foreground">
+        Preview non disponibile
+      </div>
+    );
+  }
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full rounded-xl border border-border/30 overflow-hidden shadow-lg bg-white"
-      style={{ aspectRatio: "1/1.414" }}
-    >
+    <div className="w-full rounded-xl border border-border/30 overflow-hidden shadow-lg bg-white" style={{ aspectRatio: "1/1.414" }}>
       <iframe
         srcDoc={html}
-        className="border-0"
+        className="w-full h-full border-0"
         sandbox="allow-same-origin"
         title="CV Preview"
         style={{
-          width: "794px",
-          height: "1123px",
-          transform: `scale(${scale})`,
+          transform: "scale(1)",
           transformOrigin: "top left",
+          width: "100%",
+          height: "100%",
         }}
       />
     </div>
   );
 }
 
-// --- ATS text preview ---
-function ATSPreview({ cv, lang }: { cv: Record<string, any>; lang: string }) {
-  const personal = cv.personal || {};
-  const experience = Array.isArray(cv.experience) ? cv.experience : [];
-  const education = Array.isArray(cv.education) ? cv.education : [];
-  const skills = cv.skills;
-  const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
-  const normLang = lang?.toLowerCase().startsWith("en") ? "en" : "it";
-  const h = normLang === "en"
-    ? { profile: "Professional Profile", experience: "Experience", education: "Education", skills: "Skills", certifications: "Certifications", languages: "Languages" }
-    : { profile: "Profilo professionale", experience: "Esperienze", education: "Formazione", skills: "Competenze", certifications: "Certificazioni", languages: "Lingue" };
+/** Fetch rendered HTML from render-cv and open print dialog for PDF save */
+async function printCvAsPdf(
+  cv: Record<string, unknown>,
+  templateId: string,
+  lang: string
+): Promise<void> {
+  const { data, error } = await supabase.functions.invoke("render-cv", {
+    body: { cv, template_id: templateId, format: "html", lang },
+  });
+  if (error || !data) throw new Error("Errore nel rendering del CV");
 
-  const allSkills = skills
-    ? Array.isArray(skills)
-      ? skills
-      : [...(skills.technical || []), ...(skills.soft || []), ...(skills.tools || [])]
-    : [];
-  const languages = skills?.languages || [];
+  const htmlStr = typeof data === "string" ? data : "";
+  const printWindow = window.open("", "_blank", "width=800,height=1100");
+  if (!printWindow) throw new Error("Popup bloccato dal browser");
 
-  return (
-    <div className="w-full rounded-xl border border-border/30 bg-card/80 p-4 font-mono text-[11px] leading-relaxed text-muted-foreground overflow-auto max-h-[400px] space-y-3">
-      <p className="text-foreground font-bold text-sm">{personal.name || "Nome Cognome"}</p>
-      <p className="text-[10px]">{[personal.email, personal.phone, personal.location].filter(Boolean).join(" | ")}</p>
+  printWindow.document.open();
+  printWindow.document.write(htmlStr);
+  printWindow.document.close();
 
-      {cv.summary && (
-        <>
-          <p className="text-primary font-bold uppercase tracking-wider text-[10px] border-b border-primary/30 pb-1 mt-2">{h.profile}</p>
-          <p className="text-foreground/70">{String(cv.summary).slice(0, 200)}...</p>
-        </>
-      )}
-
-      {experience.length > 0 && (
-        <>
-          <p className="text-primary font-bold uppercase tracking-wider text-[10px] border-b border-primary/30 pb-1">{h.experience}</p>
-          {experience.slice(0, 3).map((exp: any, i: number) => (
-            <div key={i}>
-              <p className="text-foreground/90 font-medium">{exp.role || exp.title}</p>
-              <p className="text-[10px]">{exp.company} | {exp.start} - {exp.end || "Attuale"}</p>
-            </div>
-          ))}
-        </>
-      )}
-
-      {education.length > 0 && (
-        <>
-          <p className="text-primary font-bold uppercase tracking-wider text-[10px] border-b border-primary/30 pb-1">{h.education}</p>
-          {education.slice(0, 2).map((ed: any, i: number) => (
-            <p key={i} className="text-foreground/80">{ed.degree} - {ed.institution}</p>
-          ))}
-        </>
-      )}
-
-      {allSkills.length > 0 && (
-        <>
-          <p className="text-primary font-bold uppercase tracking-wider text-[10px] border-b border-primary/30 pb-1">{h.skills}</p>
-          <p className="text-foreground/70">{allSkills.slice(0, 10).join(", ")}</p>
-        </>
-      )}
-
-      {certifications.length > 0 && (
-        <>
-          <p className="text-primary font-bold uppercase tracking-wider text-[10px] border-b border-primary/30 pb-1">{h.certifications}</p>
-          {certifications.map((c: any, i: number) => (
-            <p key={i} className="text-foreground/70">{c.name}{c.year ? ` (${c.year})` : ""}</p>
-          ))}
-        </>
-      )}
-
-      {languages.length > 0 && (
-        <>
-          <p className="text-primary font-bold uppercase tracking-wider text-[10px] border-b border-primary/30 pb-1">{h.languages}</p>
-          <p className="text-foreground/70">{languages.map((l: any) => `${l.language} (${l.level || ""})`).join(", ")}</p>
-        </>
-      )}
-    </div>
-  );
+  // Wait for fonts/styles to load, then trigger print
+  printWindow.onload = () => {
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
+  };
+  // Fallback if onload doesn't fire
+  setTimeout(() => {
+    printWindow.print();
+  }, 1500);
 }
 
 export function StepExport({
@@ -157,79 +139,66 @@ export function StepExport({
   const { user } = useAuth();
   const { isPro } = useSubscription();
   const navigate = useNavigate();
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>("classico");
   const [downloading, setDownloading] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const trackEvent = useTrackEvent();
 
-  // Shared HTML for preview + print
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
-  const printIframeRef = useRef<HTMLIFrameElement>(null);
-
   // Formal review state
-  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("reviewing");
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("idle");
+  const [reviewFixes, setReviewFixes] = useState<ReviewFix[]>([]);
   const [reviewedCv, setReviewedCv] = useState<Record<string, unknown> | null>(null);
+  const [fixesOpen, setFixesOpen] = useState(false);
   const reviewCalledRef = useRef(false);
 
-  // Pipeline: reviewing → rendering → ready
-  const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>("reviewing");
-
-  // Step 1: formal review (blocking)
+  // Launch review in background on mount
   useEffect(() => {
     if (reviewCalledRef.current) return;
     reviewCalledRef.current = true;
     setReviewStatus("reviewing");
-    setPipelineStatus("reviewing");
 
     supabase.functions
-      .invoke("cv-formal-review", { body: { cv: tailoredCv, template_id: "visual", lang: cvLang || "it" } })
+      .invoke("cv-formal-review", {
+        body: { cv: tailoredCv, template_id: selectedTemplate, lang: cvLang || "it" },
+      })
       .then(({ data, error }) => {
         if (error || !data) {
+          console.error("cv-formal-review error:", error);
           setReviewStatus("error");
-          setReviewedCv(tailoredCv);
           return;
         }
-        // Re-inject photo data stripped by compactCV during formal review
-        const reviewed = data.revised_cv || tailoredCv;
-        const origPhoto = (tailoredCv as any)?.photo_base64;
-        const origPhotoUrl = (tailoredCv as any)?.photo_url || (tailoredCv as any)?.personal?.photo_url;
-        if (origPhoto && !reviewed.photo_base64) reviewed.photo_base64 = origPhoto;
-        if (origPhotoUrl && !reviewed.photo_url) reviewed.photo_url = origPhotoUrl;
-        setReviewedCv(reviewed);
+        const fixes = (data.fixes as ReviewFix[]) || [];
+        setReviewFixes(fixes);
+        setReviewedCv(data.revised_cv || tailoredCv);
         setReviewStatus("done");
-      })
-      .catch(() => {
-        setReviewStatus("error");
-        setReviewedCv(tailoredCv);
-      });
-  }, [tailoredCv]);
 
-  // Step 2: render HTML ONLY after review completes (reviewedCv becomes non-null)
-  useEffect(() => {
-    if (!reviewedCv) return;
-    setPipelineStatus("rendering");
-
-    supabase.functions
-      .invoke("render-cv", {
-        body: { cv: reviewedCv, template_id: "visual", format: "html", lang: cvLang || "it" },
-      })
-      .then(({ data, error: err }) => {
-        if (err || !data) {
-          setPipelineStatus("error");
-          return;
+        if (fixes.length > 0) {
+          setFixesOpen(true);
         }
-        setPreviewHtml(typeof data === "string" ? data : "");
-        setPipelineStatus("ready");
       })
-      .catch(() => setPipelineStatus("error"));
-  }, [reviewedCv, cvLang]);
+      .catch((e) => {
+        console.error("cv-formal-review fetch error:", e);
+        setReviewStatus("error");
+      });
+  }, [tailoredCv, selectedTemplate]);
 
+  // The CV to use for downloads: reviewed if available, otherwise original
   const activeCv = reviewedCv || tailoredCv;
-  const isReady = pipelineStatus === "ready" && !!previewHtml;
+
+  const handleTemplateSelect = (templateId: TemplateId) => {
+    const tpl = TEMPLATES.find(t => t.id === templateId);
+    if (tpl && !tpl.free && !isPro) {
+      toast("Sblocca questo template con Verso Pro", {
+        action: { label: "Upgrade", onClick: () => navigate("/upgrade") },
+      });
+      return;
+    }
+    setSelectedTemplate(templateId);
+  };
 
   const personalName = (activeCv?.personal as any)?.name || "CV";
   const matchScore = analyzeResult?.match_score ?? 0;
   const atsScore = analyzeResult?.ats_score ?? 0;
-  const effectiveLang = cvLang || "it";
 
   const stats = useMemo(() =>
     computeConfidence(tailorResult.original_cv ?? null, activeCv, tailorResult.diff),
@@ -237,37 +206,36 @@ export function StepExport({
   );
 
   const fileBaseName = "CV-" + personalName.replace(/\s+/g, "-") + "-" + jobData.company_name.replace(/\s+/g, "-");
+  const effectiveLang = cvLang || "it";
 
-  // PDF via hidden iframe print — no popup
-  const handleDownloadPdf = useCallback(() => {
-    if (!previewHtml) {
-      toast.error("Preview non ancora caricata. Riprova tra un momento.");
-      return;
-    }
+  const handleDownload = async () => {
     setDownloading(true);
-    const iframe = printIframeRef.current;
-    if (!iframe) { setDownloading(false); return; }
+    try {
+      await printCvAsPdf(activeCv, selectedTemplate, effectiveLang);
 
-    iframe.srcdoc = previewHtml;
-    iframe.onload = () => {
-      try {
-        iframe.contentWindow?.print();
-        trackEvent("pdf_downloaded", { template: "visual", formal_review: reviewStatus === "done", method: "iframe_print" });
-        toast.success("Finestra di stampa aperta — salva come PDF.");
-      } catch (e) {
-        console.error("Print error:", e);
-        toast.error("Errore durante la stampa.");
-      } finally {
-        setDownloading(false);
-      }
-    };
-  }, [previewHtml, reviewStatus, trackEvent]);
+      // Track event (PDF saved via print dialog)
+      trackEvent("pdf_downloaded", { template: selectedTemplate, formal_review: reviewStatus === "done", method: "print" });
+
+      toast.success("Finestra di stampa aperta — salva come PDF.");
+    } catch (e) {
+      console.error("PDF generation error:", e);
+      toast.error("Errore durante la generazione del PDF. Verifica che i popup non siano bloccati.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const handleDownloadDocx = async () => {
+    if (!isPro) {
+      toast("Export DOCX disponibile con Verso Pro", {
+        action: { label: "Upgrade", onClick: () => navigate("/upgrade") },
+      });
+      return;
+    }
     setDownloadingDocx(true);
     try {
-      const blob = await generateDocx(activeCv as Record<string, any>, effectiveLang);
-      const fileName = fileBaseName + "-ATS.docx";
+      const blob = await generateDocx(activeCv as Record<string, any>, effectiveLang, selectedTemplate);
+      const fileName = fileBaseName + "-" + selectedTemplate + ".docx";
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -287,7 +255,7 @@ export function StepExport({
       }
 
       toast.success("DOCX scaricato!");
-      trackEvent("docx_downloaded", { template: "ats", formal_review: reviewStatus === "done" });
+      trackEvent("docx_downloaded", { template: selectedTemplate, formal_review: reviewStatus === "done" });
     } catch (e) {
       console.error("DOCX generation error:", e);
       toast.error("Errore durante la generazione del DOCX.");
@@ -297,36 +265,50 @@ export function StepExport({
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-4">
+    <div className="mx-auto max-w-3xl space-y-6 px-4">
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft size={20} /></button>
         <div>
           <h2 className="font-display text-2xl font-bold">Scarica il tuo CV</h2>
-          <p className="text-muted-foreground mt-1">Due versioni ottimizzate per ogni scenario.</p>
+          <p className="text-muted-foreground mt-1">Scegli il template e scarica il PDF.</p>
         </div>
       </div>
 
-      {/* Pipeline status banner */}
-      {pipelineStatus === "reviewing" && (
-        <div className="flex items-center gap-2 rounded-lg border border-info/20 bg-info/5 px-4 py-3 text-sm text-info">
-          <SpinnerGap size={16} className="animate-spin" /> Revisione formale in corso...
+      {/* Template selector */}
+      <div className="space-y-3">
+        <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Template</p>
+        <div className="grid grid-cols-4 gap-2">
+          {TEMPLATES.map((t) => {
+            const isSelected = selectedTemplate === t.id;
+            const isLocked = !t.free && !isPro;
+            return (
+              <button
+                key={t.id}
+                onClick={() => handleTemplateSelect(t.id)}
+                className={[
+                  "relative rounded-lg border-2 p-3 text-center transition-all",
+                  isLocked ? "border-border/30 opacity-70"
+                  : isSelected ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+                  : "border-border/50 hover:border-primary/40"
+                ].join(" ")}
+              >
+                {isLocked && (
+                  <div className="absolute top-1 right-1 z-20">
+                    <Lock size={12} className="text-muted-foreground" weight="fill" />
+                  </div>
+                )}
+                <p className="text-xs font-medium">{t.name}</p>
+                {t.atsSafe && (
+                  <p className="mt-0.5 font-mono text-[9px] text-info/80 uppercase tracking-wide">ATS-Safe</p>
+                )}
+              </button>
+            );
+          })}
         </div>
-      )}
-      {pipelineStatus === "rendering" && (
-        <div className="flex items-center gap-2 rounded-lg border border-info/20 bg-info/5 px-4 py-3 text-sm text-info">
-          <SpinnerGap size={16} className="animate-spin" /> Generazione anteprima...
-        </div>
-      )}
-      {pipelineStatus === "error" && reviewStatus === "error" && (
-        <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/5 px-4 py-3 text-sm text-warning">
-          Revisione non disponibile — il CV verrà esportato senza correzioni formali.
-        </div>
-      )}
-      {pipelineStatus === "ready" && (
-        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-          <CheckCircle size={18} weight="fill" /> Pronto ✓
-        </div>
-      )}
+      </div>
+
+      {/* Live CV Preview */}
+      <CVPreview cv={activeCv} templateId={selectedTemplate} lang={effectiveLang} />
 
       {/* Compact badges */}
       <div className="flex gap-2 flex-wrap">
@@ -338,72 +320,98 @@ export function StepExport({
         ].join(" ")}>
           Confidence {stats.confidence}%
         </span>
+
+        {reviewStatus === "reviewing" && (
+          <span className="rounded-full bg-info/15 px-3 py-1 font-mono text-xs text-info flex items-center gap-1.5">
+            <SpinnerGap size={12} className="animate-spin" /> Revisione...
+          </span>
+        )}
+        {reviewStatus === "done" && reviewFixes.length === 0 && (
+          <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary flex items-center gap-1.5">
+            <CheckCircle size={12} weight="fill" /> Revisione OK
+          </span>
+        )}
+        {reviewStatus === "done" && reviewFixes.length > 0 && (
+          <span className="rounded-full bg-warning/15 px-3 py-1 font-mono text-xs text-warning flex items-center gap-1.5">
+            <Pencil size={12} /> {reviewFixes.length} correzioni
+          </span>
+        )}
+        {reviewStatus === "error" && (
+          <span className="rounded-full bg-destructive/15 px-3 py-1 font-mono text-xs text-destructive">
+            Revisione non disponibile
+          </span>
+        )}
       </div>
 
-      {/* Download buttons — always visible */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Button onClick={handleDownloadPdf} disabled={downloading || !isReady} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
+      {/* Formal review fixes panel */}
+      {reviewStatus === "done" && reviewFixes.length > 0 && (
+        <Collapsible open={fixesOpen} onOpenChange={setFixesOpen}>
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center gap-2 w-full rounded-lg border border-border/50 bg-card px-4 py-3 text-sm font-medium text-foreground hover:border-primary/30 transition-colors">
+              <Pencil size={16} className="text-warning" />
+              <span>{reviewFixes.length} correzioni formali applicate</span>
+              <span className="ml-auto">
+                {fixesOpen ? <CaretUp size={14} /> : <CaretDown size={14} />}
+              </span>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 space-y-2">
+              {reviewFixes.map((fix, i) => (
+                <div key={i} className="rounded-lg border border-border/30 bg-card/50 px-4 py-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 font-mono text-[11px] text-warning uppercase">
+                      {fix.section}
+                    </span>
+                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                      {fix.field}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-muted-foreground">{fix.problem}</p>
+                  <p className="mt-1 text-foreground">{fix.correction}</p>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {reviewStatus === "done" && reviewFixes.length === 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+          <CheckCircle size={18} weight="fill" />
+          Nessuna correzione necessaria — il tuo CV è pronto.
+        </div>
+      )}
+
+      {/* Download buttons */}
+      <div className="space-y-3">
+        <Button onClick={handleDownload} disabled={downloading} className="w-full gap-2 h-12 text-base active:scale-[0.98] transition-transform">
           {downloading ? <><SpinnerGap size={18} className="animate-spin" /> Generazione...</> : <><Printer size={18} /> Stampa / Salva PDF</>}
         </Button>
-        <Button variant="outline" onClick={handleDownloadDocx} disabled={downloadingDocx || !isReady} className="gap-2 h-12 active:scale-[0.98] transition-transform text-base">
-          {downloadingDocx ? <><SpinnerGap size={18} className="animate-spin" /> Generazione DOCX...</> : <><FileDoc size={18} /> Scarica DOCX</>}
-        </Button>
-      </div>
 
-      {/* 2-card layout — previews only */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-display text-lg font-bold">CV Recruiter</h3>
-              <p className="text-xs text-muted-foreground">Template visual per recruiter</p>
-            </div>
-            <span className="rounded-full bg-primary/15 px-2.5 py-0.5 font-mono text-[11px] text-primary font-bold">PDF</span>
-          </div>
-          {previewHtml ? (
-            <CVPreview html={previewHtml} />
+        <Button
+          variant="outline"
+          onClick={handleDownloadDocx}
+          disabled={downloadingDocx}
+          className="w-full gap-2 h-11 relative active:scale-[0.98] transition-transform"
+        >
+          {!isPro && <Lock size={14} className="text-muted-foreground" />}
+          {downloadingDocx ? (
+            <><SpinnerGap size={16} className="animate-spin" /> Generazione DOCX...</>
           ) : (
-            <Skeleton className="w-full aspect-[1/1.414] rounded-xl" />
+            <><FileDoc size={16} /> Scarica DOCX</>
           )}
-        </div>
-
-        <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-display text-lg font-bold">CV ATS</h3>
-              <p className="text-xs text-muted-foreground">Formato Word per sistemi automatici</p>
-            </div>
-            <span className="rounded-full bg-info/15 px-2.5 py-0.5 font-mono text-[11px] text-info font-bold">DOCX</span>
-          </div>
-          <ATSPreview cv={activeCv as Record<string, any>} lang={effectiveLang} />
-        </div>
-      </div>
-
-      {/* Template teaser */}
-      <div className="space-y-2">
-        <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Altri template recruiter</p>
-        <div className="grid grid-cols-3 gap-2">
-          {["Executive", "Minimal", "Moderno"].map((name) => (
-            <div key={name} className="relative rounded-lg border border-border/30 bg-card/50 p-4 text-center opacity-50">
-              <Lock size={20} className="mx-auto mb-2 text-muted-foreground" />
-              <p className="text-xs font-medium text-muted-foreground">{name}</p>
-              <p className="text-[10px] text-muted-foreground/60 mt-1">Prossimamente con Verso Pro</p>
-            </div>
-          ))}
-        </div>
+          {!isPro && (
+            <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[11px] text-primary font-bold">
+              <Crown size={8} weight="fill" /> Pro
+            </span>
+          )}
+        </Button>
       </div>
 
       <Button variant="outline" onClick={onNext} className="w-full gap-2 text-muted-foreground">
         Salta per ora <ArrowRight size={16} />
       </Button>
-
-      {/* Hidden iframe for printing — no popup needed */}
-      <iframe
-        ref={printIframeRef}
-        style={{ position: "absolute", left: "-9999px", width: "794px", height: "1123px" }}
-        sandbox="allow-same-origin allow-modals"
-        title="Print CV"
-      />
     </div>
   );
 }

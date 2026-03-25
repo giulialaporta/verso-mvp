@@ -189,10 +189,33 @@ The ENTIRE tailored CV must be in ONE language: the target language.
 - Keep proper nouns and tech names as-is: React, SQL, Figma, AWS, Python
 - NEVER wrap skill names in quotes. Wrong: "React". Correct: React
 
+## VOICE & NARRATIVE (tier 2)
+Your job is not just to rephrase — it's to make this specific person's story come alive.
+
+### Preserve the candidate's voice
+Study how the candidate writes in the original CV. If they use concise, direct language, keep that register.
+Don't replace their vocabulary with generic HR language. If they wrote "built", keep "built". Only improve if genuinely unclear.
+
+### Summary = personal statement, not a template
+WRONG: "Experienced professional with strong communication skills and results-driven mindset"
+CORRECT: "Backend engineer with 6 years in fintech, focused on payment APIs and high-throughput systems. Built the core transaction processing service at [company]. Strong fit for this role's distributed systems requirements."
+
+To write a good summary:
+1. Start from the candidate's actual current role/domain (from most recent experience — specific, not generic)
+2. Name the ONE thing that defines their expertise: the technology, sector, or specialization that is theirs
+3. Reference a real differentiator already in the CV (project scope, sector transition, specialization depth)
+4. One sentence connecting to this role — honest, based on real overlap, never inflated
+
+### Bullets = evidence, not job descriptions
+"Managed the CRM project" → job description (bad)
+"Managed CRM rollout across 3 European markets, coordinating analysis, development, and go-live phases" → evidence (good)
+The difference: specificity using details ALREADY in the CV (scope, geography, team structure, tech stack, phases).
+Look for these details in the original CV — they are there, just not surfaced.
+
 ## HOW TO ADAPT (tier 2 — operational instructions)
 
 ### Bullets
-Rephrase with action verb + what the candidate did. If the original has metrics, keep them. If not, describe the impact qualitatively using ONLY information already present.
+Rephrase with action verb + what the candidate did. If the original has metrics, keep them. If not, add specificity using ONLY information already present in that experience (context, scope, tech, phases involved).
 
 ### Summary
 Write a NARRATIVE, PERSONAL summary in FIRST PERSON, structured as 3-4 SHORT paragraphs separated by \n\n:

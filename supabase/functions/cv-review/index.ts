@@ -71,9 +71,18 @@ Fix inconsistencies: "01.2021" and "January 2021" → same format.
 The summary MUST be:
 - 2-3 sentences maximum
 - Specific to the target role (use role_title context)
-- No filler phrases ("dynamic professional", "passionate about", "results-driven")
+- No filler phrases ("dynamic professional", "passionate about", "results-driven", "experienced in", "strong background in")
 - Mention years of experience and key domain expertise
-If the summary is generic or has filler, rewrite it.
+
+If the summary contains filler or is generic, REWRITE it using this structure:
+1. [Current job title] with [X years] in [sector/domain] — derived from the experience array, not invented
+2. [Most distinctive skill, specialization, or project type — from CV evidence]
+3. [One sentence on why this is a natural fit for role_title — honest, based on real overlap]
+
+WRONG: "Experienced marketing professional passionate about driving results and building brand awareness."
+CORRECT: "Digital marketing manager with 7 years in e-commerce, specializing in performance campaigns and attribution models. Led paid acquisition at [company], scaling from €50k to €200k monthly ad spend. Strong fit for this role's focus on growth and data-driven marketing."
+
+Every claim in the rewritten summary must trace back to the CV content. Do not add facts not present.
 
 ### 11. NO INVENTED OUTCOMES
 If a bullet in the input contains no metrics or results, do NOT add them.

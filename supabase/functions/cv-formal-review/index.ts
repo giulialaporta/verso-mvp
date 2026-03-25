@@ -11,8 +11,8 @@ const corsHeaders = {
 const SYSTEM_PROMPT =
   "Revisore finale della forma di un CV. Controlla SOLO la forma, non i contenuti.\n\n" +
   "CHECKLIST:\n" +
-  "1. Date: formato unico (es. tutte 'Mmm YYYY' o tutte 'MM/YYYY')\n" +
-  "2. Separatore date: unico ovunque (- o -)\n" +
+  "1. Date: formato unico (es. tutte 'Mmm YYYY' o tutte 'MM/YYYY'). Usa le abbreviazioni corrette per la lingua target (it: Gen/Feb/Mar; en: Jan/Feb/Mar).\n" +
+  "2. Separatore date: unico ovunque (- o –)\n" +
   "3. Maiuscole: convenzione costante per ruoli e aziende\n" +
   "4. LINGUA: FONDAMENTALE - rispetta la lingua target indicata. Se il CV deve essere in inglese, TUTTI i contenuti (summary, bullet, description) devono essere in inglese. Se in italiano, TUTTI in italiano. Nomi propri, aziende e termini tecnici (es. 'machine learning', 'stakeholder') sono eccezioni.\n" +
   "5. Bullet: struttura uniforme, verbo d'azione, no troppo corti (<5 parole) o lunghi (>3 righe)\n" +
@@ -75,8 +75,8 @@ serve(async (req) => {
     // Detect target language for consistency enforcement
     const normLang = lang?.toLowerCase().startsWith("en") ? "en" : "it";
     const langRule = normLang === "en"
-      ? "Target language: ENGLISH. All CV text must be in English. Fix any Italian words/phrases that are not proper nouns or technical terms."
-      : "Lingua target: ITALIANO. Tutto il testo del CV deve essere in italiano. Correggi parole/frasi in inglese che non siano nomi propri o termini tecnici.";
+      ? "Target language: ENGLISH. All CV text must be in English. Fix any Italian words/phrases that are not proper nouns or technical terms. Use English month abbreviations (Jan, Feb, Mar...)."
+      : "Lingua target: ITALIANO. Tutto il testo del CV deve essere in italiano. Correggi parole/frasi in inglese che non siano nomi propri o termini tecnici. Usa abbreviazioni italiane dei mesi (Gen, Feb, Mar...).";
 
     const userMessage =
       "Template: " + (template_id || "classico") +
@@ -89,7 +89,7 @@ serve(async (req) => {
       userMessage,
       tools: [TOOL_SCHEMA],
       toolChoice: { type: "function", function: { name: "formal_review_result" } },
-      maxTokens: 4096,
+      maxTokens: 8192,
     });
 
     const output = result.content as { fixes?: unknown[]; revised_cv?: Record<string, unknown> };
