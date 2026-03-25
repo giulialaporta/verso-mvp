@@ -129,6 +129,27 @@ const STYLES: Record<TemplateId, DocxStyle> = {
     bulletChar: "•",
     headerRule: true,
   },
+  visual: {
+    accentHex: "60A5FA",
+    mutedHex: "555555",
+    sectionColorHex: "111111",
+    nameColorHex: "111111",
+    headingFont: "Calibri",
+    bodyFont: "Calibri",
+    nameSize: 36,
+    sectionSize: 22,
+    bodySize: 20,
+    bulletSize: 20,
+    metaSize: 18,
+    sectionBorder: true,
+    sectionUppercase: true,
+    nameUppercase: false,
+    nameAlignment: "left",
+    contactAlignment: "left",
+    sectionAlignment: "left",
+    bulletChar: "•",
+    headerRule: false,
+  },
 };
 
 function getStyle(templateId?: TemplateId): DocxStyle {
