@@ -182,9 +182,11 @@ function sectionTitle(text: string, s: DocxStyle): Paragraph {
 }
 
 function bulletParagraph(text: string, s: DocxStyle): Paragraph {
+  const isTruncation = text === "…" || text === "...";
+  const displayText = isTruncation ? "…" : `${s.bulletChar} ${text}`;
   return new Paragraph({
     spacing: { after: 40 },
-    children: [new TextRun({ text: `${s.bulletChar} ${text}`, size: s.bulletSize, font: s.bodyFont })],
+    children: [new TextRun({ text: displayText, size: s.bulletSize, font: s.bodyFont, ...(isTruncation ? { color: s.mutedHex } : {}) })],
   });
 }
 
@@ -274,39 +276,48 @@ export async function generateDocx(
 
   if (summary) {
     children.push(sectionTitle(h("profile", lang), s));
-    children.push(
-      new Paragraph({
-        spacing: { after: 120 },
-        children: [new TextRun({ text: summary, size: s.bodySize, font: s.bodyFont })],
-      })
-    );
+    const paragraphs = summary.split(/\n\n+/).filter(Boolean);
+    for (const para of paragraphs) {
+      children.push(
+        new Paragraph({
+          spacing: { after: 120 },
+          children: [new TextRun({ text: para.trim(), size: s.bodySize, font: s.bodyFont })],
+        })
+      );
+    }
   }
 
   if (experience.length > 0) {
     children.push(sectionTitle(h("experience", lang), s));
     for (let i = 0; i < experience.length; i++) {
       const exp = experience[i];
-      children.push(
-        new Paragraph({
-          spacing: { before: 120, after: 20 },
-          children: [
-            new TextRun({
-              text: clean(exp.role) || clean(exp.title) || "",
-              bold: true,
-              size: s.sectionSize,
-              font: s.headingFont,
-            }),
-          ],
-        })
-      );
-      children.push(
-        new Paragraph({
-          spacing: { after: 20 },
-          children: [
-            new TextRun({ text: exp.company || "", bold: true, size: s.bodySize, font: s.bodyFont, color: "333333" }),
-          ],
-        })
-      );
+      const roleText = clean(exp.role) || clean(exp.title) || "";
+      if (roleText) {
+        children.push(
+          new Paragraph({
+            spacing: { before: 200, after: 20 },
+            children: [
+              new TextRun({
+                text: roleText,
+                bold: true,
+                size: s.sectionSize,
+                font: s.headingFont,
+              }),
+            ],
+          })
+        );
+      }
+      const companyText = clean(exp.company);
+      if (companyText) {
+        children.push(
+          new Paragraph({
+            spacing: { after: 20 },
+            children: [
+              new TextRun({ text: companyText, bold: true, size: s.bodySize, font: s.bodyFont, color: "333333" }),
+            ],
+          })
+        );
+      }
       const meta = [
         exp.start || exp.period,
         exp.end ? ` – ${exp.end}` : exp.current ? " – Attuale" : "",
@@ -332,25 +343,50 @@ export async function generateDocx(
   if (education.length > 0) {
     children.push(sectionTitle(h("education", lang), s));
     for (const ed of education) {
-      children.push(
-        new Paragraph({
-          spacing: { before: 80, after: 20 },
-          children: [
-            new TextRun({
-              text: `${ed.degree}${clean(ed.field) ? ` in ${ed.field}` : ""} — ${ed.institution}`,
-              bold: true,
-              size: s.bodySize,
-              font: s.bodyFont,
-            }),
-          ],
-        })
-      );
-      const meta = [
-        ed.start || ed.period,
-        ed.end ? ` – ${ed.end}` : "",
-        clean(ed.grade) ? `  ·  ${ed.grade}` : "",
-      ].join("");
-      if (meta.trim()) children.push(metaText(meta, s));
+      const degree = clean(ed.degree);
+      const field = clean(ed.field);
+      const institution = clean(ed.institution);
+
+      // Build title avoiding "undefined" and deduplicating field in degree
+      const titleParts: string[] = [];
+      if (degree && field) {
+        if (degree.toLowerCase().includes(field.toLowerCase())) {
+          titleParts.push(degree);
+        } else {
+          titleParts.push(`${degree}: ${field}`);
+        }
+      } else if (degree) {
+        titleParts.push(degree);
+      } else if (field) {
+        titleParts.push(field);
+      }
+
+      const eduTitle = institution
+        ? (titleParts.length > 0 ? `${titleParts.join("")} — ${institution}` : institution)
+        : titleParts.join("");
+
+      if (eduTitle) {
+        children.push(
+          new Paragraph({
+            spacing: { before: 80, after: 20 },
+            children: [
+              new TextRun({
+                text: eduTitle,
+                bold: true,
+                size: s.bodySize,
+                font: s.bodyFont,
+              }),
+            ],
+          })
+        );
+      }
+      const metaParts: string[] = [];
+      const startDate = clean(ed.start) || clean(ed.period);
+      const endDate = clean(ed.end);
+      if (startDate) metaParts.push(startDate + (endDate ? ` – ${endDate}` : ""));
+      const grade = clean(ed.grade);
+      if (grade) metaParts.push(grade);
+      if (metaParts.length > 0) children.push(metaText(metaParts.join("  ·  "), s));
     }
   }
 
@@ -425,10 +461,23 @@ export async function generateDocx(
   }
 
   for (const sec of extraSections) {
-    children.push(sectionTitle(sec.title, s));
+    const secTitle = clean(sec.title);
+    if (!secTitle) continue;
+    children.push(sectionTitle(secTitle, s));
     const items = (sec.items || []).filter((item: string) => clean(item));
-    for (const item of items) {
-      children.push(bulletParagraph(item, s));
+    // Hobbies/interests: render inline comma-separated instead of bullets
+    const isHobbySection = /hobby|hobbies|interest|interests|interessi/i.test(secTitle);
+    if (isHobbySection && items.length > 0) {
+      children.push(
+        new Paragraph({
+          spacing: { after: 80 },
+          children: [new TextRun({ text: items.join(", "), size: s.bodySize, font: s.bodyFont })],
+        })
+      );
+    } else {
+      for (const item of items) {
+        children.push(bulletParagraph(item, s));
+      }
     }
   }
 
