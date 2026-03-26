@@ -139,37 +139,70 @@ Deno.serve(async (req) => {
       const safeUrl = validateUrl(url);
 
       let jobText = "";
+
+      // --- Strategy 1: Basic fetch ---
       try {
         const pageResponse = await fetch(safeUrl, {
           signal: AbortSignal.timeout(10000),
           headers: {
-            "User-Agent": "Mozilla/5.0 (compatible; VersoBot/1.0)",
-            Accept: "text/html,application/xhtml+xml",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
           },
         });
 
-        if (!pageResponse.ok) {
-          return new Response(
-            JSON.stringify({ error: "Impossibile accedere all'URL. Prova a incollare il testo dell'annuncio." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+        if (pageResponse.ok) {
+          const html = await pageResponse.text();
+          jobText = cleanHTML(html);
+          if (jobText.length > 15000) jobText = jobText.substring(0, 15000);
         }
-
-        const html = await pageResponse.text();
-        jobText = cleanHTML(html);
-
-        if (jobText.length > 15000) jobText = jobText.substring(0, 15000);
       } catch (fetchErr) {
-        console.error("Fetch error:", fetchErr);
-        return new Response(
-          JSON.stringify({ error: "Errore durante il recupero dell'URL. Prova a incollare il testo." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        console.warn("Basic fetch failed:", fetchErr);
+      }
+
+      // --- Strategy 2: Firecrawl fallback if basic fetch returned insufficient text ---
+      if (!jobText || jobText.length < 50) {
+        const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+        if (firecrawlKey) {
+          console.log("Basic fetch insufficient, trying Firecrawl for:", safeUrl);
+          try {
+            const fcResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${firecrawlKey}`,
+              },
+              body: JSON.stringify({
+                url: safeUrl,
+                formats: ["markdown"],
+                onlyMainContent: true,
+                waitFor: 3000,
+              }),
+              signal: AbortSignal.timeout(15000),
+            });
+
+            if (fcResponse.ok) {
+              const fcData = await fcResponse.json();
+              if (fcData?.data?.markdown) {
+                jobText = fcData.data.markdown;
+                if (jobText.length > 15000) jobText = jobText.substring(0, 15000);
+                console.log("Firecrawl success, text length:", jobText.length);
+              }
+            } else {
+              const errText = await fcResponse.text();
+              console.warn("Firecrawl error:", fcResponse.status, errText);
+            }
+          } catch (fcErr) {
+            console.warn("Firecrawl fetch error:", fcErr);
+          }
+        } else {
+          console.warn("No FIRECRAWL_API_KEY set, skipping fallback.");
+        }
       }
 
       if (!jobText || jobText.length < 20) {
         return new Response(
-          JSON.stringify({ error: "Testo dell'annuncio troppo corto o non trovato." }),
+          JSON.stringify({ error: "Impossibile estrarre il testo dall'URL. Prova a copiare e incollare il testo dell'annuncio nel tab Testo." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
