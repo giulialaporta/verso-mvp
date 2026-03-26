@@ -461,10 +461,23 @@ export async function generateDocx(
   }
 
   for (const sec of extraSections) {
-    children.push(sectionTitle(sec.title, s));
+    const secTitle = clean(sec.title);
+    if (!secTitle) continue;
+    children.push(sectionTitle(secTitle, s));
     const items = (sec.items || []).filter((item: string) => clean(item));
-    for (const item of items) {
-      children.push(bulletParagraph(item, s));
+    // Hobbies/interests: render inline comma-separated instead of bullets
+    const isHobbySection = /hobby|hobbies|interest|interests|interessi/i.test(secTitle);
+    if (isHobbySection && items.length > 0) {
+      children.push(
+        new Paragraph({
+          spacing: { after: 80 },
+          children: [new TextRun({ text: items.join(", "), size: s.bodySize, font: s.bodyFont })],
+        })
+      );
+    } else {
+      for (const item of items) {
+        children.push(bulletParagraph(item, s));
+      }
     }
   }
 
