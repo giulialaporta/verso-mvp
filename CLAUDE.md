@@ -73,6 +73,32 @@ PM esperto nella costruzione di app con **Lovable** — app complete, pronte per
 
 ---
 
+## CHANGELOG
+
+Ogni volta che Claude Code apporta modifiche al codice — o rileva modifiche fatte da Lovable tramite git diff/log — aggiorna il file `CHANGELOG.md` nella root del progetto.
+
+### Formato di ogni entry
+
+```
+| Data/Ora | Fonte | File modificati | Descrizione | Side effect |
+```
+
+- **Data/Ora**: formato `YYYY-MM-DD HH:MM` (ora locale)
+- **Fonte**: `Claude Code` oppure `Lovable`
+- **File modificati**: lista dei file principali toccati (usa path relativo, separa con `,`)
+- **Descrizione**: cosa è stato fatto in 1-2 frasi (italiano)
+- **Side effect**: impatti su altri componenti, rischi, dipendenze da testare — oppure `—` se nessuno
+
+### Regole
+
+- Aggiorna `CHANGELOG.md` **prima del commit**, non dopo
+- Se le modifiche di Lovable e Claude Code fanno parte della stessa sessione, registrale come entry separate
+- Raggruppa le modifiche dello stesso commit in una sola entry
+- Per le modifiche di Lovable: ricavale dal `git log` o dal diff rilevato da `/improve`
+- Il CHANGELOG è **append-only** — non modificare entry esistenti, solo aggiungine di nuove in cima
+
+---
+
 ## Regole
 
 - Parlare sempre in **italiano**
