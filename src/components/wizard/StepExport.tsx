@@ -226,12 +226,6 @@ export function StepExport({
   };
 
   const handleDownloadDocx = async () => {
-    if (!isPro) {
-      toast("Export DOCX disponibile con Verso Pro", {
-        action: { label: "Upgrade", onClick: () => navigate("/upgrade") },
-      });
-      return;
-    }
     setDownloadingDocx(true);
     try {
       const blob = await generateDocx(activeCv as Record<string, any>, effectiveLang, selectedTemplate);
@@ -395,16 +389,10 @@ export function StepExport({
           disabled={downloadingDocx}
           className="w-full gap-2 h-11 relative active:scale-[0.98] transition-transform"
         >
-          {!isPro && <Lock size={14} className="text-muted-foreground" />}
           {downloadingDocx ? (
             <><SpinnerGap size={16} className="animate-spin" /> Generazione DOCX...</>
           ) : (
             <><FileDoc size={16} /> Scarica DOCX</>
-          )}
-          {!isPro && (
-            <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[11px] text-primary font-bold">
-              <Crown size={8} weight="fill" /> Pro
-            </span>
           )}
         </Button>
       </div>
