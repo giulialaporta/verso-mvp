@@ -57,7 +57,7 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (user) {
-      supabaseClient
+      supabase
         .from("consent_logs" as any)
         .select("id")
         .eq("user_id", user.id)
@@ -150,7 +150,7 @@ export default function Onboarding() {
     if (!file || !user) return;
     // Save consent inline if not already saved
     if (sensitiveConsent) {
-      const { data: existingConsent } = await supabaseClient
+      const { data: existingConsent } = await supabase
         .from("consent_logs" as any)
         .select("id")
         .eq("user_id", user.id)
