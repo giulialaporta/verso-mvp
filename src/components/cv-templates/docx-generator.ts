@@ -262,13 +262,13 @@ export async function generateDocx(
       const locationText = clean(exp.location) ? sanitize(exp.location) : null;
       const dateRange = buildDateRange(exp.start || exp.period, exp.end, exp.current, lang);
 
-      // Line 1: Role [TAB] Date range
+      // Line 1: Role (bold)
       if (roleText) {
-        children.push(roleWithDate(roleText, dateRange, s));
+        children.push(roleLine(roleText, s));
       }
-      // Line 2: Company · Location
+      // Line 2: Company · Location · Date
       if (companyText) {
-        children.push(companyLine(companyText, locationText, s));
+        children.push(companyLine(companyText, locationText, dateRange, s));
       }
       // Description paragraph
       if (clean(exp.description)) {
