@@ -370,22 +370,24 @@ export function CVSections({
         }
       });
 
-      // Sort experiences chronologically after save
+      // Capture the saved experience BEFORE sorting (index may change)
+      let savedExpSnapshot: any = null;
       if (type === "experience") {
+        savedExpSnapshot = { ...copy.experience[index] };
         copy.experience = sortExperiencesByDate(copy.experience);
       }
 
       onUpdate(copy);
 
       // Check if we need to prompt about previous current experiences
-      if (type === "experience" && isNewExperience.current) {
+      if (type === "experience" && isNewExperience.current && savedExpSnapshot) {
         isNewExperience.current = false;
-        const savedExp = copy.experience[index];
-        const isCurrent = savedExp.current || !savedExp.end;
+        const isCurrent = savedExpSnapshot.current || !savedExpSnapshot.end;
         if (isCurrent) {
           // Find other experiences that are also current (excluding the one just saved)
-          const otherCurrentIdx = copy.experience.findIndex((e: any, i: number) => {
-            if (e === savedExp || (e.role === savedExp.role && e.company === savedExp.company && e.start === savedExp.start)) return false;
+          const otherCurrentIdx = copy.experience.findIndex((e: any) => {
+            // Skip the saved experience by matching role+company+start
+            if (e.role === savedExpSnapshot.role && e.company === savedExpSnapshot.company && e.start === savedExpSnapshot.start) return false;
             return e.current || (!e.end && e.start);
           });
           if (otherCurrentIdx >= 0) {
