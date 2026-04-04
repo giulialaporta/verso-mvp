@@ -52,6 +52,9 @@ Checklist per verificare il flusso di onboarding a 4 step: Upload CV, Parsing AI
 - [ ] **D6** — Le modifiche fatte inline sono preservate quando si procede
 - [ ] **D7** — I suggerimenti AI (`CVSuggestions`) vengono mostrati
 - [ ] **D8** — L'"honesty note" (Verso usa solo cio' che c'e' nel CV) e' visibile
+- [ ] **D9** — Dopo il salvataggio del CV, `cv-optimize` viene chiamata in background (non blocca il flusso)
+- [ ] **D10** — Se `cv-optimize` trova miglioramenti: il CV in stato viene aggiornato + toast "CV ottimizzato!" + `CVOptimizationTips` visibili
+- [ ] **D11** — I tip di `CVOptimizationTips` sono dismissibili singolarmente con animazione
 
 ---
 

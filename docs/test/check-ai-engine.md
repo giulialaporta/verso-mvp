@@ -68,6 +68,8 @@
 - [x] **D10** — Non vengono rimosse tutte le esperienze (minimo 2) (verificato da code review: validate-output)
 - [x] **D11** — Non vengono rimosse piu' del 50% delle esperienze (verificato da code review: validate-output)
 - [x] **D12** — Il CV output e' nella lingua dell'annuncio (verificato da code review)
+- [ ] **D16** — L'output contiene `narrative_thread`: 3 frasi in italiano che descrivono chi è il candidato, il suo differenziatore, e la tesi narrativa usata per le patch
+- [ ] **D17** — Il summary è coerente con il `narrative_thread` (non generico, specifico per ruolo e persona)
 - [ ] **D13** — Pro gate server-side: utente Free con `free_apps_used >= 1` → 403 `UPGRADE_REQUIRED`
 - [ ] **D14** — Utente Pro: nessun blocco, tailoring procede normalmente
 - [ ] **D15** — Frontend intercetta 403 e fa redirect a `/upgrade`
@@ -84,7 +86,7 @@
 - [x] **E6** — Nessun artefatto (prefissi, virgolette, markdown) nel testo (verificato da code review: prompt specifica)
 - [x] **E7** — Skill duplicate rimosse (verificato da code review)
 - [x] **E8** — Cliche' generici rimossi (verificato da code review)
-- [x] **E9** — Max 4-5 bullet per esperienza (verificato da code review)
+- [x] **E9** — Max 4-5 bullet per esperienza; max 6 bullet per esperienze senior/lead/executive o durata > 3 anni (verificato da code review)
 - [x] **E10** — Formato date uniforme in tutto il CV (verificato da code review)
 - [x] **E11** — Dati personali (nome, email, telefono, linkedin) NON modificati (verificato da code review)
 - [x] **E12** — Date, nomi aziende, titoli di studio NON modificati (verificato da code review)
@@ -171,6 +173,21 @@
 - [x] **I2** — `_shared/compact-cv.ts`: compattazione CV riduce token senza perdere dati (verificato da code review)
 - [x] **I3** — `_shared/validate-output.ts`: validazione output AI rileva JSON malformati (verificato da code review)
 - [x] **I4** — `_shared/cors.ts`: CORS dinamico con whitelist origini funziona (verificato da code review)
+
+---
+
+## K. cv-optimize
+
+- [ ] **K1** — Endpoint `POST /functions/v1/cv-optimize` risponde correttamente
+- [ ] **K2** — Richiede autenticazione (senza token: errore 401)
+- [ ] **K3** — Input `{ cv_data }`: restituisce `{ optimized_cv, tips }`
+- [ ] **K4** — `optimized_cv` ha la stessa struttura JSON del CV input (stessa lingua, no contenuti aggiunti)
+- [ ] **K5** — `tips` e' un array di max 8 elementi ordinati per priorita' decrescente
+- [ ] **K6** — Ogni tip ha: `category`, `message`, `priority` (+ opzionale `section`)
+- [ ] **K7** — CV gia' ottimizzato: `optimized_cv` identico all'input (o con differenze minime)
+- [ ] **K8** — CV con bullet generici: almeno 1 tip `weak_bullets` o `missing_kpi`
+- [ ] **K9** — CV senza summary: tip `summary_quality` con priority `high`
+- [ ] **K10** — Errore AI: restituisce 500 con messaggio leggibile
 
 ---
 

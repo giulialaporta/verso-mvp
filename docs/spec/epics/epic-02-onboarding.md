@@ -66,6 +66,8 @@ Il PDF viene inviato alla Edge Function `parse-cv`.
 
 **Suggerimenti AI:** componente `CVSuggestions` mostra consigli per migliorare il CV.
 
+**Ottimizzazione AI asincrona:** dopo il salvataggio del CV (click "Continua"), viene chiamata in background l'edge function `cv-optimize`. Se l'AI suggerisce miglioramenti di forma, il CV viene aggiornato in stato (non risalvato automaticamente) e viene mostrato il componente `CVOptimizationTips` con i tip azionabili. L'ottimizzazione è non-bloccante: l'utente procede allo step 4 anche se fallisce.
+
 **Honesty note:** messaggio che Verso usa solo ciò che è scritto nel CV, non aggiunge nulla.
 
 **Al click "Continua":**
@@ -109,7 +111,7 @@ Il PDF viene inviato alla Edge Function `parse-cv`.
 - **Soft delete:** disattivazione del CV tramite `is_active=false`
 - **Riattivazione:** possibilità di riattivare un CV precedentemente disattivato
 - **Hard delete:** rimozione definitiva del file dallo storage + cancellazione del record dal DB
-- **Pagina `/app/cv-edit`:** consente di modificare il CV parsato senza ri-upload del PDF
+- **Pagina `/app/cv-edit`:** consente di modificare il CV parsato senza ri-upload del PDF. Include un pulsante "Ottimizza con AI" (`MagicWand`) che chiama `cv-optimize` e mostra il componente `CVOptimizationTips` + toast se il CV viene aggiornato.
 
 ---
 

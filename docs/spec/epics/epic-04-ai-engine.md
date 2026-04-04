@@ -1,4 +1,4 @@
-# Epic 04 — AI Engine (8 Edge Functions AI + 5 Stripe) (Implementato)
+# Epic 04 — AI Engine (9 Edge Functions AI + 5 Stripe) (Implementato)
 
 ---
 
@@ -6,7 +6,7 @@
 
 Tredici Supabase Edge Functions (Deno): 8 AI + 5 Stripe/account. Le funzioni AI usano il modulo multi-provider `_shared/ai-provider.ts` con routing per task: Anthropic (Claude Sonnet 4 / Haiku 4.5) come primario, Google AI (Gemini 2.5 Flash) come fallback, Lovable Gateway come fallback secondario. Tutte condividono il modulo `_shared/cors.ts` per CORS dinamico.
 
-> **Differenza dal piano MVP:** il piano prevedeva 3 funzioni con Claude API. Implementate 6 funzioni AI (aggiunte `ai-prescreen`, `cv-review`, `delete-account`). Migrazione da Lovable Gateway/Gemini a Anthropic Claude completata (epic-10). Aggiunte 4 funzioni Stripe per epic 07 Versō Pro.
+> **Differenza dal piano MVP:** il piano prevedeva 3 funzioni con Claude API. Implementate 9 funzioni AI (aggiunte `ai-prescreen`, `cv-review`, `delete-account`, `cv-optimize`). Migrazione da Lovable Gateway/Gemini a Anthropic Claude completata (epic-10). Aggiunte 4 funzioni Stripe per epic 07 Versō Pro.
 
 ---
 
@@ -142,7 +142,9 @@ Tredici Supabase Edge Functions (Deno): 8 AI + 5 Stripe/account. Le funzioni AI 
 }
 ```
 
-**Nota:** `salary_analysis` e' opzionale — incluso solo se ci sono dati retributivi dal profilo utente o dall'annuncio.
+**Nota:** `salary_analysis` e' opzionale — incluso solo se ci sono dati retributivi dal profilo utente o dall'annuncio. `salary_analysis` DEVE essere nel tool call output, mai embedded nel testo `feasibility_note`.
+
+**Benchmark salariali:** `fetchSalaryBenchmarks` viene lanciato in parallelo alla costruzione del prompt. Il risultato viene atteso con race timeout di 3 secondi: se Firecrawl non risponde entro 3s, il prescreen procede senza benchmark (non bloccante).
 
 **Output sempre in italiano.**
 
@@ -174,7 +176,15 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 1. **Strutturale:** rimozione esperienze irrilevanti, riordino per rilevanza, condensazione bullet
 2. **Contenutistico:** riscrittura summary, bullet con verbi d'azione, riordino skill per rilevanza al ruolo
 
-**Prompt (SYSTEM_PROMPT_TAILOR):** ristrutturato con gerarchia esplicita — identità → regole inviolabili → esempi few-shot → lingua → come adattare → data integrity → follow-up → output format. Le 5 regole anti-hallucination sono nelle prime 15 righe del prompt.
+**Prompt (SYSTEM_PROMPT_TAILOR):** ristrutturato con gerarchia esplicita — identità → regole inviolabili → esempi few-shot → lingua → STEP 0 (brief narrativo) → sintesi cross-sezione → summary come spine → voice & narrative → come adattare → data integrity → follow-up → output format.
+
+**STEP 0 — Brief narrativo obbligatorio:** prima di generare qualsiasi patch, il modello deve leggere l'intero CV come documento di una persona (non come JSON da patchare) e formare tre risposte: chi è questa persona, qual è il suo differenziatore reale per questo ruolo, qual è la tesi narrativa che guida ogni patch. Queste risposte vengono scritte nel campo `narrative_thread` dell'output.
+
+**Cross-section synthesis:** il modello può aggiungere specificità a qualsiasi sezione usando informazioni presenti OVUNQUE nel CV (non solo nell'esperienza corrente). Connettere punti tra sezioni diverse non è inventare — è portare in superficie ciò che è già vero.
+
+**Summary come spine:** la summary viene generata come primo patch. Ogni patch successivo deve essere coerente con essa.
+
+**Aggiornamento TOOL_SCHEMA_TAILOR:** aggiunto campo `narrative_thread` (required) — brief interno del recruiter in italiano, 3 frasi.
 
 **Output:**
 ```json
@@ -397,6 +407,69 @@ Revisore finale della forma del CV prima del download. Non valuta contenuti ne' 
 
 ---
 
+## Edge Function 9: `cv-optimize` (NUOVA)
+
+**Endpoint:** `POST /functions/v1/cv-optimize`
+
+**Input:**
+```json
+{ "cv_data": { "...CV JSON..." } }
+```
+
+**Processo:**
+- Riceve il CV JSON compattato (via `compactCV`)
+- AI con ruolo "recruiter esperto 15+ anni" applica ottimizzazioni di forma (non di contenuto)
+- Genera array di tip azionabili per l'utente
+
+**Ottimizzazioni di forma applicate:**
+- Riscrittura bullet point con verbi d'azione forti (es. "Gestito" → "Guidato")
+- Rimozione cliche' e frasi generiche usate da sole ("team player", "problem solver")
+- Uniforma formato date (es. "gen 2021 - dic 2023")
+- Migliora summary generico o vago (specifico per settore/ruolo)
+- Corregge errori grammaticali evidenti
+- NON aggiunge esperienze, skill o contenuti non presenti
+- NON rimuove contenuti esistenti
+- Preserva la lingua originale del CV
+
+**Tip generati (max 8, ordinati per priorita'):**
+
+| Categoria | Descrizione |
+|-----------|-------------|
+| `missing_kpi` | Bullet senza metriche/numeri |
+| `missing_section` | Sezioni importanti assenti |
+| `weak_bullets` | Bullet con sostantivi invece di verbi d'azione |
+| `generic_skills` | Skill troppo generiche per ATS |
+| `missing_contact` | Contatti mancanti (LinkedIn, email, telefono) |
+| `summary_quality` | Summary assente, generico o non specifico |
+
+**Output:**
+```json
+{
+  "optimized_cv": { "...CV con correzioni di forma..." },
+  "tips": [
+    { "category": "missing_kpi", "message": "...", "priority": "high|medium|low", "section": "..." }
+  ]
+}
+```
+
+**Parametri AI:** `temperature: 0.2`, `maxTokens: 8192`
+
+**Integrazione:**
+- Chiamata **async non-bloccante** in `Onboarding.tsx` (step 3, subito dopo salvataggio CV) e in `CVEdit.tsx` (al click "Ottimizza con AI")
+- Se `optimized_cv` diverge dall'originale → `setData(optimized_cv)` + toast "CV ottimizzato!"
+- Se il CV è già in buona forma → toast "Il tuo CV è già in ottima forma!"
+- I tip vengono mostrati nel componente `CVOptimizationTips` (dismissibili singolarmente)
+
+**UI — componente `CVOptimizationTips`:**
+- Card per ogni tip con icona categoria, label, messaggio
+- Bordo sinistro colorato per priorità (primary/warning/border)
+- Animazione dismiss con Framer Motion
+- Pulsante X per dismissione singola
+
+**Sicurezza:** autenticazione Bearer token richiesta (401 se assente/invalido). Usa `getCorsHeaders(req)` da `_shared/cors.ts`.
+
+---
+
 ## Edge Functions Stripe (5 — vedi epic-07 per dettagli)
 
 | Funzione | Scopo |
@@ -434,6 +507,7 @@ Revisore finale della forma del CV prima del download. Non valuta contenuti ne' 
 | `ai-tailor-analyze` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
 | `cv-review` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
 | `cv-formal-review` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
+| `cv-optimize` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
 
 **Behavior:**
 1. Chiama il provider primario (fino a 2 tentativi, pausa 2s tra i tentativi)
@@ -488,7 +562,7 @@ CREATE TABLE ai_usage_logs (
 | Parametro | Valore |
 |-----------|--------|
 | Provider primario (parse-cv, ai-tailor) | Anthropic → Claude Sonnet 4 |
-| Provider primario (ai-prescreen, ai-tailor-analyze, cv-review, cv-formal-review) | Anthropic → Claude Haiku 4.5 |
+| Provider primario (ai-prescreen, ai-tailor-analyze, cv-review, cv-formal-review, cv-optimize) | Anthropic → Claude Haiku 4.5 |
 | Provider primario (scrape-job) | Google AI → Gemini 2.5 Flash |
 | Fallback (tutte le funzioni Anthropic) | Google AI → Gemini 2.5 Flash |
 | Fallback (scrape-job) | Lovable Gateway → Gemini 2.0 Flash |
@@ -501,7 +575,7 @@ CREATE TABLE ai_usage_logs (
 | Area | Piano | Implementato |
 |------|-------|-------------|
 | Provider AI | Claude API (Anthropic) | Multi-provider: Anthropic Claude (primario) + Google AI Gemini (fallback) |
-| Numero funzioni | 3 | 13 (8 AI + 5 Stripe: create-checkout, check-subscription, stripe-webhook, cancel-subscription, customer-portal) |
+| Numero funzioni | 3 | 14 (9 AI + 5 Stripe: create-checkout, check-subscription, stripe-webhook, cancel-subscription, customer-portal) |
 | parse-cv | Estrazione testo + prompt Claude | Input multimodale diretto (PDF → Gemini) |
 | ai-tailor | Output = CV completo | Output = patch JSON (solo modifiche) |
 | scrape-job | Senza cache | Con cache SHA-256, 7 giorni |
