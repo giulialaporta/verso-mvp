@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -9,23 +9,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   ArrowLeft, ArrowRight, SpinnerGap,
-  FileDoc, CheckCircle, CaretDown, CaretUp, Pencil, Printer
+  FileDoc, CheckCircle, Printer
 } from "@phosphor-icons/react";
 import { type TemplateId } from "@/components/cv-templates";
 import { generateDocx } from "@/components/cv-templates/docx-generator";
-import { h } from "@/components/cv-templates/template-utils";
+import { h, normalizeCvText } from "@/components/cv-templates/template-utils";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-
-type ReviewFix = {
-  section: string;
-  field: string;
-  problem: string;
-  correction: string;
-};
-
-type ReviewStatus = "idle" | "reviewing" | "done" | "error";
 
 // --- Word Preview helpers ---
 
