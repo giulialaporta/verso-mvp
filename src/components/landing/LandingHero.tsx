@@ -61,7 +61,7 @@ const LandingHero = () => {
             </div>
 
             <p className="text-[11px] sm:text-xs text-muted-foreground animate-fade-up delay-400">
-              Nessuna carta di credito · 1 candidatura gratuita
+              Accesso completo · Setup in 2 minuti
             </p>
           </div>
 

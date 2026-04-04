@@ -28,7 +28,7 @@ const FinalCTASection = () => {
           <ArrowRight className="w-5 h-5 ml-2" />
         </Button>
         <p className="text-[11px] sm:text-xs text-muted-foreground mt-4">
-          Nessuna carta di credito · Setup in 3 minuti
+          Tutte le funzionalità Pro · Setup in 2 minuti
         </p>
       </div>
     </section>

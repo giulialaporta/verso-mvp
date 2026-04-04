@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+
+// Set to false to restore freemium model
+export const TRIAL_MODE = true;
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -11,6 +14,18 @@ interface SubscriptionState {
 
 export function useSubscription() {
   const { user, session } = useAuth();
+
+  // Trial mode: all users get Pro access
+  if (TRIAL_MODE) {
+    return {
+      isPro: true,
+      subscriptionEnd: null,
+      cancelAtPeriodEnd: false,
+      loading: false,
+      refresh: async () => {},
+    };
+  }
+
   const [state, setState] = useState<SubscriptionState>({
     isPro: false,
     subscriptionEnd: null,
