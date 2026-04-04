@@ -26,6 +26,7 @@ import {
 } from "@phosphor-icons/react";
 import { CVSections } from "@/components/CVSections";
 import { CVSuggestions } from "@/components/CVSuggestions";
+import { CVOptimizationTips, type OptimizationTip } from "@/components/CVOptimizationTips";
 import type { ParsedCV } from "@/types/cv";
 
 type Step = "upload" | "parsing" | "preview" | "salary";
