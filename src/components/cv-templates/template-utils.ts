@@ -241,6 +241,11 @@ const HEADERS: Record<string, Record<string, string>> = {
     experience: "Esperienza",
     education: "Formazione",
     projects: "Progetti",
+    publications: "Pubblicazioni",
+    volunteering: "Volontariato",
+    awards: "Premi e riconoscimenti",
+    conferences: "Conferenze e presentazioni",
+    present: "Attuale",
   },
   en: {
     contacts: "Contacts",
@@ -251,6 +256,11 @@ const HEADERS: Record<string, Record<string, string>> = {
     experience: "Experience",
     education: "Education",
     projects: "Projects",
+    publications: "Publications",
+    volunteering: "Volunteering",
+    awards: "Awards & Recognitions",
+    conferences: "Conferences & Presentations",
+    present: "Present",
   },
 };
 
