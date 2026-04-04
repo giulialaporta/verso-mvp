@@ -285,7 +285,7 @@ export async function generateDocx(
       if (clean(exp.description)) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: sanitize(exp.description), size: s.bodySize, font: s.bodyFont })],
           })
         );
@@ -297,7 +297,7 @@ export async function generateDocx(
         children.push(
           new Paragraph({
             numbering: { reference: "cv-bullets", level: 0 },
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: sanitize(b), size: s.bulletSize, font: s.bodyFont })],
           })
         );
@@ -343,7 +343,7 @@ export async function generateDocx(
       if (gradeLine) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: gradeLine, size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true })],
           })
         );
@@ -368,7 +368,7 @@ export async function generateDocx(
     for (const l of languages) {
       children.push(
         new Paragraph({
-          spacing: { after: 40 },
+          spacing: { after: 20 },
           children: [new TextRun({ text: sanitize(`${l.language}${clean(l.level) ? ` - ${l.level}` : ""}`), size: s.bodySize, font: s.bodyFont })],
         })
       );
@@ -381,7 +381,7 @@ export async function generateDocx(
     for (const cert of certifications) {
       children.push(
         new Paragraph({
-          spacing: { after: 40 },
+          spacing: { after: 20 },
           children: [
             new TextRun({ text: sanitize(cert.name), bold: true, size: s.bodySize, font: s.bodyFont }),
             ...(clean(cert.issuer)
@@ -409,7 +409,7 @@ export async function generateDocx(
       if (clean(proj.description)) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: sanitize(proj.description), size: s.bodySize, font: s.bodyFont })],
           })
         );
@@ -417,7 +417,7 @@ export async function generateDocx(
       if (clean(proj.link)) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: proj.link, size: s.metaSize, font: s.bodyFont, color: s.accentHex })],
           })
         );
@@ -444,7 +444,7 @@ export async function generateDocx(
         children.push(
           new Paragraph({
             numbering: { reference: "cv-bullets", level: 0 },
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: sanitize(item), size: s.bulletSize, font: s.bodyFont })],
           })
         );
