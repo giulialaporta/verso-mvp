@@ -479,8 +479,8 @@ export async function generateDocx(
         properties: {
           page: {
             margin: {
-              top: convertMillimetersToTwip(15),
-              bottom: convertMillimetersToTwip(15),
+              top: convertMillimetersToTwip(14),
+              bottom: convertMillimetersToTwip(14),
               left: convertMillimetersToTwip(18),
               right: convertMillimetersToTwip(18),
             },
