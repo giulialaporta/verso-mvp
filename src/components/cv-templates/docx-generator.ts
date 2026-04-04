@@ -335,7 +335,7 @@ export async function generateDocx(
       // Date range for education
       const startDate = normalizeDate(clean(ed.start) || clean(ed.period));
       const endDate = normalizeDate(clean(ed.end));
-      const eduDateRange = startDate ? (endDate ? `${startDate} – ${endDate}` : startDate) : endDate || "";
+      const eduDateRange = startDate ? (endDate ? `${startDate} - ${endDate}` : startDate) : endDate || "";
 
       // Line 1: Degree [TAB] Date range
       if (degreeTitle) {
