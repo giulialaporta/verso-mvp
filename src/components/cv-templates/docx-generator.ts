@@ -5,8 +5,6 @@ import {
   TextRun,
   AlignmentType,
   BorderStyle,
-  TabStopType,
-  TabStopPosition,
   LevelFormat,
   convertMillimetersToTwip,
 } from "docx";
