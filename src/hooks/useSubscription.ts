@@ -26,7 +26,6 @@ export function useSubscription() {
     };
   }
 
-  const { user, session } = useAuth();
   const [state, setState] = useState<SubscriptionState>({
     isPro: false,
     subscriptionEnd: null,
