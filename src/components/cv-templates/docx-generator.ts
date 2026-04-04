@@ -106,7 +106,7 @@ function getStyle(_templateId?: TemplateId): DocxStyle {
 function sectionTitle(text: string, s: DocxStyle): Paragraph {
   const displayText = s.sectionUppercase ? text.toUpperCase() : text;
   return new Paragraph({
-    spacing: { before: 180, after: 40 },
+    spacing: { before: 420, after: 180 },
     border: s.sectionBorder
       ? { bottom: { style: BorderStyle.SINGLE, size: 2, color: s.accentHex } }
       : undefined,
@@ -134,7 +134,7 @@ function roleWithDate(role: string, dateRange: string, s: DocxStyle): Paragraph 
     );
   }
   return new Paragraph({
-    spacing: { before: 120, after: 0 },
+    spacing: { before: 320, after: 0 },
     tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
     children,
   });
@@ -163,7 +163,7 @@ function degreeWithDate(degree: string, dateRange: string, s: DocxStyle): Paragr
     );
   }
   return new Paragraph({
-    spacing: { before: 40, after: 0 },
+    spacing: { before: 200, after: 0 },
     tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
     children,
   });
@@ -335,7 +335,7 @@ export async function generateDocx(
       // Date range for education
       const startDate = normalizeDate(clean(ed.start) || clean(ed.period));
       const endDate = normalizeDate(clean(ed.end));
-      const eduDateRange = startDate ? (endDate ? `${startDate} – ${endDate}` : startDate) : endDate || "";
+      const eduDateRange = startDate ? (endDate ? `${startDate} - ${endDate}` : startDate) : endDate || "";
 
       // Line 1: Degree [TAB] Date range
       if (degreeTitle) {
