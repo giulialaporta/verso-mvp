@@ -376,7 +376,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_expired_job_cache: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never

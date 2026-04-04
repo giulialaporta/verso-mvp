@@ -5,8 +5,6 @@ import {
   TextRun,
   AlignmentType,
   BorderStyle,
-  TabStopType,
-  TabStopPosition,
   LevelFormat,
   convertMillimetersToTwip,
 } from "docx";
@@ -122,50 +120,46 @@ function sectionTitle(text: string, s: DocxStyle): Paragraph {
   });
 }
 
-/** Role line with date right-aligned via tab stop */
-function roleWithDate(role: string, dateRange: string, s: DocxStyle): Paragraph {
-  const children: TextRun[] = [
-    new TextRun({ text: role, bold: true, size: s.sectionSize, font: s.headingFont }),
-  ];
-  if (dateRange) {
-    children.push(
-      new TextRun({ text: "\t", size: s.metaSize, font: s.bodyFont }),
-      new TextRun({ text: dateRange, size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true }),
-    );
-  }
+/** Role line (bold, standalone — no tab stop) */
+function roleLine(role: string, s: DocxStyle): Paragraph {
   return new Paragraph({
-    spacing: { before: 320, after: 0 },
-    tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
-    children,
-  });
-}
-
-/** Company · Location line (muted, italic) */
-function companyLine(company: string, location: string | null, s: DocxStyle): Paragraph {
-  const text = location ? `${company}  ·  ${location}` : company;
-  return new Paragraph({
-    spacing: { after: 20 },
+    spacing: { before: 320, after: 40 },
     children: [
-      new TextRun({ text: sanitize(text), size: s.bodySize, font: s.bodyFont, color: s.mutedHex, italics: true }),
+      new TextRun({ text: role, bold: true, size: s.sectionSize, font: s.headingFont }),
     ],
   });
 }
 
-/** Degree line with date right-aligned */
-function degreeWithDate(degree: string, dateRange: string, s: DocxStyle): Paragraph {
-  const children: TextRun[] = [
-    new TextRun({ text: degree, bold: true, size: s.bodySize, font: s.bodyFont }),
-  ];
-  if (dateRange) {
-    children.push(
-      new TextRun({ text: "\t", size: s.metaSize, font: s.bodyFont }),
-      new TextRun({ text: dateRange, size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true }),
-    );
-  }
+/** Company · Location · Date line (muted, italic) */
+function companyLine(company: string, location: string | null, dateRange: string, s: DocxStyle): Paragraph {
+  const parts = [company];
+  if (location) parts.push(location);
+  if (dateRange) parts.push(dateRange);
   return new Paragraph({
-    spacing: { before: 200, after: 0 },
-    tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
-    children,
+    spacing: { after: 100 },
+    children: [
+      new TextRun({ text: sanitize(parts.join("  ·  ")), size: s.bodySize, font: s.bodyFont, color: s.mutedHex, italics: true }),
+    ],
+  });
+}
+
+/** Degree line (bold, standalone — no tab stop) */
+function degreeLine(degree: string, s: DocxStyle): Paragraph {
+  return new Paragraph({
+    spacing: { before: 200, after: 40 },
+    children: [
+      new TextRun({ text: degree, bold: true, size: s.bodySize, font: s.bodyFont }),
+    ],
+  });
+}
+
+/** Institution · Date · Grade line (muted, italic) */
+function institutionLine(parts: string[], s: DocxStyle): Paragraph {
+  return new Paragraph({
+    spacing: { after: 100 },
+    children: [
+      new TextRun({ text: sanitize(parts.join("  ·  ")), size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true }),
+    ],
   });
 }
 
@@ -268,13 +262,13 @@ export async function generateDocx(
       const locationText = clean(exp.location) ? sanitize(exp.location) : null;
       const dateRange = buildDateRange(exp.start || exp.period, exp.end, exp.current, lang);
 
-      // Line 1: Role [TAB] Date range
+      // Line 1: Role (bold)
       if (roleText) {
-        children.push(roleWithDate(roleText, dateRange, s));
+        children.push(roleLine(roleText, s));
       }
-      // Line 2: Company · Location
+      // Line 2: Company · Location · Date
       if (companyText) {
-        children.push(companyLine(companyText, locationText, s));
+        children.push(companyLine(companyText, locationText, dateRange, s));
       }
       // Description paragraph
       if (clean(exp.description)) {
@@ -319,7 +313,7 @@ export async function generateDocx(
       const field = clean(ed.field);
       const institution = clean(ed.institution);
 
-      // Build degree title
+      // Build degree title (without institution — goes on line 2)
       const titleParts: string[] = [];
       if (degree && field) {
         titleParts.push(degree.toLowerCase().includes(field.toLowerCase()) ? degree : `${degree}: ${field}`);
@@ -328,31 +322,29 @@ export async function generateDocx(
       } else if (field) {
         titleParts.push(field);
       }
-      const degreeTitle = sanitize(titleParts.length > 0
-        ? (institution ? `${titleParts.join("")} - ${institution}` : titleParts.join(""))
-        : (institution || ""));
+      const degreeTitle = sanitize(titleParts.join("") || institution || "");
 
       // Date range for education
       const startDate = normalizeDate(clean(ed.start) || clean(ed.period));
       const endDate = normalizeDate(clean(ed.end));
       const eduDateRange = startDate ? (endDate ? `${startDate} - ${endDate}` : startDate) : endDate || "";
 
-      // Line 1: Degree [TAB] Date range
+      // Line 1: Degree (bold)
       if (degreeTitle) {
-        children.push(degreeWithDate(degreeTitle, eduDateRange, s));
+        children.push(degreeLine(degreeTitle, s));
       }
 
-      // Line 2: Grade + honors (if any)
+      // Line 2: Institution · Date · Grade (muted italic)
       const grade = sanitize(clean(ed.grade));
       const honors = sanitize(clean(ed.honors));
-      const gradeLine = [grade, honors].filter(Boolean).join(" ");
-      if (gradeLine) {
-        children.push(
-          new Paragraph({
-            spacing: { after: 20 },
-            children: [new TextRun({ text: gradeLine, size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true })],
-          })
-        );
+      const gradeText = [grade, honors].filter(Boolean).join(" ");
+      const instParts = [
+        titleParts.length > 0 ? institution : null,
+        eduDateRange,
+        gradeText,
+      ].filter(Boolean) as string[];
+      if (instParts.length > 0) {
+        children.push(institutionLine(instParts, s));
       }
     }
   }

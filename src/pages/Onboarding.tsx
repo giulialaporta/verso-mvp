@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { hasSensitiveDataConsent } from "@/components/SensitiveDataConsent";
+
 import { hashEmail } from "@/lib/hash-email";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -57,7 +57,16 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (user) {
-      hasSensitiveDataConsent(user.id).then((v) => setSensitiveConsent(v));
+      supabase
+        .from("consent_logs" as any)
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("consent_type", "sensitive_data")
+        .eq("granted", true)
+        .limit(1)
+        .then(({ data }) => {
+          if ((data?.length ?? 0) > 0) setSensitiveConsent(true);
+        });
     }
   }, [user]);
 
@@ -141,7 +150,14 @@ export default function Onboarding() {
     if (!file || !user) return;
     // Save consent inline if not already saved
     if (sensitiveConsent) {
-      const alreadyConsented = await hasSensitiveDataConsent(user.id);
+      const { data: existingConsent } = await supabase
+        .from("consent_logs" as any)
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("consent_type", "sensitive_data")
+        .eq("granted", true)
+        .limit(1);
+      const alreadyConsented = (existingConsent?.length ?? 0) > 0;
       if (!alreadyConsented) {
         const userHash = user.email ? await hashEmail(user.email) : undefined;
         await supabase.from("consent_logs" as any).insert({
