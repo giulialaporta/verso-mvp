@@ -1,57 +1,59 @@
 
 
-# Ordinamento cronologico esperienze + flag "attuale" all'aggiunta
+# CV Optimization AI — Piano Finale
 
-## Problema
+## Modifiche rispetto al piano precedente
 
-Quando si aggiunge una nuova esperienza nel CV (onboarding o cv-edit), viene appesa in fondo all'array senza ordinamento. LinkedIn ordina le esperienze in ordine cronologico inverso (più recente in alto). Inoltre, quando si aggiunge una nuova esperienza, non viene chiesto se l'esperienza precedente è terminata.
+1. **Banner "CV ottimizzato"**: aggiunto diff esplicito tra CV parsato e `optimized_cv`. Il banner appare solo se `JSON.stringify(parsed) !== JSON.stringify(optimized)`. Nessun falso positivo.
+2. **`date_gaps` rimosso dalla v1**: categoria esclusa dal prompt e dal componente tips. Verrà aggiunta in una fase successiva con logica dedicata.
 
-## Modifiche
+---
 
-### File: `src/components/CVSections.tsx`
-
-**1. Ordinamento cronologico inverso dopo ogni modifica**
-
-Creare una funzione `sortExperiencesByDate` che ordina l'array `experience` in ordine cronologico inverso (più recente prima), usando il campo `start` (parsing best-effort di mese/anno). Le esperienze con `current: true` o `end` vuoto vanno sempre in cima.
-
-Invocare questa funzione in due punti:
-- Nel click di "Aggiungi Esperienza" (riga 443-449), dopo aver aggiunto il nuovo elemento vuoto e dopo che l'utente salva il drawer
-- In `handleDrawerSave` (riga 276-291), quando il tipo è `experience`, riordinare l'array dopo il salvataggio
-
-**2. Apertura automatica del drawer per la nuova esperienza**
-
-Quando si clicca "+ Esperienza", invece di aggiungere un elemento vuoto e basta, aggiungere l'elemento e aprire immediatamente il drawer di editing sull'ultimo elemento (quello appena creato). Così l'utente compila subito le date e il sorting funziona correttamente.
-
-**3. Prompt "esperienza precedente terminata?"**
-
-Dopo il salvataggio di una nuova esperienza nel drawer, se esiste un'altra esperienza con `current: true` (o senza `end`), mostrare un dialog di conferma:
-- Testo: "L'esperienza presso [azienda precedente] è terminata?"
-- Opzioni: "Sì, è terminata" → imposta `current: false` e chiede la data di fine / "No, è ancora in corso" → lascia invariata
-
-Implementare come `AlertDialog` (già disponibile in `src/components/ui/alert-dialog.tsx`).
-
-**4. Riordinamento automatico**
-
-La funzione di sorting parsa le date nel formato tipico dei CV ("Gen 2020", "2020", "January 2020", "01/2020") e ordina in modo decrescente. Le esperienze "current" o senza data di fine vanno in cima. Quelle senza data di inizio vanno in fondo.
-
-### Dettaglio tecnico
+## Flusso
 
 ```text
-sortExperiencesByDate(experiences):
-  1. current=true o end vuoto → priority 0 (in cima)
-  2. Parse start date → ordine decrescente
-  3. Nessuna data → in fondo
-
-Trigger sorting:
-  - handleDrawerSave (quando type === "experience")
-  - Nessun sorting sull'aggiunta (l'elemento è vuoto, verrà ordinato al salvataggio del drawer)
-
-Dialog "terminata?":
-  - Trigger: salvataggio drawer di una NUOVA esperienza (non modifica di una esistente)
-  - Condizione: esiste almeno un'altra exp con current===true o end vuoto/assente
-  - Azione "Sì": imposta current=false, apre un prompt per la data di fine
-  - Azione "No": chiude il dialog
+Upload → parse-cv → [mostra preview subito]
+                  └→ [background] cv-optimize → diff? → aggiorna preview + tips
 ```
 
-Nessun altro file modificato. Nessuna modifica al backend.
+## Componenti
+
+### 1. Edge Function `supabase/functions/cv-optimize/index.ts`
+
+- Input: `{ cv_data: ParsedCV }`
+- Output: `{ optimized_cv: ParsedCV, tips: Tip[] }`
+- Usa `compactCV` per ridurre token, poi chiama Lovable AI (gemini-2.5-flash) con tool calling per output strutturato
+- Prompt: recruiter esperto 15+ anni, corregge solo forma (verbi d'azione, cliché, date uniformi, summary generico), non inventa contenuti
+- Categorie tips v1: `missing_kpi`, `missing_section`, `weak_bullets`, `generic_skills`, `missing_contact`, `summary_quality`
+- **No `date_gaps`** in v1
+- Temperatura 0.2
+- Gestione errori 429/402 con risposte appropriate
+
+### 2. `supabase/functions/_shared/ai-provider.ts`
+
+- Aggiungere task `cv-optimize` al routing
+
+### 3. `src/components/CVOptimizationTips.tsx` (nuovo)
+
+- Card compatte per ogni tip: icona per categoria, bordo per priorità (high=accent, medium=warning, low=border)
+- Ogni tip dismissabile
+- Tips `missing_section` con azione "Aggiungi sezione"
+- Props: `tips: Tip[]`, `onDismiss`, `onAddSection`
+
+### 4. `src/pages/Onboarding.tsx`
+
+- Dopo parse-cv, lancia `cv-optimize` in background (`optimizing: boolean`, `aiTips: Tip[]`)
+- **Diff check**: `const hasChanges = JSON.stringify(parsedData) !== JSON.stringify(optimizedCv)`
+- Se `hasChanges`: aggiorna `parsedData` con CV ottimizzato, mostra banner "Abbiamo migliorato la formattazione del tuo CV. Rivedi e modifica liberamente."
+- Se `!hasChanges`: nessun banner, mostra solo eventuali tips
+- Se `cv-optimize` fallisce: graceful degradation, prosegue con CV originale
+- Tips mostrati sopra CVSections nello step preview
+
+### 5. `src/pages/CVEdit.tsx`
+
+- Pulsante "Ottimizza con AI" che lancia `cv-optimize` sul CV corrente
+- Stesso diff check e banner
+- Mostra tips risultanti
+
+### Nessuna modifica al database. Tips transitori, non persistiti.
 
