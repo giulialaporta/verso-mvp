@@ -266,7 +266,7 @@ export async function generateDocx(
       const roleText = sanitize(clean(exp.role) || clean(exp.title) || "");
       const companyText = sanitize(clean(exp.company) || "");
       const locationText = clean(exp.location) ? sanitize(exp.location) : null;
-      const dateRange = buildDateRange(exp.start || exp.period, exp.end, exp.current);
+      const dateRange = buildDateRange(exp.start || exp.period, exp.end, exp.current, lang);
 
       // Line 1: Role [TAB] Date range
       if (roleText) {
