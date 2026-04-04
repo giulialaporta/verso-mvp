@@ -479,10 +479,10 @@ export async function generateDocx(
         properties: {
           page: {
             margin: {
-              top: convertMillimetersToTwip(20),
-              bottom: convertMillimetersToTwip(20),
-              left: convertMillimetersToTwip(20),
-              right: convertMillimetersToTwip(20),
+              top: convertMillimetersToTwip(15),
+              bottom: convertMillimetersToTwip(15),
+              left: convertMillimetersToTwip(18),
+              right: convertMillimetersToTwip(18),
             },
           },
         },
