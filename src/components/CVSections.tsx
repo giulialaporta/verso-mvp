@@ -229,6 +229,8 @@ export function CVSections({
     type: "experience" | "education" | "certification" | "project" | "publication" | "volunteering" | "award" | "conference";
     index: number;
   } | null>(null);
+  const isNewExperience = useRef(false);
+  const [endedDialog, setEndedDialog] = useState<{ company: string; index: number } | null>(null);
 
   const update = (path: string, value: any) => {
     if (onUpdate) onUpdate(updateData(data, path, value));
