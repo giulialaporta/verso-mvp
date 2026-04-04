@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import type { ParsedCV } from "@/types/cv";
 import { EditItemDrawer, type DrawerField } from "@/components/EditItemDrawer";
 import {
@@ -32,6 +32,67 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { InlineEdit } from "@/components/InlineEdit";
 import { EditableSkillChips } from "@/components/EditableSkillChips";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+
+// Parse a date string like "Gen 2020", "2020", "January 2020", "01/2020" into a sortable timestamp
+function parseDateString(dateStr?: string): number {
+  if (!dateStr) return 0;
+  const s = dateStr.trim();
+
+  // Try "YYYY" alone
+  if (/^\d{4}$/.test(s)) return new Date(parseInt(s), 0).getTime();
+
+  // Try "MM/YYYY"
+  const slashMatch = s.match(/^(\d{1,2})\/(\d{4})$/);
+  if (slashMatch) return new Date(parseInt(slashMatch[2]), parseInt(slashMatch[1]) - 1).getTime();
+
+  // Try month name (IT or EN) + year
+  const monthMap: Record<string, number> = {
+    gen: 0, feb: 1, mar: 2, apr: 3, mag: 4, giu: 5, lug: 6, ago: 7, set: 8, ott: 9, nov: 10, dic: 11,
+    jan: 0, feb2: 1, mar2: 2, apr2: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov2: 10, dec: 11,
+    gennaio: 0, febbraio: 1, marzo: 2, aprile: 3, maggio: 4, giugno: 5, luglio: 6, agosto: 7, settembre: 8, ottobre: 9, novembre: 10, dicembre: 11,
+    january: 0, february: 1, march: 2, april: 3, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
+  };
+  const parts = s.toLowerCase().split(/[\s/]+/);
+  if (parts.length >= 2) {
+    const monthKey = parts[0].substring(0, 3);
+    const year = parseInt(parts[parts.length - 1]);
+    if (!isNaN(year) && year > 1900) {
+      const month = monthMap[monthKey] ?? monthMap[parts[0]] ?? 0;
+      return new Date(year, month).getTime();
+    }
+  }
+
+  // Fallback
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? 0 : d.getTime();
+}
+
+function sortExperiencesByDate<T extends { start?: string; end?: string; current?: boolean }>(experiences: T[]): T[] {
+  return [...experiences].sort((a, b) => {
+    const aCurrent = a.current || (!a.end && a.start);
+    const bCurrent = b.current || (!b.end && b.start);
+    // Current/no-end-date experiences go first
+    if (aCurrent && !bCurrent) return -1;
+    if (!aCurrent && bCurrent) return 1;
+    // Then by start date descending
+    const aDate = parseDateString(a.start);
+    const bDate = parseDateString(b.start);
+    if (aDate === 0 && bDate === 0) return 0;
+    if (aDate === 0) return 1;
+    if (bDate === 0) return -1;
+    return bDate - aDate;
+  });
+}
 
 function Section({
   icon: Icon,
@@ -168,6 +229,8 @@ export function CVSections({
     type: "experience" | "education" | "certification" | "project" | "publication" | "volunteering" | "award" | "conference";
     index: number;
   } | null>(null);
+  const isNewExperience = useRef(false);
+  const [endedDialog, setEndedDialog] = useState<{ company: string; index: number } | null>(null);
 
   const update = (path: string, value: any) => {
     if (onUpdate) onUpdate(updateData(data, path, value));
@@ -279,14 +342,60 @@ export function CVSections({
     const copy = JSON.parse(JSON.stringify(data));
     const arrayKey = type === "certification" ? "certifications" : type === "project" ? "projects" : type === "experience" ? "experience" : type === "education" ? "education" : type === "publication" ? "publications" : type === "volunteering" ? "volunteering" : type === "award" ? "awards" : "conferences";
     if (copy[arrayKey]?.[index]) {
+      // Handle "end" field: if "Attuale" set current flag
+      if (type === "experience") {
+        const endVal = typeof values.end === "string" ? values.end.trim().toLowerCase() : "";
+        if (endVal === "attuale" || endVal === "") {
+          copy[arrayKey][index].current = true;
+          copy[arrayKey][index].end = undefined;
+        } else {
+          copy[arrayKey][index].current = false;
+        }
+      }
+
       Object.entries(values).forEach(([k, v]) => {
+        if (type === "experience" && k === "end") {
+          const endStr = typeof v === "string" ? v.trim().toLowerCase() : "";
+          if (endStr === "attuale" || endStr === "") {
+            // Already handled above
+          } else {
+            copy[arrayKey][index][k] = v;
+          }
+          return;
+        }
         if (Array.isArray(v)) {
           copy[arrayKey][index][k] = v.filter((s: string) => s.trim() !== "");
         } else {
           copy[arrayKey][index][k] = v;
         }
       });
+
+      // Sort experiences chronologically after save
+      if (type === "experience") {
+        copy.experience = sortExperiencesByDate(copy.experience);
+      }
+
       onUpdate(copy);
+
+      // Check if we need to prompt about previous current experiences
+      if (type === "experience" && isNewExperience.current) {
+        isNewExperience.current = false;
+        const savedExp = copy.experience[index];
+        const isCurrent = savedExp.current || !savedExp.end;
+        if (isCurrent) {
+          // Find other experiences that are also current (excluding the one just saved)
+          const otherCurrentIdx = copy.experience.findIndex((e: any, i: number) => {
+            if (e === savedExp || (e.role === savedExp.role && e.company === savedExp.company && e.start === savedExp.start)) return false;
+            return e.current || (!e.end && e.start);
+          });
+          if (otherCurrentIdx >= 0) {
+            setEndedDialog({
+              company: copy.experience[otherCurrentIdx].company || copy.experience[otherCurrentIdx].role || "precedente",
+              index: otherCurrentIdx,
+            });
+          }
+        }
+      }
     }
   };
 
@@ -441,10 +550,11 @@ export function CVSections({
           </div>
           {editable && (
             <AddButton onClick={() => {
-              onUpdate?.({
-                ...data,
-                experience: [...(data.experience || []), { role: "", company: "" }],
-              });
+              const newExp = [...(data.experience || []), { role: "", company: "" }];
+              onUpdate?.({ ...data, experience: newExp });
+              isNewExperience.current = true;
+              // Open drawer on the newly added item
+              setTimeout(() => setEditingItem({ type: "experience", index: newExp.length - 1 }), 50);
             }} label="Esperienza" />
           )}
         </Section>
@@ -892,12 +1002,54 @@ export function CVSections({
       {editable && (
         <EditItemDrawer
           open={editingItem !== null}
-          onClose={() => setEditingItem(null)}
+          onClose={() => { setEditingItem(null); isNewExperience.current = false; }}
           title={drawerTitle}
           fields={drawerFields}
           onSave={handleDrawerSave}
         />
       )}
+
+      {/* Dialog: previous experience ended? */}
+      <AlertDialog open={endedDialog !== null} onOpenChange={(open) => { if (!open) setEndedDialog(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Esperienza precedente terminata?</AlertDialogTitle>
+            <AlertDialogDescription>
+              L'esperienza presso <strong>{endedDialog?.company}</strong> è ancora in corso?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setEndedDialog(null)}>
+              No, è ancora in corso
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (endedDialog && onUpdate) {
+                const copy = JSON.parse(JSON.stringify(data));
+                if (copy.experience?.[endedDialog.index]) {
+                  copy.experience[endedDialog.index].current = false;
+                  if (!copy.experience[endedDialog.index].end) {
+                    copy.experience[endedDialog.index].end = "";
+                  }
+                  copy.experience = sortExperiencesByDate(copy.experience);
+                  onUpdate(copy);
+                  // Open drawer on that experience so user can set end date
+                  const sortedIdx = copy.experience.findIndex((e: any) =>
+                    e.company === data.experience?.[endedDialog.index]?.company &&
+                    e.role === data.experience?.[endedDialog.index]?.role &&
+                    e.start === data.experience?.[endedDialog.index]?.start
+                  );
+                  if (sortedIdx >= 0) {
+                    setTimeout(() => setEditingItem({ type: "experience", index: sortedIdx }), 100);
+                  }
+                }
+              }
+              setEndedDialog(null);
+            }}>
+              Sì, è terminata
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
