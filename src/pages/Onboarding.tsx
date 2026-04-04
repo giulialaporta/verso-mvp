@@ -57,7 +57,16 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (user) {
-      hasSensitiveDataConsent(user.id).then((v) => setSensitiveConsent(v));
+      supabaseClient
+        .from("consent_logs" as any)
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("consent_type", "sensitive_data")
+        .eq("granted", true)
+        .limit(1)
+        .then(({ data }) => {
+          if ((data?.length ?? 0) > 0) setSensitiveConsent(true);
+        });
     }
   }, [user]);
 
