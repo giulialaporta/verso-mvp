@@ -397,6 +397,10 @@ const TOOL_SCHEMA_TAILOR = {
     parameters: {
       type: "object",
       properties: {
+        narrative_thread: {
+          type: "string",
+          description: "Internal reading brief written BEFORE any patch: 3-sentence synthesis in Italian — who is this person, what is their real differentiator for this role, what narrative thesis guides all patches.",
+        },
         structural_changes: {
           type: "array",
           items: {
@@ -451,7 +455,7 @@ const TOOL_SCHEMA_TAILOR = {
           },
         },
       },
-      required: ["structural_changes", "tailored_patches", "honest_score", "diff"],
+      required: ["narrative_thread", "structural_changes", "tailored_patches", "honest_score", "diff"],
     },
   },
 };
