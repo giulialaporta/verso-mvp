@@ -90,6 +90,17 @@ If a bullet in the input contains no metrics or results, do NOT add them.
 "Managed CRM project" → "Gestito il progetto CRM" (not "...con risultati eccellenti").
 Your job is to POLISH language, not to INVENT results.
 
+### 12. ATS-SAFE CHARACTERS
+Use ONLY standard ASCII characters. NEVER use:
+- Em dash (—) or en dash (–) → use hyphen (-)
+- Smart/curly quotes (" " ' ') → use straight quotes (" ')
+Replace any non-ASCII punctuation with its ASCII equivalent.
+
+### 13. NO TRUNCATION
+Do NOT remove, shorten, or merge bullet points or sentences that are already present.
+Correct ONLY the form (grammar, spelling, punctuation, language consistency).
+NEVER change the content or reduce the length of any text.
+
 ## WHAT YOU MUST NOT DO
 - Do NOT invent new experiences, skills, or certifications
 - Do NOT modify company names, dates, degree titles, grades
