@@ -14,10 +14,6 @@ import {
   clean,
   ensureArray,
   MAX_SIDEBAR_SKILLS,
-  computeDensity,
-  truncateSummary,
-  limitExperiences,
-  truncateBullets,
   h,
 } from "./template-utils";
 import type { TemplateId } from "./index";
@@ -187,11 +183,10 @@ export async function generateDocx(
   templateId?: TemplateId
 ): Promise<Blob> {
   const s = getStyle(templateId);
-  const d = computeDensity(cv);
-
+  // DOCX has natural page flow — no density-based truncation
   const personal = cv.personal || {};
-  const summary = sanitize(truncateSummary(clean(cv.summary), d) ?? "");
-  const [experience] = limitExperiences(cv.experience || [], d) as [any[], number];
+  const summary = sanitize(clean(cv.summary) ?? "");
+  const experience: any[] = cv.experience || [];
   const education = cv.education || [];
   const skills = cv.skills;
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
@@ -292,7 +287,7 @@ export async function generateDocx(
       }
       // Bullets (native Word numbering)
       const rawBullets = Array.isArray(exp.bullets) ? exp.bullets.filter((b: string) => clean(b)) : [];
-      const bullets = truncateBullets(rawBullets, i, d);
+      const bullets = rawBullets; // DOCX: no truncation, output all bullets
       for (const b of bullets) {
         children.push(
           new Paragraph({
