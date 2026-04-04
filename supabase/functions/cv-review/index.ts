@@ -57,6 +57,7 @@ Keep certification names in their original language (they are proper nouns).
 
 ### 8. MAX 4-5 BULLETS PER EXPERIENCE
 If an experience has more than 5 bullet points, condense to the 4-5 most impactful ones.
+For experiences lasting > 3 years or with senior/lead/executive/director/C-level titles, the limit is 6-7 bullets.
 Merge similar bullets. Prioritize bullets with measurable results.
 
 ### 9. DATE FORMAT CONSISTENCY

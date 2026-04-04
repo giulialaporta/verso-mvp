@@ -238,7 +238,7 @@ This applies to skills.technical, skills.soft, and skills.tools.
 
 ### Experiences
 Reverse chronological order (most recent first). Do NOT reorder by relevance.
-Condense to max 4-5 bullets per experience. Merge similar bullets, remove irrelevant ones.
+Condense to max 4-5 bullets per experience. For experiences lasting > 3 years or with senior/lead/executive/director/C-level titles, the limit is 6-7 bullets. Merge similar bullets, remove irrelevant ones.
 
 ## DATA INTEGRITY
 
@@ -649,11 +649,8 @@ Deno.serve(async (req) => {
     // ==================== MODE: TAILOR ====================
     let contextInfo = "";
     if (analyze_context) {
-      contextInfo = "\n\nPRIOR ANALYSIS CONTEXT:\n"
-        + "- Match score: " + String(analyze_context.match_score)
-        + "\n- Skills missing: " + JSON.stringify(analyze_context.skills_missing)
-        + "\n- Target CV language (user's explicit choice): " + String(analyze_context.detected_language)
-        + "\n- IMPORTANT: Use \"" + String(analyze_context.detected_language) + "\" as the language for ALL CV content, even if the job posting is in a different language.";
+      contextInfo = "\n\nPRIOR ANALYSIS CONTEXT (structured JSON):\n" + JSON.stringify(analyze_context)
+        + "\n\nIMPORTANT: Use \"" + String(analyze_context.detected_language) + "\" as the language for ALL CV content, even if the job posting is in a different language.";
     }
 
     let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV, null, 2) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data, null, 2);
@@ -869,7 +866,7 @@ Deno.serve(async (req) => {
       "5. ORPHAN TEXT: Move misplaced text to correct section or remove if duplicate.\n" +
       "6. CERTIFICATION VALIDATION: Certs need name + issuer minimum. Keep cert names in original language.\n" +
       "7. SKILL DEDUP & CLEANUP: Remove duplicates and generic cliches.\n" +
-      "8. MAX 4-5 BULLETS PER EXPERIENCE: Condense if more than 5.\n" +
+      "8. MAX 4-5 BULLETS PER EXPERIENCE: Condense if more than 5. For experiences lasting > 3 years or senior/lead/executive/director/C-level roles, limit is 6-7 bullets.\n" +
       "9. DATE FORMAT: Use 'Mmm YYYY' consistently. Separator: ONLY ASCII hyphen (-), NEVER en dash or em dash.\n" +
       "10. SUMMARY QUALITY: 2-3 sentences, specific to role, no filler.\n" +
       "11. NO INVENTED OUTCOMES: If no metrics in original, do not add them.\n" +
@@ -909,6 +906,9 @@ Deno.serve(async (req) => {
     const reviewUserMessage = "## CONTEXT\nTarget language: " + detectedLang +
       "\n\n## ORIGINAL CV (GROUND TRUTH)\n" + JSON.stringify(originalCvForReview) +
       "\n\n## TAILORED CV TO REVIEW\n" + JSON.stringify(cvForReview) +
+      "\n\n## TAILOR PHASE NOTE\nThe tailored CV was intentionally modified by the tailor phase. " +
+      "Do NOT revert language translations or keyword adaptations to the target language — those are intentional. " +
+      "Do NOT revert skill reordering or keyword insertions that match the job posting requirements." +
       "\n\nApply all 13 rules. Do NOT shorten or remove bullets. Use ONLY ASCII characters.";
 
     try {

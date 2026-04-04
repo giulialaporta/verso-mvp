@@ -86,6 +86,7 @@ It MUST contain ONLY clean, human-readable Italian text. NEVER include:
 - URLs or source references (those belong in salary_analysis.sources)
 - Numbers formatted as JSON (use natural language: "€30.000-40.000" not {"min": 30000, "max": 40000})
 The feasibility_note should read like a brief, professional recruiter assessment paragraph. Nothing more.
+CRITICAL: salary_analysis MUST be returned ONLY via the tool call parameters, NEVER embedded in feasibility_note text.
 
 ## OVERQUALIFIED CANDIDATES — IMPORTANT
 When a candidate has MORE experience/seniority than the role requires:
@@ -294,11 +295,19 @@ Deno.serve(async (req) => {
       userContent += `\n\nSALARY_EXPECTATIONS:\n${JSON.stringify(salary_expectations)}`;
     }
 
-    // Wait for benchmarks and append if available
-    const benchmarks = await benchmarkPromise;
+    // Wait for benchmarks with 3s timeout to avoid blocking on slow Firecrawl
+    let benchmarks = null;
+    try {
+      benchmarks = await Promise.race([
+        benchmarkPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("benchmark_timeout")), 3000)),
+      ]);
+    } catch (e) {
+      console.warn(`salary-benchmark: ${(e as Error).message === "benchmark_timeout" ? "timed out after 3s, proceeding without" : "failed: " + (e as Error).message}`);
+    }
     if (benchmarks) {
-      userContent += `\n\nSALARY_BENCHMARKS (from web search — use as primary source for position_estimate):\n${benchmarks.raw_context}`;
-      console.log(`salary-benchmark: found ${benchmarks.sources.length} sources`);
+      userContent += `\n\nSALARY_BENCHMARKS (from web search — use as primary source for position_estimate):\n${(benchmarks as any).raw_context}`;
+      console.log(`salary-benchmark: found ${(benchmarks as any).sources.length} sources`);
     }
 
     const aiResult = await callAi({
@@ -319,39 +328,9 @@ Deno.serve(async (req) => {
 
     validateOutput("ai-prescreen", result);
 
-    // Fallback: if salary_analysis was embedded in feasibility_note as JSON, extract it
-    if (!result.salary_analysis && typeof result.feasibility_note === "string") {
-      const jsonMatch = result.feasibility_note.match(/"salary_analysis"\s*:\s*(\{[\s\S]*?\})\s*[,}]/);
-      if (jsonMatch) {
-        try {
-          // Try to extract the full salary_analysis JSON from the note
-          const noteText = result.feasibility_note;
-          const saStart = noteText.indexOf('"salary_analysis"');
-          if (saStart !== -1) {
-            // Find the JSON object after "salary_analysis":
-            const colonIdx = noteText.indexOf(':', saStart);
-            const objStart = noteText.indexOf('{', colonIdx);
-            if (objStart !== -1) {
-              let depth = 0;
-              let objEnd = objStart;
-              for (let i = objStart; i < noteText.length; i++) {
-                if (noteText[i] === '{') depth++;
-                if (noteText[i] === '}') depth--;
-                if (depth === 0) { objEnd = i + 1; break; }
-              }
-              const extracted = JSON.parse(noteText.slice(objStart, objEnd));
-              if (extracted.candidate_estimate && extracted.position_estimate) {
-                result.salary_analysis = extracted;
-                // Clean the feasibility_note
-                result.feasibility_note = noteText.slice(0, saStart).replace(/[,."]\s*$/, '').trim();
-                console.log("salary_analysis extracted from feasibility_note (fallback)");
-              }
-            }
-          }
-        } catch {
-          console.warn("Failed to extract salary_analysis from feasibility_note");
-        }
-      }
+    // Log warning if salary_analysis ended up in feasibility_note (prompt issue, not a parsing problem)
+    if (!result.salary_analysis && typeof result.feasibility_note === "string" && result.feasibility_note.includes("salary_analysis")) {
+      console.warn("salary_analysis appears embedded in feasibility_note — prompt enforcement issue, not extracting");
     }
 
     return new Response(JSON.stringify(result), {
