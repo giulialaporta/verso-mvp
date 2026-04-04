@@ -106,7 +106,7 @@ function getStyle(_templateId?: TemplateId): DocxStyle {
 function sectionTitle(text: string, s: DocxStyle): Paragraph {
   const displayText = s.sectionUppercase ? text.toUpperCase() : text;
   return new Paragraph({
-    spacing: { before: 180, after: 40 },
+    spacing: { before: 420, after: 180 },
     border: s.sectionBorder
       ? { bottom: { style: BorderStyle.SINGLE, size: 2, color: s.accentHex } }
       : undefined,
