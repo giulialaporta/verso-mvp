@@ -178,6 +178,8 @@ A differenza del piano MVP (che prevedeva un CV completo in output), `ai-tailor`
 
 **Prompt (SYSTEM_PROMPT_TAILOR):** ristrutturato con gerarchia esplicita — identità → regole inviolabili → esempi few-shot → lingua → STEP 0 (brief narrativo) → sintesi cross-sezione → summary come spine → voice & narrative → come adattare → data integrity → follow-up → output format.
 
+**Learning suggestions (output analyze):** per ogni skill essenziale mancante, suggerisce 1-2 risorse di apprendimento. Il campo `url` è stato rimosso dallo schema — il frontend costruisce gli URL deterministicamente in base al tipo: `course` → Coursera, `certification` → LinkedIn Learning, `tutorial` → Udemy (ricerca per `ls.skill`). L'AI restituisce solo: `skill`, `resource_name`, `type`, `duration`.
+
 **STEP 0 — Brief narrativo obbligatorio:** prima di generare qualsiasi patch, il modello deve leggere l'intero CV come documento di una persona (non come JSON da patchare) e formare tre risposte: chi è questa persona, qual è il suo differenziatore reale per questo ruolo, qual è la tesi narrativa che guida ogni patch. Queste risposte vengono scritte nel campo `narrative_thread` dell'output.
 
 **Cross-section synthesis:** il modello può aggiungere specificità a qualsiasi sezione usando informazioni presenti OVUNQUE nel CV (non solo nell'esperienza corrente). Connettere punti tra sezioni diverse non è inventare — è portare in superficie ciò che è già vero.

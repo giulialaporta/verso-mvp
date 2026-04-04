@@ -68,6 +68,8 @@
 - [x] **D10** — Non vengono rimosse tutte le esperienze (minimo 2) (verificato da code review: validate-output)
 - [x] **D11** — Non vengono rimosse piu' del 50% delle esperienze (verificato da code review: validate-output)
 - [x] **D12** — Il CV output e' nella lingua dell'annuncio (verificato da code review)
+- [ ] **D18** — `learning_suggestions` NON contiene campo `url` (rimosso dallo schema — URL costruiti dal frontend)
+- [ ] **D19** — `learning_suggestions` contiene: `skill`, `resource_name`, `type`, `duration`
 - [ ] **D16** — L'output contiene `narrative_thread`: 3 frasi in italiano che descrivono chi è il candidato, il suo differenziatore, e la tesi narrativa usata per le patch
 - [ ] **D17** — Il summary è coerente con il `narrative_thread` (non generico, specifico per ruolo e persona)
 - [ ] **D13** — Pro gate server-side: utente Free con `free_apps_used >= 1` → 403 `UPGRADE_REQUIRED`

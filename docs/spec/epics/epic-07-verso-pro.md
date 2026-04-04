@@ -8,6 +8,8 @@ Sistema di abbonamento premium con Stripe: limite 1 candidatura per utenti Free,
 
 > **Aggiornamento:** implementato webhook Stripe (`stripe-webhook` edge function) per aggiornamento real-time dello stato abbonamento. Il polling (`check-subscription`) resta come fallback ogni 5 minuti.
 
+> **TRIAL MODE (attivo):** durante la fase di lancio, la costante `TRIAL_MODE = true` in `src/hooks/useSubscription.ts` bypassa completamente il gate Stripe — tutti gli utenti ricevono `isPro: true` senza abbonamento. Il pro gate in `useProGate.ts` ritorna `true` immediatamente se `TRIAL_MODE`. Per ripristinare il modello freemium, impostare `TRIAL_MODE = false`. La landing page riflette questo stato: mostra un'unica card "EARLY ACCESS" con tutte le funzionalità incluse gratuitamente.
+
 ---
 
 ## Modello
