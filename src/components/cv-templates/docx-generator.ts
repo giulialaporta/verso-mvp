@@ -218,7 +218,7 @@ export async function generateDocx(
   children.push(
     new Paragraph({
       alignment: AlignmentType.LEFT,
-      spacing: { after: 60 },
+      spacing: { after: 20 },
       children: [
         new TextRun({
           text: s.nameUppercase ? nameText.toUpperCase() : nameText,
