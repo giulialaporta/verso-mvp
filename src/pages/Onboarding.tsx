@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase as supabaseClient } from "@/integrations/supabase/client";
+
 import { hashEmail } from "@/lib/hash-email";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
