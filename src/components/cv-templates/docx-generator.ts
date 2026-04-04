@@ -167,7 +167,7 @@ function degreeWithDate(degree: string, dateRange: string, s: DocxStyle): Paragr
     );
   }
   return new Paragraph({
-    spacing: { before: 80, after: 0 },
+    spacing: { before: 40, after: 0 },
     tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
     children,
   });
