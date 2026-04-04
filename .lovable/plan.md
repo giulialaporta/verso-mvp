@@ -1,80 +1,87 @@
 
 
-# Problemi del DOCX Generator — Analisi completa
+# Piano: Miglioramento cv-formal-review + normalizzazione deterministica
 
-## Problemi identificati
+## Diagnosi
 
-### 1. Bullet points con carattere Unicode invece di numerazione Word
-Il generatore usa `• ` come TextRun manuale invece del sistema di numerazione nativo di Word (`LevelFormat.BULLET`). Questo rende i bullet non standard per gli ATS e impedisce l'indentazione corretta.
+Il `cv-formal-review` ha un prompt debole e riscrive l'intero CV come `revised_cv` senza schema vincolato. Questo causa: troncamento bullet, sostituzione caratteri non-ATS, mix linguistici. Il `cv-review` (più robusto, con ground truth) non è mai chiamato dal frontend.
 
-### 2. Date NON allineate a destra (tab stop mancanti)
-Le date compaiono su una riga separata sotto l'azienda, occupando spazio inutile. Un CV professionale allinea la data a destra sulla stessa riga del ruolo tramite tab stop (`TabStopType.RIGHT`).
+## Strategia
 
-### 3. `normalizeDate` non gestisce il formato "01.2018"
-Le date con punto (es. `01.2018 – 01.2021`) passano al fallback `sanitize()` senza conversione, causando formati inconsistenti nel documento (mix di `06/2023` e `01.2018`).
+Adottare il piano approvato nella conversazione precedente, **integrandovi i 5 suggerimenti dell'utente**:
 
-### 4. Ruoli resi come `HeadingLevel.HEADING_2` (sbagliato)
-I titoli di sezione usano `HeadingLevel.HEADING_2`, che li inserisce nella struttura TOC/outline del documento. I ruoli lavorativi usano la stessa dimensione font delle sezioni (`sectionSize = 22`). In un CV ATS, solo il nome dovrebbe essere heading.
+1. Eliminare `cv-formal-review` come edge function
+2. Sostituirlo con normalizzazione deterministica client-side
+3. Integrare le regole formali nel prompt di `cv-review` (che verrà integrato in `ai-tailor`)
+4. Applicare i suggerimenti specifici al prompt e al codice
 
-### 5. Azienda su riga separata dal ruolo — spreco di spazio
-Ruolo, azienda e data occupano 3 righe. Layout professionale: **Ruolo** + data (stessa riga con tab stop), azienda in corsivo sotto.
+## Step di implementazione
 
-### 6. Enorme spazio vuoto su pagina 2
-La pagina 2 è mezza vuota. Il generatore non ottimizza i margini o la spaziatura per far stare tutto in una pagina quando possibile. Margini di 25mm top/bottom sono eccessivi.
+### Step 1 — Normalizzatore deterministico in `template-utils.ts`
 
-### 7. "…" come riga orfana di troncamento
-Quando il density system tronca i bullet, aggiunge `"…"` come riga standalone — visivamente brutto e confuso.
+Creare `normalizeCvText(cv, lang)` che:
+- Sostituisce em dash (—) e en dash (–) con trattino ASCII (-)
+- Sostituisce virgolette curve (" " ' ') con virgolette dritte (" e ')
+- Uniforma date al formato `Mmm YYYY` localizzato (Gen 2021 / Jan 2021)
+- Uniforma separatori date a `-` ASCII
+- Ritorna il CV normalizzato (nuovo oggetto, no mutazione)
 
-### 8. Education — istituzioni in MAIUSCOLO e nessuna data visibile
-Le date di inizio/fine degli studi non vengono mostrate. L'istituzione viene concatenata al titolo tutto su una riga, il che con nomi lunghi risulta illeggibile.
+### Step 2 — Aggiornare prompt di `cv-review` con regole formali
 
-### 9. Nessuna numerazione Word nativa per i bullet
-L'import non include `LevelFormat`, `NumberFormat`, o `Tab`/`TabStopType` — tutti necessari per un DOCX professionale.
+Aggiungere al SYSTEM_PROMPT di `cv-review/index.ts`:
+- **Regola 9 (aggiornata)**: Separatore date = solo `-` ASCII, mai `–` o `—`
+- **Regola 12**: Caratteri ATS-safe — solo ASCII standard. Mai em dash, en dash, virgolette curve. Sostituire con trattino (-) e virgolette dritte (")
+- **Regola 13**: No truncation — NON rimuovere, accorciare o unire bullet/frasi già presenti. Correggi SOLO la forma, mai il contenuto o la lunghezza
 
-### 10. Colore azienda hardcoded
-`"333333"` usato direttamente invece di passare per lo style system (`s.mutedHex`).
+### Step 3 — Integrare cv-review in ai-tailor (post-tailoring, server-side)
 
----
+In `ai-tailor/index.ts`, dopo l'integrity check e prima della response:
+- Chiamare `callAi` con il prompt di cv-review, passando `original_cv` come ground truth
+- Usare il risultato come `tailored_cv` finale
+- Preservare photo_base64 e personal data come già fa cv-review
 
-## Piano di implementazione
+### Step 4 — Semplificare StepExport
 
-### Step 1 — Fix imports e infrastruttura
-Aggiungere agli import: `TabStopType`, `TabStopPosition`, `Tab`, `LevelFormat`, `convertInchesToTwip`.
+In `StepExport.tsx`:
+- Rimuovere la chiamata a `cv-formal-review`, il retry logic, `reviewStatus`, `reviewFixes`, `reviewedCv`, `ReviewFix` type, `ReviewStatus` type
+- Rimuovere il collapsible "Correzioni formali"
+- `activeCv = normalizeCvText(tailoredCv, lang)` — deterministico, istantaneo
+- I download partono subito senza attendere revisione
 
-### Step 2 — Numerazione bullet nativa Word
-Configurare `numbering.config` nel `Document` con `LevelFormat.BULLET` e riferirlo nei paragrafi bullet, eliminando il carattere `•` manuale.
+### Step 5 — Aggiornare cv-formal-review con i suggerimenti (prima di eliminarlo)
 
-### Step 3 — Layout esperienza con tab stop per date
-Ristrutturare ogni blocco esperienza:
-- Riga 1: **Ruolo** `[TAB]` *data range* (allineato a destra)
-- Riga 2: *Azienda* · *Location* (in corsivo, colore muted)
-- Bullet sotto
+Questi miglioramenti vanno in realtà nel prompt di cv-review (Step 2), dato che eliminiamo cv-formal-review:
+- Rimuovere `template_id` dal userMessage (suggerimento 4)
+- Aggiungere `if (!lang) console.warn(...)` fallback nel log (suggerimento 5) — questo va in ai-tailor dove si integra cv-review
 
-### Step 4 — Fix `normalizeDate`
-Aggiungere regex per formato `DD.YYYY` → `DD/YYYY` (es. `01.2018` → `01/2018`).
+### Step 6 — Eliminare cv-formal-review
 
-### Step 5 — Education con date e layout migliorato
-- Riga 1: **Degree: Field** `[TAB]` *date range*
-- Riga 2: *Institution* · *Grade*
+- Eliminare `supabase/functions/cv-formal-review/index.ts`
+- Usare il tool `delete_edge_functions` per rimuovere la funzione deployata
 
-### Step 6 — Ottimizzare margini e spaziatura
-Ridurre margini a 20mm top/bottom (già 20mm laterali). Ridurre spacing dei section title e dei blocchi esperienza per massimizzare l'uso dello spazio.
+### Step 7 — Fix bug in cv-review
 
-### Step 7 — Eliminare "…" orfano
-Se il troncamento è necessario, appendere "…" all'ultimo bullet visibile invece di creare una riga separata.
+La riga 273 di `cv-review/index.ts` ha un bug: `const userId = user.id` — `user` non esiste, dovrebbe essere `userData.user.id`. Questo va fixato prima dell'integrazione in ai-tailor.
 
-### Step 8 — Rimuovere HeadingLevel dai section titles
-Usare paragrafi normali con formattazione bold invece di `HeadingLevel.HEADING_2`, più compatibile con gli ATS.
+## Flusso risultante
 
-### Step 9 — Aggiornare i test
-Verificare che i test esistenti passino con la nuova struttura (il blob size potrebbe cambiare).
+```text
+ai-tailor (patches + integrity + cv-review integrato)
+    ↓
+tailored_cv (già pulito server-side)
+    ↓
+StepExport → normalizeCvText(cv, lang)  ← deterministico, istantaneo
+    ↓
+Download DOCX/PDF
+```
 
----
+## File modificati
 
-## Dettaglio tecnico
-
-**File modificati:**
-- `src/components/cv-templates/docx-generator.ts` — riscrittura sostanziale del layout
-- `src/components/cv-templates/template-utils.ts` — fix `truncateBullets` per appendere "…" inline
-- `src/test/docx-generator.test.ts` — aggiornamento se necessario
+| File | Azione |
+|------|--------|
+| `src/components/cv-templates/template-utils.ts` | Aggiungere `normalizeCvText()` |
+| `src/components/wizard/StepExport.tsx` | Rimuovere cv-formal-review, usare normalizzazione deterministica |
+| `supabase/functions/ai-tailor/index.ts` | Integrare cv-review post-tailoring |
+| `supabase/functions/cv-review/index.ts` | Aggiungere regole 12-13, fix bug riga 273 |
+| `supabase/functions/cv-formal-review/index.ts` | Eliminare |
 
