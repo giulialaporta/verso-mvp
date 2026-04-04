@@ -291,7 +291,7 @@ export async function generateDocx(
       }
       // Bullets (native Word numbering)
       const rawBullets = Array.isArray(exp.bullets) ? exp.bullets.filter((b: string) => clean(b)) : [];
-      const bullets = truncateBullets(rawBullets, i, d);
+      const bullets = rawBullets; // DOCX: no truncation, output all bullets
       for (const b of bullets) {
         children.push(
           new Paragraph({
