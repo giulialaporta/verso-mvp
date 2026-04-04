@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+
+// Set to false to restore freemium model
+export const TRIAL_MODE = true;
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
