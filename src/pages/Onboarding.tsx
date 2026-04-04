@@ -44,6 +44,9 @@ export default function Onboarding() {
   const [filePath, setFilePath] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [rawText, setRawText] = useState<string | null>(null);
+  const [optimizing, setOptimizing] = useState(false);
+  const [aiTips, setAiTips] = useState<OptimizationTip[]>([]);
+  const [cvOptimized, setCvOptimized] = useState(false);
 
   // Salary expectations
   const [currentRal, setCurrentRal] = useState<string>("");
