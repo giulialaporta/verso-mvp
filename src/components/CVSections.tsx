@@ -342,14 +342,60 @@ export function CVSections({
     const copy = JSON.parse(JSON.stringify(data));
     const arrayKey = type === "certification" ? "certifications" : type === "project" ? "projects" : type === "experience" ? "experience" : type === "education" ? "education" : type === "publication" ? "publications" : type === "volunteering" ? "volunteering" : type === "award" ? "awards" : "conferences";
     if (copy[arrayKey]?.[index]) {
+      // Handle "end" field: if "Attuale" set current flag
+      if (type === "experience") {
+        const endVal = typeof values.end === "string" ? values.end.trim().toLowerCase() : "";
+        if (endVal === "attuale" || endVal === "") {
+          copy[arrayKey][index].current = true;
+          copy[arrayKey][index].end = undefined;
+        } else {
+          copy[arrayKey][index].current = false;
+        }
+      }
+
       Object.entries(values).forEach(([k, v]) => {
+        if (type === "experience" && k === "end") {
+          const endStr = typeof v === "string" ? v.trim().toLowerCase() : "";
+          if (endStr === "attuale" || endStr === "") {
+            // Already handled above
+          } else {
+            copy[arrayKey][index][k] = v;
+          }
+          return;
+        }
         if (Array.isArray(v)) {
           copy[arrayKey][index][k] = v.filter((s: string) => s.trim() !== "");
         } else {
           copy[arrayKey][index][k] = v;
         }
       });
+
+      // Sort experiences chronologically after save
+      if (type === "experience") {
+        copy.experience = sortExperiencesByDate(copy.experience);
+      }
+
       onUpdate(copy);
+
+      // Check if we need to prompt about previous current experiences
+      if (type === "experience" && isNewExperience.current) {
+        isNewExperience.current = false;
+        const savedExp = copy.experience[index];
+        const isCurrent = savedExp.current || !savedExp.end;
+        if (isCurrent) {
+          // Find other experiences that are also current (excluding the one just saved)
+          const otherCurrentIdx = copy.experience.findIndex((e: any, i: number) => {
+            if (e === savedExp || (e.role === savedExp.role && e.company === savedExp.company && e.start === savedExp.start)) return false;
+            return e.current || (!e.end && e.start);
+          });
+          if (otherCurrentIdx >= 0) {
+            setEndedDialog({
+              company: copy.experience[otherCurrentIdx].company || copy.experience[otherCurrentIdx].role || "precedente",
+              index: otherCurrentIdx,
+            });
+          }
+        }
+      }
     }
   };
 
