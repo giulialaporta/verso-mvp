@@ -1,31 +1,38 @@
 
 
-# Prompt Narrativo per il Tailor — Piano di Implementazione
+# Risorse di apprendimento — Solo link verificati
 
-## Obiettivo
-Sostituire il prompt tailor con una versione che trasforma il modello da "generatore di patch indipendenti" a "recruiter che legge la persona intera prima di scrivere". Aggiungere il campo `narrative_thread` allo schema tool.
+## Problema
+Il modello AI genera `learning_suggestions` con URL inventati (hallucination). Link come `coursera.com/learn/kubernetes-basics` sembrano reali ma spesso non esistono. L'utente vede risorse inutili.
+
+## Approccio scelto
+
+Rimuovere la generazione di URL dal prompt AI e costruire link deterministici verso ricerche su piattaforme note. I link a ricerche funzionano sempre, a differenza di link a corsi specifici che il modello inventa.
+
+**Perché non validare i link con HEAD request?** Aggiunge latenza (N richieste HTTP), le piattaforme bloccano bot, e un 200 non garantisce che il contenuto sia pertinente. Meglio generare link affidabili al 100%.
 
 ## Cosa cambia
 
-### 1. `SYSTEM_PROMPT_TAILOR` (righe 141-270)
-Sostituzione completa del prompt. Le differenze chiave rispetto all'attuale:
+### 1. Prompt ANALYZE in `ai-tailor/index.ts`
 
-- **STEP 0 — Lettura olistica**: nuova sezione che obbliga il modello a leggere l'intero CV come documento su una persona prima di generare patch. Produce un `narrative_thread` con 3 punti: chi è, differenziatore reale, tesi narrativa.
-- **Cross-section synthesis**: sostituisce la regola restrittiva "ONLY information already present in that experience" con "information present ANYWHERE in this CV". Collegare sezioni diverse non è inventare — è far emergere ciò che già esiste.
-- **Summary come spina dorsale**: il summary viene generato per primo e diventa il riferimento per tutti gli altri patch. Istruzioni più dettagliate su come scriverlo (4 paragrafi specifici, no buzzword).
-- **Skill protection**: aggiunta regola "MUST NOT remove skills present in the original CV that are relevant to the role".
-- **Language rules aggiornate**: `narrative_thread` aggiunto alla lista dei campi che devono essere in italiano.
+Modificare lo schema `learning_suggestions` per rimuovere il campo `url`. L'AI genera solo `skill`, `resource_name`, `type`, `duration` — niente link.
 
-Il resto (INVIOLABLE RULES, EXAMPLES, DATA INTEGRITY, FOLLOW-UP, OUTPUT FORMAT) rimane sostanzialmente identico con piccoli perfezionamenti.
+Aggiungere nel prompt: "Do NOT generate URLs for learning_suggestions. Only provide the skill name, a descriptive resource name, type, and duration."
 
-### 2. `TOOL_SCHEMA_TAILOR` (righe 370-435)
-- Aggiungere proprietà `narrative_thread` (type string) nelle `properties`
-- Aggiungerlo all'array `required`: `["narrative_thread", "structural_changes", "tailored_patches", "honest_score", "diff"]`
+### 2. Frontend `StepTailoring.tsx`
 
-### Nessun'altra modifica
-Non si toccano: `SYSTEM_PROMPT_ANALYZE`, `TOOL_SCHEMA_ANALYZE`, `applyPatches`, il codice TypeScript del handler, né altri file.
+Costruire l'URL deterministicamente nel componente in base al `type`:
+- `course` → `https://www.coursera.org/search?query={skill}`
+- `certification` → `https://www.linkedin.com/learning/search?keywords={skill}`
+- `tutorial` → `https://www.udemy.com/courses/search/?q={skill}`
 
-## Dettagli tecnici
+Il link porta sempre a una pagina di ricerca reale sulla piattaforma, mai a un corso specifico inesistente. Il testo mostrato resta il `resource_name` generato dall'AI (es. "Corso base di Kubernetes") ma il link va alla ricerca.
 
-Il prompt nuovo è ~3.5KB (simile all'attuale). Il `narrative_thread` viene generato dal modello come parte del tool call, quindi arriva nel `result` e viene passato al frontend senza logica aggiuntiva. Non richiede modifiche al database né al frontend — il campo è informativo e verrà già incluso nel JSON di risposta.
+Aggiungere un piccolo badge con il nome della piattaforma (Coursera, LinkedIn Learning, Udemy) accanto al link per chiarezza.
+
+### 3. Schema tool `TOOL_SCHEMA_ANALYZE`
+
+Rimuovere `url` da `required` e dalle `properties` di `learning_suggestions`.
+
+## Nessuna modifica al database. Nessuna modifica ad altri file.
 
