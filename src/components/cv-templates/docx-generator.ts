@@ -148,7 +148,7 @@ function roleWithDate(role: string, dateRange: string, s: DocxStyle): Paragraph 
 function companyLine(company: string, location: string | null, s: DocxStyle): Paragraph {
   const text = location ? `${company}  ·  ${location}` : company;
   return new Paragraph({
-    spacing: { after: 40 },
+    spacing: { after: 20 },
     children: [
       new TextRun({ text: sanitize(text), size: s.bodySize, font: s.bodyFont, color: s.mutedHex, italics: true }),
     ],
