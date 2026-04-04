@@ -282,7 +282,7 @@ ${JSON.stringify(cvForReview)}
 Apply all 11 rules. EVERY text field must be in "${lang}". Fix ALL bullets to start with action verbs. Remove all artifacts and clichés.
 CRITICAL: if ANY content in the tailored CV is not traceable to the original CV, revert it to the original.`;
 
-    const userId = user.id;
+    const userId = userData.user.id;
 
     const aiResult = await callAi({
       task: "cv-review",
