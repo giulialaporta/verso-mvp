@@ -75,7 +75,9 @@ const SYSTEM_PROMPT_ANALYZE = `You are an expert career coach and ATS specialist
 
 ## CRITICAL RULE — TWO-LEVEL LANGUAGE POLICY
 1. Detect the language of the JOB POSTING. Report it in detected_language.
-2. ANALYSIS & UI TEXT (score_note, seniority_match.note, ats_checks label/detail, suggestions messages, learning_suggestions resource_name/duration) 
+2. ANALYSIS & UI TEXT (score_note, seniority_match.note, ats_checks label/detail, suggestions messages, learning_suggestions resource_name/duration)
+   
+Do NOT generate URLs for learning_suggestions. Only provide the skill name, a descriptive resource name, type, and duration. URLs will be constructed deterministically by the frontend.
    MUST ALWAYS be in ITALIAN, regardless of the job posting language.
 This rule is ABSOLUTE. No exceptions.
 
@@ -367,17 +369,16 @@ const TOOL_SCHEMA_ANALYZE = {
         },
         learning_suggestions: {
           type: "array",
-          description: "For each essential missing skill, suggest 1-2 learning resources",
+          description: "For each essential missing skill, suggest 1-2 learning resources. Do NOT generate URLs.",
           items: {
             type: "object",
             properties: {
               skill: { type: "string" },
               resource_name: { type: "string", description: "ALWAYS in Italian" },
-              url: { type: "string" },
               type: { type: "string", enum: ["course", "certification", "tutorial"] },
               duration: { type: "string", description: "ALWAYS in Italian" },
             },
-            required: ["skill", "resource_name", "url", "type"],
+            required: ["skill", "resource_name", "type", "duration"],
           },
         },
       },
