@@ -347,7 +347,7 @@ export function StepExport({
       await printCvAsPdf(activeCv, selectedTemplate, effectiveLang);
 
       // Track event (PDF saved via print dialog)
-      trackEvent("pdf_downloaded", { template: selectedTemplate, formal_review: reviewStatus === "done", method: "print" });
+      trackEvent("pdf_downloaded", { template: selectedTemplate, method: "print" });
 
       toast.success("Finestra di stampa aperta — salva come PDF.");
     } catch (e) {
