@@ -160,21 +160,30 @@ export function StepTailoring({
           <Card className="border-info/20 bg-card/80"><CardContent className="pt-5 space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-info"><GraduationCap size={18} weight="fill" /> Risorse per colmare i gap</div>
             <div className="space-y-2">
-              {analyzeResult.learning_suggestions.map((ls, i) => (
-                <a key={i} href={ls.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-3 rounded-lg border border-border/30 hover:border-info/40 bg-surface/50 hover:bg-surface transition-colors group">
-                  <GraduationCap size={18} className="text-info mt-0.5 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium group-hover:text-info transition-colors">{ls.resource_name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="font-mono text-[11px] uppercase text-muted-foreground">{ls.skill}</span>
-                      <span className="text-border">·</span>
-                      <span className="font-mono text-[11px] uppercase text-muted-foreground">{ls.type}</span>
-                      {ls.duration && <><span className="text-border">·</span><span className="font-mono text-[11px] text-muted-foreground">{ls.duration}</span></>}
+              {analyzeResult.learning_suggestions.map((ls, i) => {
+                const platform = ls.type === "course"
+                  ? { name: "Coursera", url: `https://www.coursera.org/search?query=${encodeURIComponent(ls.skill)}` }
+                  : ls.type === "certification"
+                    ? { name: "LinkedIn Learning", url: `https://www.linkedin.com/learning/search?keywords=${encodeURIComponent(ls.skill)}` }
+                    : { name: "Udemy", url: `https://www.udemy.com/courses/search/?q=${encodeURIComponent(ls.skill)}` };
+                return (
+                  <a key={i} href={platform.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-3 rounded-lg border border-border/30 hover:border-info/40 bg-surface/50 hover:bg-surface transition-colors group">
+                    <GraduationCap size={18} className="text-info mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium group-hover:text-info transition-colors">{ls.resource_name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="font-mono text-[11px] uppercase text-muted-foreground">{ls.skill}</span>
+                        <span className="text-border">·</span>
+                        <span className="font-mono text-[11px] uppercase text-muted-foreground">{ls.type}</span>
+                        {ls.duration && <><span className="text-border">·</span><span className="font-mono text-[11px] text-muted-foreground">{ls.duration}</span></>}
+                        <span className="text-border">·</span>
+                        <span className="font-mono text-[11px] text-info/70">{platform.name}</span>
+                      </div>
                     </div>
-                  </div>
-                  <ArrowRight size={14} className="text-muted-foreground group-hover:text-info mt-1 shrink-0 transition-colors" />
-                </a>
-              ))}
+                    <ArrowRight size={14} className="text-muted-foreground group-hover:text-info mt-1 shrink-0 transition-colors" />
+                  </a>
+                );
+              })}
             </div>
           </CardContent></Card>
         </motion.div>

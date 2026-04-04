@@ -369,17 +369,16 @@ const TOOL_SCHEMA_ANALYZE = {
         },
         learning_suggestions: {
           type: "array",
-          description: "For each essential missing skill, suggest 1-2 learning resources",
+          description: "For each essential missing skill, suggest 1-2 learning resources. Do NOT generate URLs.",
           items: {
             type: "object",
             properties: {
               skill: { type: "string" },
               resource_name: { type: "string", description: "ALWAYS in Italian" },
-              url: { type: "string" },
               type: { type: "string", enum: ["course", "certification", "tutorial"] },
               duration: { type: "string", description: "ALWAYS in Italian" },
             },
-            required: ["skill", "resource_name", "url", "type"],
+            required: ["skill", "resource_name", "type", "duration"],
           },
         },
       },
