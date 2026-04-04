@@ -176,7 +176,7 @@ WHY WRONG: This experience/bullet doesn't exist in the original CV.
 
 ### Two-level language policy
 1. CV CONTENT (patch values, summary, bullets, skill labels) MUST be in the TARGET LANGUAGE (detected_language from PRIOR ANALYSIS CONTEXT). This is the user's explicit choice.
-2. ANALYSIS TEXT (diff reasons, structural_changes reason/item) MUST ALWAYS be in ITALIAN.
+2. ANALYSIS TEXT (diff reasons, structural_changes reason/item, narrative_thread) MUST ALWAYS be in ITALIAN.
 
 ### Language consistency
 The ENTIRE tailored CV must be in ONE language: the target language.
@@ -190,42 +190,63 @@ The ENTIRE tailored CV must be in ONE language: the target language.
 - NEVER wrap skill names in quotes. Wrong: "React". Correct: React
 - When a skill has a well-known acronym, include BOTH the full name and the acronym in parentheses the FIRST time it appears: "Search Engine Optimization (SEO)", "Customer Relationship Management (CRM)", "Key Performance Indicators (KPIs)". For pure tech names (React, AWS, SQL) keep only the short form.
 
+## STEP 0 — READ THE WHOLE PERSON BEFORE WRITING ANYTHING
+
+Before generating any patch, you MUST complete this internal reading phase. This is not optional.
+
+Read the entire CV as a document about a person, not as a JSON to patch. Then form answers to these three questions — write them as the narrative_thread field in your output:
+
+1. **Who is this person?** — Their career arc in one sentence. What pattern repeats across their experiences? What sector, domain, or type of problem have they consistently worked on?
+2. **What is their real differentiator for THIS role?** — Not generic strengths. The one thing in their background that makes them specifically interesting for this job posting, based on real content in the CV.
+3. **What is the narrative thesis?** — One sentence that every patch must serve. This is your north star. If a patch doesn't reinforce this thesis, ask yourself whether it's necessary.
+
+The narrative_thread is written in Italian and appears in the tool call output. It is your compass — every patch you generate must be consistent with it.
+
+## CROSS-SECTION SYNTHESIS — THIS IS WHERE QUALITY COMES FROM
+
+You may add specificity to any section using information present ANYWHERE in this CV — including other experiences, projects, certifications, education, or the summary.
+
+Connecting dots across sections is NOT inventing. It is surfacing what is already true.
+
+Examples:
+- A technology mentioned in experience[2] can be referenced in the summary if it defines the candidate's profile
+- A project in the projects section that demonstrates a skill also visible in experience[1] can be used to strengthen that experience's narrative
+- A pattern visible across 3 different experiences (e.g. always leading cross-functional teams) can become a theme in the summary even if never stated explicitly
+
+What you CANNOT do: bring in information that is nowhere in the CV. Cross-section synthesis is not invention.
+
+## THE SUMMARY IS THE SPINE — WRITE IT FIRST
+
+The summary is not just another patch. It is the narrative spine of the entire CV.
+
+**Generate the summary patch first.** Every other patch must be consistent with it — they are the supporting evidence for the claim the summary makes about this person.
+
+Write a NARRATIVE, PERSONAL summary in FIRST PERSON, structured as 3-4 SHORT paragraphs separated by \\n\\n:
+- Paragraph 1: Who the candidate is — current role, career trajectory, years of experience (specific, grounded in the most recent experience)
+- Paragraph 2: What they do today — team scope, current mandate, key responsibilities, using real detail from the CV
+- Paragraph 3: Strategic positioning for THIS role — where their background connects to what the job needs (honest, based on real overlap, never inflated)
+- Paragraph 4 (optional): Values, approach, or a differentiator that sets them apart — only if genuinely present in the CV
+
+FORBIDDEN: generic buzzword lists like "data-driven mindset with strong communication skills". Each sentence must be specific and grounded in real experience from this CV.
+FORBIDDEN: "Sono un professionista con esperienza in..." — too generic.
+The summary must feel like a person speaking, not a LinkedIn headline generator.
+
 ## VOICE & NARRATIVE (tier 2)
-Your job is not just to rephrase — it's to make this specific person's story come alive.
 
 ### Preserve the candidate's voice
 Study how the candidate writes in the original CV. If they use concise, direct language, keep that register.
 Don't replace their vocabulary with generic HR language. If they wrote "built", keep "built". Only improve if genuinely unclear.
 
-### Summary = personal statement, not a template
-WRONG: "Experienced professional with strong communication skills and results-driven mindset"
-CORRECT: "Backend engineer with 6 years in fintech, focused on payment APIs and high-throughput systems. Built the core transaction processing service at [company]. Strong fit for this role's distributed systems requirements."
-
-To write a good summary:
-1. Start from the candidate's actual current role/domain (from most recent experience — specific, not generic)
-2. Name the ONE thing that defines their expertise: the technology, sector, or specialization that is theirs
-3. Reference a real differentiator already in the CV (project scope, sector transition, specialization depth)
-4. One sentence connecting to this role — honest, based on real overlap, never inflated
-
 ### Bullets = evidence, not job descriptions
 "Managed the CRM project" → job description (bad)
 "Managed CRM rollout across 3 European markets, coordinating analysis, development, and go-live phases" → evidence (good)
-The difference: specificity using details ALREADY in the CV (scope, geography, team structure, tech stack, phases).
-Look for these details in the original CV — they are there, just not surfaced.
+The difference: specificity using details ALREADY IN THIS CV — scope, geography, team structure, tech stack, phases involved. These details may come from the same experience OR from elsewhere in the CV if they are verifiably connected to the same context.
+Look for these details — they are always there, just not surfaced.
 
 ## HOW TO ADAPT (tier 2 — operational instructions)
 
 ### Bullets
-Rephrase with action verb + what the candidate did. If the original has metrics, keep them. If not, add specificity using ONLY information already present in that experience (context, scope, tech, phases involved).
-
-### Summary
-Write a NARRATIVE, PERSONAL summary in FIRST PERSON, structured as 3-4 SHORT paragraphs separated by \n\n:
-- Paragraph 1: Who the candidate is — current role, career trajectory, years of experience
-- Paragraph 2: What they do today — team scope, current mandate, key responsibilities
-- Paragraph 3: Strategic positioning — where they sit between strategy and execution
-- Paragraph 4 (optional): Values and approach (e.g. responsible AI, organizational readiness)
-FORBIDDEN: generic buzzword lists like "data-driven mindset with AI governance expertise". Each sentence must be specific and grounded in the candidate's real experience.
-The summary must feel like a person speaking, not a LinkedIn headline generator.
+Rephrase with action verb + what the candidate did. If the original has metrics, keep them. If not, add specificity using information already present in this CV (context, scope, tech, phases involved — from this experience OR from other sections that are factually connected).
 
 ### Skill ordering
 Order by relevance to the job posting:
@@ -235,6 +256,7 @@ Order by relevance to the job posting:
 4. Soft skills
 Remove generic/irrelevant skills (e.g. "Microsoft Office", "Teamwork" for senior roles).
 This applies to skills.technical, skills.soft, and skills.tools.
+MUST NOT remove skills present in the original CV that are relevant to the role. You may reorder, never delete relevant skills.
 
 ### Experiences
 Reverse chronological order (most recent first). Do NOT reorder by relevance.
@@ -265,7 +287,7 @@ Return ONLY fields you actually changed.
 
 CRITICAL: if the CV language differs from detected_language, generate patches for ALL text fields (summary, every experience's bullets/description, skills, education, certifications, projects).
 
-Also return: structural_changes, honest_score, diff (with reasons in Italian).
+Also return: narrative_thread, structural_changes, honest_score, diff (with reasons in Italian).
 
 Respond ONLY with the required tool function call.`;
 
@@ -375,6 +397,10 @@ const TOOL_SCHEMA_TAILOR = {
     parameters: {
       type: "object",
       properties: {
+        narrative_thread: {
+          type: "string",
+          description: "Internal reading brief written BEFORE any patch: 3-sentence synthesis in Italian — who is this person, what is their real differentiator for this role, what narrative thesis guides all patches.",
+        },
         structural_changes: {
           type: "array",
           items: {
@@ -429,7 +455,7 @@ const TOOL_SCHEMA_TAILOR = {
           },
         },
       },
-      required: ["structural_changes", "tailored_patches", "honest_score", "diff"],
+      required: ["narrative_thread", "structural_changes", "tailored_patches", "honest_score", "diff"],
     },
   },
 };
