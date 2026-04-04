@@ -294,11 +294,19 @@ Deno.serve(async (req) => {
       userContent += `\n\nSALARY_EXPECTATIONS:\n${JSON.stringify(salary_expectations)}`;
     }
 
-    // Wait for benchmarks and append if available
-    const benchmarks = await benchmarkPromise;
+    // Wait for benchmarks with 3s timeout to avoid blocking on slow Firecrawl
+    let benchmarks = null;
+    try {
+      benchmarks = await Promise.race([
+        benchmarkPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("benchmark_timeout")), 3000)),
+      ]);
+    } catch (e) {
+      console.warn(`salary-benchmark: ${(e as Error).message === "benchmark_timeout" ? "timed out after 3s, proceeding without" : "failed: " + (e as Error).message}`);
+    }
     if (benchmarks) {
-      userContent += `\n\nSALARY_BENCHMARKS (from web search — use as primary source for position_estimate):\n${benchmarks.raw_context}`;
-      console.log(`salary-benchmark: found ${benchmarks.sources.length} sources`);
+      userContent += `\n\nSALARY_BENCHMARKS (from web search — use as primary source for position_estimate):\n${(benchmarks as any).raw_context}`;
+      console.log(`salary-benchmark: found ${(benchmarks as any).sources.length} sources`);
     }
 
     const aiResult = await callAi({

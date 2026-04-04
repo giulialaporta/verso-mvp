@@ -906,6 +906,9 @@ Deno.serve(async (req) => {
     const reviewUserMessage = "## CONTEXT\nTarget language: " + detectedLang +
       "\n\n## ORIGINAL CV (GROUND TRUTH)\n" + JSON.stringify(originalCvForReview) +
       "\n\n## TAILORED CV TO REVIEW\n" + JSON.stringify(cvForReview) +
+      "\n\n## TAILOR PHASE NOTE\nThe tailored CV was intentionally modified by the tailor phase. " +
+      "Do NOT revert language translations or keyword adaptations to the target language — those are intentional. " +
+      "Do NOT revert skill reordering or keyword insertions that match the job posting requirements." +
       "\n\nApply all 13 rules. Do NOT shorten or remove bullets. Use ONLY ASCII characters.";
 
     try {
