@@ -187,11 +187,10 @@ export async function generateDocx(
   templateId?: TemplateId
 ): Promise<Blob> {
   const s = getStyle(templateId);
-  const d = computeDensity(cv);
-
+  // DOCX has natural page flow — no density-based truncation
   const personal = cv.personal || {};
-  const summary = sanitize(truncateSummary(clean(cv.summary), d) ?? "");
-  const [experience] = limitExperiences(cv.experience || [], d) as [any[], number];
+  const summary = sanitize(clean(cv.summary) ?? "");
+  const experience: any[] = cv.experience || [];
   const education = cv.education || [];
   const skills = cv.skills;
   const certifications = Array.isArray(cv.certifications) ? cv.certifications : [];
