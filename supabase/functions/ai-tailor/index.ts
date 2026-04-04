@@ -869,7 +869,7 @@ Deno.serve(async (req) => {
       "5. ORPHAN TEXT: Move misplaced text to correct section or remove if duplicate.\n" +
       "6. CERTIFICATION VALIDATION: Certs need name + issuer minimum. Keep cert names in original language.\n" +
       "7. SKILL DEDUP & CLEANUP: Remove duplicates and generic cliches.\n" +
-      "8. MAX 4-5 BULLETS PER EXPERIENCE: Condense if more than 5.\n" +
+      "8. MAX 4-5 BULLETS PER EXPERIENCE: Condense if more than 5. For experiences lasting > 3 years or senior/lead/executive/director/C-level roles, limit is 6-7 bullets.\n" +
       "9. DATE FORMAT: Use 'Mmm YYYY' consistently. Separator: ONLY ASCII hyphen (-), NEVER en dash or em dash.\n" +
       "10. SUMMARY QUALITY: 2-3 sentences, specific to role, no filler.\n" +
       "11. NO INVENTED OUTCOMES: If no metrics in original, do not add them.\n" +
