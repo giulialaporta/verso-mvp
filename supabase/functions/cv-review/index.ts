@@ -65,6 +65,7 @@ Use the format most natural for the target language:
 - Italian: "Gen 2021", "Feb 2023"
 - English: "Jan 2021", "Feb 2023"
 - If only year is available: "2021"
+- Date separator: use ONLY the ASCII hyphen (-), NEVER en dash (–) or em dash (—).
 Fix inconsistencies: "01.2021" and "January 2021" → same format.
 
 ### 10. SUMMARY QUALITY
