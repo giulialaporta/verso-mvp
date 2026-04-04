@@ -120,7 +120,7 @@ function generateWordHtml(cv: Record<string, any>, _templateId: string, lang: st
       const role = wSan(wClean(exp.role) || wClean(exp.title));
       const company = wSan(wClean(exp.company));
       const start = wDate(exp.start || exp.period);
-      const end = exp.end ? wDate(exp.end) : (exp.current ? "Attuale" : "");
+      const end = exp.end ? wDate(exp.end) : (exp.current ? h("present", lang) : "");
       const period = [start, end].filter(Boolean).join(" - ");
       const location = wSan(wClean(exp.location));
       const description = wSan(wClean(exp.description));
