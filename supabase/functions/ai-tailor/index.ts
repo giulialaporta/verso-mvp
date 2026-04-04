@@ -188,6 +188,7 @@ The ENTIRE tailored CV must be in ONE language: the target language.
 - Translate generic/descriptive skills: "Project Management" → "Gestione progetti"
 - Keep proper nouns and tech names as-is: React, SQL, Figma, AWS, Python
 - NEVER wrap skill names in quotes. Wrong: "React". Correct: React
+- When a skill has a well-known acronym, include BOTH the full name and the acronym in parentheses the FIRST time it appears: "Search Engine Optimization (SEO)", "Customer Relationship Management (CRM)", "Key Performance Indicators (KPIs)". For pure tech names (React, AWS, SQL) keep only the short form.
 
 ## VOICE & NARRATIVE (tier 2)
 Your job is not just to rephrase — it's to make this specific person's story come alive.

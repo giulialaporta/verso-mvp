@@ -300,6 +300,17 @@ export async function generateDocx(
     }
   }
 
+  // ─── Skills (before Education for ATS priority) ───
+  if (allSkills.length > 0) {
+    children.push(sectionTitle(h("skills", lang), s));
+    children.push(
+      new Paragraph({
+        spacing: { after: 80 },
+        children: [new TextRun({ text: allSkills.join("  |  "), size: s.bodySize, font: s.bodyFont })],
+      })
+    );
+  }
+
   // ─── Education ────────────────────────
   if (education.length > 0) {
     children.push(sectionTitle(h("education", lang), s));
@@ -344,17 +355,6 @@ export async function generateDocx(
         );
       }
     }
-  }
-
-  // ─── Skills ───────────────────────────
-  if (allSkills.length > 0) {
-    children.push(sectionTitle(h("skills", lang), s));
-    children.push(
-      new Paragraph({
-        spacing: { after: 80 },
-        children: [new TextRun({ text: allSkills.join("  ·  "), size: s.bodySize, font: s.bodyFont })],
-      })
-    );
   }
 
   // ─── Languages ────────────────────────
