@@ -326,52 +326,8 @@ export function StepExport({
   const [previewMode, setPreviewMode] = useState<"pdf" | "word">("pdf");
   const trackEvent = useTrackEvent();
 
-  // Formal review state
-  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("idle");
-  const [reviewFixes, setReviewFixes] = useState<ReviewFix[]>([]);
-  const [reviewedCv, setReviewedCv] = useState<Record<string, unknown> | null>(null);
-  const [fixesOpen, setFixesOpen] = useState(false);
-  const reviewCalledRef = useRef(false);
-  const MAX_REVIEW_RETRIES = 3;
-  const RETRY_DELAY_MS = 2000;
-
-  // Launch review in background on mount with retry logic
-  useEffect(() => {
-    if (reviewCalledRef.current) return;
-    reviewCalledRef.current = true;
-
-    async function runReview(attempt: number) {
-      setReviewStatus("reviewing");
-      try {
-        const { data, error } = await supabase.functions.invoke("cv-formal-review", {
-          body: { cv: tailoredCv, template_id: selectedTemplate, lang: cvLang || "it" },
-        });
-        if (error || !data) {
-          throw new Error(error?.message || "Review failed");
-        }
-        const fixes = (data.fixes as ReviewFix[]) || [];
-        setReviewFixes(fixes);
-        setReviewedCv(data.revised_cv || tailoredCv);
-        setReviewStatus("done");
-        if (fixes.length > 0) setFixesOpen(true);
-      } catch (e) {
-        console.error(`cv-formal-review attempt ${attempt} error:`, e);
-        if (attempt < MAX_REVIEW_RETRIES) {
-          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * attempt));
-          return runReview(attempt + 1);
-        }
-        // All retries exhausted — silently fall back to original CV
-        setReviewStatus("done");
-        setReviewFixes([]);
-        setReviewedCv(null);
-      }
-    }
-
-    runReview(1);
-  }, [tailoredCv, selectedTemplate, cvLang]);
-
-  // The CV to use for downloads: reviewed if available, otherwise original
-  const activeCv = reviewedCv || tailoredCv;
+  // Deterministic normalization — instant, no AI call
+  const activeCv = useMemo(() => normalizeCvText(tailoredCv as Record<string, any>, cvLang), [tailoredCv, cvLang]);
 
   const personalName = (activeCv?.personal as any)?.name || "CV";
   const matchScore = analyzeResult?.match_score ?? 0;
