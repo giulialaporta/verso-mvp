@@ -313,7 +313,7 @@ export async function generateDocx(
       const field = clean(ed.field);
       const institution = clean(ed.institution);
 
-      // Build degree title
+      // Build degree title (without institution — goes on line 2)
       const titleParts: string[] = [];
       if (degree && field) {
         titleParts.push(degree.toLowerCase().includes(field.toLowerCase()) ? degree : `${degree}: ${field}`);
@@ -322,31 +322,29 @@ export async function generateDocx(
       } else if (field) {
         titleParts.push(field);
       }
-      const degreeTitle = sanitize(titleParts.length > 0
-        ? (institution ? `${titleParts.join("")} - ${institution}` : titleParts.join(""))
-        : (institution || ""));
+      const degreeTitle = sanitize(titleParts.join("") || institution || "");
 
       // Date range for education
       const startDate = normalizeDate(clean(ed.start) || clean(ed.period));
       const endDate = normalizeDate(clean(ed.end));
       const eduDateRange = startDate ? (endDate ? `${startDate} - ${endDate}` : startDate) : endDate || "";
 
-      // Line 1: Degree [TAB] Date range
+      // Line 1: Degree (bold)
       if (degreeTitle) {
-        children.push(degreeWithDate(degreeTitle, eduDateRange, s));
+        children.push(degreeLine(degreeTitle, s));
       }
 
-      // Line 2: Grade + honors (if any)
+      // Line 2: Institution · Date · Grade (muted italic)
       const grade = sanitize(clean(ed.grade));
       const honors = sanitize(clean(ed.honors));
-      const gradeLine = [grade, honors].filter(Boolean).join(" ");
-      if (gradeLine) {
-        children.push(
-          new Paragraph({
-            spacing: { after: 20 },
-            children: [new TextRun({ text: gradeLine, size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true })],
-          })
-        );
+      const gradeText = [grade, honors].filter(Boolean).join(" ");
+      const instParts = [
+        titleParts.length > 0 ? institution : null,
+        eduDateRange,
+        gradeText,
+      ].filter(Boolean) as string[];
+      if (instParts.length > 0) {
+        children.push(institutionLine(instParts, s));
       }
     }
   }
