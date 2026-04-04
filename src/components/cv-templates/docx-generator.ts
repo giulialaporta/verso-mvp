@@ -236,7 +236,7 @@ export async function generateDocx(
     children.push(
       new Paragraph({
         alignment: AlignmentType.LEFT,
-        spacing: { after: 160 },
+        spacing: { after: 80 },
         children: [
           new TextRun({
             text: [...contactParts, ...links].join("  ·  "),
