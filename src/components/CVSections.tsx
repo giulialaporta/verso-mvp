@@ -1002,12 +1002,54 @@ export function CVSections({
       {editable && (
         <EditItemDrawer
           open={editingItem !== null}
-          onClose={() => setEditingItem(null)}
+          onClose={() => { setEditingItem(null); isNewExperience.current = false; }}
           title={drawerTitle}
           fields={drawerFields}
           onSave={handleDrawerSave}
         />
       )}
+
+      {/* Dialog: previous experience ended? */}
+      <AlertDialog open={endedDialog !== null} onOpenChange={(open) => { if (!open) setEndedDialog(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Esperienza precedente terminata?</AlertDialogTitle>
+            <AlertDialogDescription>
+              L'esperienza presso <strong>{endedDialog?.company}</strong> è ancora in corso?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setEndedDialog(null)}>
+              No, è ancora in corso
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (endedDialog && onUpdate) {
+                const copy = JSON.parse(JSON.stringify(data));
+                if (copy.experience?.[endedDialog.index]) {
+                  copy.experience[endedDialog.index].current = false;
+                  if (!copy.experience[endedDialog.index].end) {
+                    copy.experience[endedDialog.index].end = "";
+                  }
+                  copy.experience = sortExperiencesByDate(copy.experience);
+                  onUpdate(copy);
+                  // Open drawer on that experience so user can set end date
+                  const sortedIdx = copy.experience.findIndex((e: any) =>
+                    e.company === data.experience?.[endedDialog.index]?.company &&
+                    e.role === data.experience?.[endedDialog.index]?.role &&
+                    e.start === data.experience?.[endedDialog.index]?.start
+                  );
+                  if (sortedIdx >= 0) {
+                    setTimeout(() => setEditingItem({ type: "experience", index: sortedIdx }), 100);
+                  }
+                }
+              }
+              setEndedDialog(null);
+            }}>
+              Sì, è terminata
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
