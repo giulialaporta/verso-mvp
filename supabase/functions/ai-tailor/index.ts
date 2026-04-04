@@ -238,7 +238,7 @@ This applies to skills.technical, skills.soft, and skills.tools.
 
 ### Experiences
 Reverse chronological order (most recent first). Do NOT reorder by relevance.
-Condense to max 4-5 bullets per experience. Merge similar bullets, remove irrelevant ones.
+Condense to max 4-5 bullets per experience. For experiences lasting > 3 years or with senior/lead/executive/director/C-level titles, the limit is 6-7 bullets. Merge similar bullets, remove irrelevant ones.
 
 ## DATA INTEGRITY
 
