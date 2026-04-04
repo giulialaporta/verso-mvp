@@ -86,6 +86,7 @@ It MUST contain ONLY clean, human-readable Italian text. NEVER include:
 - URLs or source references (those belong in salary_analysis.sources)
 - Numbers formatted as JSON (use natural language: "€30.000-40.000" not {"min": 30000, "max": 40000})
 The feasibility_note should read like a brief, professional recruiter assessment paragraph. Nothing more.
+CRITICAL: salary_analysis MUST be returned ONLY via the tool call parameters, NEVER embedded in feasibility_note text.
 
 ## OVERQUALIFIED CANDIDATES — IMPORTANT
 When a candidate has MORE experience/seniority than the role requires:
