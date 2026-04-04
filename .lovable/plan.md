@@ -1,87 +1,81 @@
 
 
-# Piano: Miglioramento cv-formal-review + normalizzazione deterministica
+# Valutazione raccomandazioni ATS del consulente
 
-## Diagnosi
+## Premessa
 
-Il `cv-formal-review` ha un prompt debole e riscrive l'intero CV come `revised_cv` senza schema vincolato. Questo causa: troncamento bullet, sostituzione caratteri non-ATS, mix linguistici. Il `cv-review` (più robusto, con ground truth) non è mai chiamato dal frontend.
+Il consulente propone regole pensate per ATS americani (Taleo, Workday, iCIMS). Alcune sono universalmente valide, altre sono incompatibili con il mercato europeo target di Verso o con la nostra architettura multi-template. Ecco il verdetto punto per punto.
 
-## Strategia
+---
 
-Adottare il piano approvato nella conversazione precedente, **integrandovi i 5 suggerimenti dell'utente**:
+## 1. LAYOUT E STRUTTURA
 
-1. Eliminare `cv-formal-review` come edge function
-2. Sostituirlo con normalizzazione deterministica client-side
-3. Integrare le regole formali nel prompt di `cv-review` (che verrà integrato in `ai-tailor`)
-4. Applicare i suggerimenti specifici al prompt e al codice
+| Raccomandazione | Verdetto | Motivazione |
+|---|---|---|
+| Colonna singola | **Parzialmente sì** | Il DOCX (formato ATS) è già a colonna singola. I PDF (Classico, Minimal) hanno sidebar ma sono per uso umano, non ATS. Non serve toccare i PDF. |
+| Contatti nel body, non in header/footer | **Già fatto** | Il DOCX mette i contatti come paragrafi nel body. I template HTML li mettono nel body. Nessuna modifica. |
+| Rimuovere icone/emoji/barre progresso | **Già fatto** | Il DOCX non ha nessun elemento grafico. I PDF usano solo testo e CSS. |
+| Nessuna text box | **Già fatto** | Il DOCX usa solo `Paragraph` nativi di Word. |
+| Font Calibri/Arial 10-12pt | **Già fatto** | Il DOCX usa Calibri 10pt body, 10.5pt headings. |
+| Margini 2cm | **NO** — attualmente 18mm laterali, 14mm top/bottom. Differenza minima (2mm), margini più stretti = più contenuto per pagina. Non cambierei. |
 
-## Step di implementazione
+**Azione: nessuna modifica necessaria.** Il DOCX è già ATS-compliant su tutti questi punti.
 
-### Step 1 — Normalizzatore deterministico in `template-utils.ts`
+---
 
-Creare `normalizeCvText(cv, lang)` che:
-- Sostituisce em dash (—) e en dash (–) con trattino ASCII (-)
-- Sostituisce virgolette curve (" " ' ') con virgolette dritte (" e ')
-- Uniforma date al formato `Mmm YYYY` localizzato (Gen 2021 / Jan 2021)
-- Uniforma separatori date a `-` ASCII
-- Ritorna il CV normalizzato (nuovo oggetto, no mutazione)
+## 2. SEZIONI E INTESTAZIONI STANDARD
 
-### Step 2 — Aggiornare prompt di `cv-review` con regole formali
+| Raccomandazione | Verdetto | Motivazione |
+|---|---|---|
+| Forzare nomi inglesi ("Professional Summary", "Work Experience") | **NO** | Verso serve il mercato europeo (IT, DE, FR, ES). Forzare intestazioni inglesi su un CV in italiano è controproducente. Gli ATS europei (Lever, Greenhouse, SmartRecruiters) parsano anche "Esperienza Lavorativa". Il nostro sistema i18n (`HEADERS` in template-utils.ts) è la soluzione corretta. |
+| Ordine fisso delle sezioni | **Parzialmente sì** | L'ordine attuale (Summary → Experience → Education → Skills → Languages → Certifications → Projects → ...) è già sostanzialmente quello raccomandato. Unica differenza: Skills viene dopo Education. Spostare Skills prima di Education nel DOCX è un miglioramento ragionevole. |
 
-Aggiungere al SYSTEM_PROMPT di `cv-review/index.ts`:
-- **Regola 9 (aggiornata)**: Separatore date = solo `-` ASCII, mai `–` o `—`
-- **Regola 12**: Caratteri ATS-safe — solo ASCII standard. Mai em dash, en dash, virgolette curve. Sostituire con trattino (-) e virgolette dritte (")
-- **Regola 13**: No truncation — NON rimuovere, accorciare o unire bullet/frasi già presenti. Correggi SOLO la forma, mai il contenuto o la lunghezza
+**Azione possibile:** invertire l'ordine Skills/Education nel DOCX generator (skill prima di education). Piccola modifica, buon impatto ATS.
 
-### Step 3 — Integrare cv-review in ai-tailor (post-tailoring, server-side)
+---
 
-In `ai-tailor/index.ts`, dopo l'integrity check e prima della response:
-- Chiamare `callAi` con il prompt di cv-review, passando `original_cv` come ground truth
-- Usare il risultato come `tailored_cv` finale
-- Preservare photo_base64 e personal data come già fa cv-review
+## 3. PROFESSIONAL SUMMARY
 
-### Step 4 — Semplificare StepExport
+| Raccomandazione | Verdetto | Motivazione |
+|---|---|---|
+| 3-4 frasi, mai troncato | **Già fatto** | Il DOCX non tronca più il summary (fix precedente). |
+| Deve contenere job title, anni, keyword, metriche | **NO come regola rigida** | Il nostro prompt `SYSTEM_PROMPT_TAILOR` ha già regole precise sulla summary (narrative, first person, 3-4 paragrafi). Il template proposto dal consulente ("X with Y+ years in Z...") è esattamente il pattern che il nostro prompt vieta ("generic buzzword lists"). La nostra summary è migliore per il mercato europeo. |
 
-In `StepExport.tsx`:
-- Rimuovere la chiamata a `cv-formal-review`, il retry logic, `reviewStatus`, `reviewFixes`, `reviewedCv`, `ReviewFix` type, `ReviewStatus` type
-- Rimuovere il collapsible "Correzioni formali"
-- `activeCv = normalizeCvText(tailoredCv, lang)` — deterministico, istantaneo
-- I download partono subito senza attendere revisione
+**Azione: nessuna modifica.** Il summary è già ben gestito dal prompt.
 
-### Step 5 — Aggiornare cv-formal-review con i suggerimenti (prima di eliminarlo)
+---
 
-Questi miglioramenti vanno in realtà nel prompt di cv-review (Step 2), dato che eliminiamo cv-formal-review:
-- Rimuovere `template_id` dal userMessage (suggerimento 4)
-- Aggiungere `if (!lang) console.warn(...)` fallback nel log (suggerimento 5) — questo va in ai-tailor dove si integra cv-review
+## 4. CORE SKILLS — FORMAT
 
-### Step 6 — Eliminare cv-formal-review
+| Raccomandazione | Verdetto | Motivazione |
+|---|---|---|
+| Skills separate da " \| " su 2-3 righe | **Ragionevole** | Attualmente usiamo " · " come separatore. Il pipe è effettivamente più parsabile dagli ATS. Cambiamento minimo nel DOCX generator. |
+| Acronimo tra parentesi ("CRM", "AI", "KPI") | **Sì, nel prompt AI** | Questo è un miglioramento da aggiungere al prompt di tailoring: quando una skill ha un acronimo noto, includere entrambe le forme. Da aggiungere come regola in `SYSTEM_PROMPT_TAILOR`. |
+| Divisione domain/tools/soft | **Già fatto** | Il CV ha già `skills.technical`, `skills.soft`, `skills.tools` separati. Il DOCX li unisce in una riga ma mantiene l'ordine. |
 
-- Eliminare `supabase/functions/cv-formal-review/index.ts`
-- Usare il tool `delete_edge_functions` per rimuovere la funzione deployata
+**Azione:** cambiare separatore skills da " · " a " | " nel DOCX. Aggiungere regola acronimi nel prompt tailor.
 
-### Step 7 — Fix bug in cv-review
+---
 
-La riga 273 di `cv-review/index.ts` ha un bug: `const userId = user.id` — `user` non esiste, dovrebbe essere `userData.user.id`. Questo va fixato prima dell'integrazione in ai-tailor.
+## 5. WORK EXPERIENCE — La raccomandazione è stata tagliata, ma i principi sono coperti
 
-## Flusso risultante
+Il nostro DOCX ha già: ruolo + data sulla stessa riga, azienda sotto, bullet nativi Word. Il prompt impone action verbs e vieta metriche inventate. Nessuna modifica strutturale necessaria.
 
-```text
-ai-tailor (patches + integrity + cv-review integrato)
-    ↓
-tailored_cv (già pulito server-side)
-    ↓
-StepExport → normalizeCvText(cv, lang)  ← deterministico, istantaneo
-    ↓
-Download DOCX/PDF
-```
+---
 
-## File modificati
+## Riepilogo azioni
 
-| File | Azione |
-|------|--------|
-| `src/components/cv-templates/template-utils.ts` | Aggiungere `normalizeCvText()` |
-| `src/components/wizard/StepExport.tsx` | Rimuovere cv-formal-review, usare normalizzazione deterministica |
-| `supabase/functions/ai-tailor/index.ts` | Integrare cv-review post-tailoring |
-| `supabase/functions/cv-review/index.ts` | Aggiungere regole 12-13, fix bug riga 273 |
-| `supabase/functions/cv-formal-review/index.ts` | Eliminare |
+| Cosa | Dove | Effort |
+|---|---|---|
+| Spostare Skills prima di Education nel DOCX | `docx-generator.ts` — invertire i due blocchi | 2 min |
+| Separatore skills: " · " → " \| " nel DOCX | `docx-generator.ts` riga 355 | 1 min |
+| Regola acronimi skill nel prompt AI | `ai-tailor/index.ts` → `SYSTEM_PROMPT_TAILOR` sezione Skill label rules | 5 min |
+
+### Cosa NON fare
+
+- **Non forzare intestazioni inglesi** — distruggerebbe l'i18n multilingua
+- **Non rimuovere sidebar dai template PDF** — i PDF non sono per ATS, sono per uso umano
+- **Non adottare il template summary rigido** — il nostro prompt narrativo è superiore per il mercato EU
+- **Non cambiare margini** — differenza trascurabile, margini attuali sono ottimali
+- **Non forzare ordine rigido con regola in-code** — l'ordine è già corretto, basta lo swap Skills/Education
 
