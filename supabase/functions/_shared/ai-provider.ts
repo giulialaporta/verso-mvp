@@ -13,7 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ==================== TYPES ====================
 
-export type AiTask = "parse-cv" | "scrape-job" | "ai-prescreen" | "ai-tailor" | "ai-tailor-analyze" | "cv-review" | "cv-formal-review";
+export type AiTask = "parse-cv" | "scrape-job" | "ai-prescreen" | "ai-tailor" | "ai-tailor-analyze" | "cv-review" | "cv-formal-review" | "cv-optimize";
 
 interface OpenAITool {
   type: "function";
