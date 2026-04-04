@@ -1,59 +1,31 @@
 
 
-# CV Optimization AI — Piano Finale
+# Prompt Narrativo per il Tailor — Piano di Implementazione
 
-## Modifiche rispetto al piano precedente
+## Obiettivo
+Sostituire il prompt tailor con una versione che trasforma il modello da "generatore di patch indipendenti" a "recruiter che legge la persona intera prima di scrivere". Aggiungere il campo `narrative_thread` allo schema tool.
 
-1. **Banner "CV ottimizzato"**: aggiunto diff esplicito tra CV parsato e `optimized_cv`. Il banner appare solo se `JSON.stringify(parsed) !== JSON.stringify(optimized)`. Nessun falso positivo.
-2. **`date_gaps` rimosso dalla v1**: categoria esclusa dal prompt e dal componente tips. Verrà aggiunta in una fase successiva con logica dedicata.
+## Cosa cambia
 
----
+### 1. `SYSTEM_PROMPT_TAILOR` (righe 141-270)
+Sostituzione completa del prompt. Le differenze chiave rispetto all'attuale:
 
-## Flusso
+- **STEP 0 — Lettura olistica**: nuova sezione che obbliga il modello a leggere l'intero CV come documento su una persona prima di generare patch. Produce un `narrative_thread` con 3 punti: chi è, differenziatore reale, tesi narrativa.
+- **Cross-section synthesis**: sostituisce la regola restrittiva "ONLY information already present in that experience" con "information present ANYWHERE in this CV". Collegare sezioni diverse non è inventare — è far emergere ciò che già esiste.
+- **Summary come spina dorsale**: il summary viene generato per primo e diventa il riferimento per tutti gli altri patch. Istruzioni più dettagliate su come scriverlo (4 paragrafi specifici, no buzzword).
+- **Skill protection**: aggiunta regola "MUST NOT remove skills present in the original CV that are relevant to the role".
+- **Language rules aggiornate**: `narrative_thread` aggiunto alla lista dei campi che devono essere in italiano.
 
-```text
-Upload → parse-cv → [mostra preview subito]
-                  └→ [background] cv-optimize → diff? → aggiorna preview + tips
-```
+Il resto (INVIOLABLE RULES, EXAMPLES, DATA INTEGRITY, FOLLOW-UP, OUTPUT FORMAT) rimane sostanzialmente identico con piccoli perfezionamenti.
 
-## Componenti
+### 2. `TOOL_SCHEMA_TAILOR` (righe 370-435)
+- Aggiungere proprietà `narrative_thread` (type string) nelle `properties`
+- Aggiungerlo all'array `required`: `["narrative_thread", "structural_changes", "tailored_patches", "honest_score", "diff"]`
 
-### 1. Edge Function `supabase/functions/cv-optimize/index.ts`
+### Nessun'altra modifica
+Non si toccano: `SYSTEM_PROMPT_ANALYZE`, `TOOL_SCHEMA_ANALYZE`, `applyPatches`, il codice TypeScript del handler, né altri file.
 
-- Input: `{ cv_data: ParsedCV }`
-- Output: `{ optimized_cv: ParsedCV, tips: Tip[] }`
-- Usa `compactCV` per ridurre token, poi chiama Lovable AI (gemini-2.5-flash) con tool calling per output strutturato
-- Prompt: recruiter esperto 15+ anni, corregge solo forma (verbi d'azione, cliché, date uniformi, summary generico), non inventa contenuti
-- Categorie tips v1: `missing_kpi`, `missing_section`, `weak_bullets`, `generic_skills`, `missing_contact`, `summary_quality`
-- **No `date_gaps`** in v1
-- Temperatura 0.2
-- Gestione errori 429/402 con risposte appropriate
+## Dettagli tecnici
 
-### 2. `supabase/functions/_shared/ai-provider.ts`
-
-- Aggiungere task `cv-optimize` al routing
-
-### 3. `src/components/CVOptimizationTips.tsx` (nuovo)
-
-- Card compatte per ogni tip: icona per categoria, bordo per priorità (high=accent, medium=warning, low=border)
-- Ogni tip dismissabile
-- Tips `missing_section` con azione "Aggiungi sezione"
-- Props: `tips: Tip[]`, `onDismiss`, `onAddSection`
-
-### 4. `src/pages/Onboarding.tsx`
-
-- Dopo parse-cv, lancia `cv-optimize` in background (`optimizing: boolean`, `aiTips: Tip[]`)
-- **Diff check**: `const hasChanges = JSON.stringify(parsedData) !== JSON.stringify(optimizedCv)`
-- Se `hasChanges`: aggiorna `parsedData` con CV ottimizzato, mostra banner "Abbiamo migliorato la formattazione del tuo CV. Rivedi e modifica liberamente."
-- Se `!hasChanges`: nessun banner, mostra solo eventuali tips
-- Se `cv-optimize` fallisce: graceful degradation, prosegue con CV originale
-- Tips mostrati sopra CVSections nello step preview
-
-### 5. `src/pages/CVEdit.tsx`
-
-- Pulsante "Ottimizza con AI" che lancia `cv-optimize` sul CV corrente
-- Stesso diff check e banner
-- Mostra tips risultanti
-
-### Nessuna modifica al database. Tips transitori, non persistiti.
+Il prompt nuovo è ~3.5KB (simile all'attuale). Il `narrative_thread` viene generato dal modello come parte del tool call, quindi arriva nel `result` e viene passato al frontend senza logica aggiuntiva. Non richiede modifiche al database né al frontend — il campo è informativo e verrà già incluso nel JSON di risposta.
 
