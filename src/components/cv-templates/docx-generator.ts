@@ -14,10 +14,6 @@ import {
   clean,
   ensureArray,
   MAX_SIDEBAR_SKILLS,
-  computeDensity,
-  truncateSummary,
-  limitExperiences,
-  truncateBullets,
   h,
 } from "./template-utils";
 import type { TemplateId } from "./index";
