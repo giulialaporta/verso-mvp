@@ -91,10 +91,10 @@ const VERSO_STYLE: DocxStyle = {
   nameColorHex: "111111",
   headingFont: "Calibri",
   bodyFont: "Calibri",
-  nameSize: 36,
-  sectionSize: 22,
+  nameSize: 32,
+  sectionSize: 21,
   bodySize: 20,
-  bulletSize: 20,
+  bulletSize: 19,
   metaSize: 18,
   sectionBorder: true,
   sectionUppercase: true,
@@ -110,7 +110,7 @@ function getStyle(_templateId?: TemplateId): DocxStyle {
 function sectionTitle(text: string, s: DocxStyle): Paragraph {
   const displayText = s.sectionUppercase ? text.toUpperCase() : text;
   return new Paragraph({
-    spacing: { before: 320, after: 100 },
+    spacing: { before: 180, after: 40 },
     border: s.sectionBorder
       ? { bottom: { style: BorderStyle.SINGLE, size: 2, color: s.accentHex } }
       : undefined,
@@ -138,7 +138,7 @@ function roleWithDate(role: string, dateRange: string, s: DocxStyle): Paragraph 
     );
   }
   return new Paragraph({
-    spacing: { before: 240, after: 20 },
+    spacing: { before: 120, after: 0 },
     tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
     children,
   });
@@ -148,7 +148,7 @@ function roleWithDate(role: string, dateRange: string, s: DocxStyle): Paragraph 
 function companyLine(company: string, location: string | null, s: DocxStyle): Paragraph {
   const text = location ? `${company}  ·  ${location}` : company;
   return new Paragraph({
-    spacing: { after: 40 },
+    spacing: { after: 20 },
     children: [
       new TextRun({ text: sanitize(text), size: s.bodySize, font: s.bodyFont, color: s.mutedHex, italics: true }),
     ],
@@ -167,7 +167,7 @@ function degreeWithDate(degree: string, dateRange: string, s: DocxStyle): Paragr
     );
   }
   return new Paragraph({
-    spacing: { before: 120, after: 20 },
+    spacing: { before: 40, after: 0 },
     tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
     children,
   });
@@ -218,7 +218,7 @@ export async function generateDocx(
   children.push(
     new Paragraph({
       alignment: AlignmentType.LEFT,
-      spacing: { after: 60 },
+      spacing: { after: 20 },
       children: [
         new TextRun({
           text: s.nameUppercase ? nameText.toUpperCase() : nameText,
@@ -236,7 +236,7 @@ export async function generateDocx(
     children.push(
       new Paragraph({
         alignment: AlignmentType.LEFT,
-        spacing: { after: 160 },
+        spacing: { after: 80 },
         children: [
           new TextRun({
             text: [...contactParts, ...links].join("  ·  "),
@@ -285,7 +285,7 @@ export async function generateDocx(
       if (clean(exp.description)) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: sanitize(exp.description), size: s.bodySize, font: s.bodyFont })],
           })
         );
@@ -297,7 +297,7 @@ export async function generateDocx(
         children.push(
           new Paragraph({
             numbering: { reference: "cv-bullets", level: 0 },
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: sanitize(b), size: s.bulletSize, font: s.bodyFont })],
           })
         );
@@ -343,7 +343,7 @@ export async function generateDocx(
       if (gradeLine) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: gradeLine, size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true })],
           })
         );
@@ -368,7 +368,7 @@ export async function generateDocx(
     for (const l of languages) {
       children.push(
         new Paragraph({
-          spacing: { after: 40 },
+          spacing: { after: 20 },
           children: [new TextRun({ text: sanitize(`${l.language}${clean(l.level) ? ` - ${l.level}` : ""}`), size: s.bodySize, font: s.bodyFont })],
         })
       );
@@ -381,7 +381,7 @@ export async function generateDocx(
     for (const cert of certifications) {
       children.push(
         new Paragraph({
-          spacing: { after: 40 },
+          spacing: { after: 20 },
           children: [
             new TextRun({ text: sanitize(cert.name), bold: true, size: s.bodySize, font: s.bodyFont }),
             ...(clean(cert.issuer)
@@ -409,7 +409,7 @@ export async function generateDocx(
       if (clean(proj.description)) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: sanitize(proj.description), size: s.bodySize, font: s.bodyFont })],
           })
         );
@@ -417,7 +417,7 @@ export async function generateDocx(
       if (clean(proj.link)) {
         children.push(
           new Paragraph({
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: proj.link, size: s.metaSize, font: s.bodyFont, color: s.accentHex })],
           })
         );
@@ -444,7 +444,7 @@ export async function generateDocx(
         children.push(
           new Paragraph({
             numbering: { reference: "cv-bullets", level: 0 },
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [new TextRun({ text: sanitize(item), size: s.bulletSize, font: s.bodyFont })],
           })
         );
@@ -479,10 +479,10 @@ export async function generateDocx(
         properties: {
           page: {
             margin: {
-              top: convertMillimetersToTwip(20),
-              bottom: convertMillimetersToTwip(20),
-              left: convertMillimetersToTwip(20),
-              right: convertMillimetersToTwip(20),
+              top: convertMillimetersToTwip(14),
+              bottom: convertMillimetersToTwip(14),
+              left: convertMillimetersToTwip(18),
+              right: convertMillimetersToTwip(18),
             },
           },
         },
