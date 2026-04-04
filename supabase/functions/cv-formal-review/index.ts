@@ -41,7 +41,6 @@ const TOOL_SCHEMA = {
               correction: { type: "string" },
             },
             required: ["section", "field", "problem", "correction"],
-            additionalProperties: false,
           },
         },
         revised_cv: {
@@ -49,7 +48,6 @@ const TOOL_SCHEMA = {
         },
       },
       required: ["fixes", "revised_cv"],
-      additionalProperties: false,
     },
   },
 };
