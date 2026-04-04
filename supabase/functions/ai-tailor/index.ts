@@ -815,14 +815,13 @@ Deno.serve(async (req) => {
     const integrityResult = checkIntegrity(originalCV, tailoredCV as Record<string, unknown>);
     
     if (integrityResult.warnings.length > 0) {
-      console.warn(`[ai-tailor] Integrity check: ${integrityResult.warnings.length} issues corrected`);
+      console.warn("[ai-tailor] Integrity check: " + integrityResult.warnings.length + " issues corrected");
       result.integrity_warnings = integrityResult.warnings;
     }
 
     // Replace self-reported honest_score with server-computed values
     result.honest_score = {
       ...((result.honest_score as Record<string, unknown>) || {}),
-      // Override with server-computed values (AI self-reports are unreliable)
       dates_modified: integrityResult.computed_honesty.dates_modified,
       roles_changed: integrityResult.computed_honesty.roles_changed,
       companies_changed: integrityResult.computed_honesty.companies_changed,
@@ -843,7 +842,120 @@ Deno.serve(async (req) => {
     result.ats_checks = atsResult.checks;
     result.ats_score = atsResult.score;
 
-    result.tailored_cv = tailoredCV;
+    // --- CV-REVIEW: formal polish pass with ground truth (replaces cv-formal-review) ---
+    const detectedLang = analyze_context?.detected_language || "it";
+    if (!detectedLang) console.warn("[ai-tailor] lang not provided for cv-review, defaulting to 'it'");
+
+    const cvForReview = JSON.parse(JSON.stringify(tailoredCV));
+    delete cvForReview.photo_base64;
+    const originalCvForReview = JSON.parse(JSON.stringify(originalCV));
+    delete originalCvForReview.photo_base64;
+
+    const CV_REVIEW_SYSTEM = "You are an elite HR reviewer and CV quality controller.\n" +
+      "You receive a tailored CV (JSON) and must return a PERFECTED version following these 13 rules.\n" +
+      "You also receive the ORIGINAL CV (before tailoring) as ground truth.\n\n" +
+      "## GROUND TRUTH RULE\n" +
+      "For every bullet, description, and skill in the tailored CV:\n" +
+      "- If the content cannot be traced back to the original CV, REVERT it to the original wording\n" +
+      "- If the tailored version adds metrics (%, numbers, amounts) not in the original, REMOVE them\n" +
+      "- If the tailored version adds qualitative outcomes not in the original, REMOVE them\n" +
+      "- When in doubt, prefer the original wording over the tailored version\n\n" +
+      "## 13 RULES\n" +
+      "1. LANGUAGE UNIFORMITY: Every text field MUST be in the target language. Exception: proper nouns, tech terms.\n" +
+      "2. BULLET = ACTION VERB + RESULT: Every bullet starts with a strong action verb.\n" +
+      "3. CAPITALIZATION: First letter of every bullet/description/summary sentence uppercase.\n" +
+      "4. ARTIFACT REMOVAL: Remove prefixes (I:, -, 1.), wrapping quotes, trailing whitespace, markdown.\n" +
+      "5. ORPHAN TEXT: Move misplaced text to correct section or remove if duplicate.\n" +
+      "6. CERTIFICATION VALIDATION: Certs need name + issuer minimum. Keep cert names in original language.\n" +
+      "7. SKILL DEDUP & CLEANUP: Remove duplicates and generic cliches.\n" +
+      "8. MAX 4-5 BULLETS PER EXPERIENCE: Condense if more than 5.\n" +
+      "9. DATE FORMAT: Use 'Mmm YYYY' consistently. Separator: ONLY ASCII hyphen (-), NEVER en dash or em dash.\n" +
+      "10. SUMMARY QUALITY: 2-3 sentences, specific to role, no filler.\n" +
+      "11. NO INVENTED OUTCOMES: If no metrics in original, do not add them.\n" +
+      "12. ATS-SAFE CHARACTERS: Use ONLY standard ASCII. No em dash, en dash, smart quotes. Replace with hyphen (-) and straight quotes.\n" +
+      "13. NO TRUNCATION: Do NOT remove, shorten, or merge existing bullets. Correct ONLY form, never content or length.\n\n" +
+      "## WHAT YOU MUST NOT DO\n" +
+      "- Do NOT invent new experiences, skills, or certifications\n" +
+      "- Do NOT modify company names, dates, degree titles, grades\n" +
+      "- Do NOT remove experiences\n" +
+      "- Do NOT change the structure/order of sections\n" +
+      "- Do NOT touch personal data fields or photo_base64\n\n" +
+      "## OUTPUT\n" +
+      "Return the COMPLETE corrected CV in the same JSON structure as the input.";
+
+    const CV_REVIEW_TOOL = {
+      type: "function",
+      function: {
+        name: "reviewed_cv",
+        description: "Return the complete corrected CV after applying all review rules",
+        parameters: {
+          type: "object",
+          properties: {
+            personal: { type: "object" },
+            summary: { type: "string" },
+            experience: { type: "array", items: { type: "object" } },
+            education: { type: "array", items: { type: "object" } },
+            skills: { type: "object" },
+            certifications: { type: "array", items: { type: "object" } },
+            projects: { type: "array", items: { type: "object" } },
+            extra_sections: { type: "array", items: { type: "object" } },
+          },
+          required: ["personal", "summary", "experience", "skills"],
+        },
+      },
+    };
+
+    const reviewUserMessage = "## CONTEXT\nTarget language: " + detectedLang +
+      "\n\n## ORIGINAL CV (GROUND TRUTH)\n" + JSON.stringify(originalCvForReview) +
+      "\n\n## TAILORED CV TO REVIEW\n" + JSON.stringify(cvForReview) +
+      "\n\nApply all 13 rules. Do NOT shorten or remove bullets. Use ONLY ASCII characters.";
+
+    try {
+      const reviewResult = await callAi({
+        task: "cv-review",
+        systemPrompt: CV_REVIEW_SYSTEM,
+        userMessage: reviewUserMessage,
+        tools: [CV_REVIEW_TOOL],
+        toolChoice: { type: "function", function: { name: "reviewed_cv" } },
+        temperature: 0.2,
+        maxTokens: 8192,
+      }, userId);
+
+      const reviewed = reviewResult.content;
+      if (reviewed && typeof reviewed === "object") {
+        // Preserve photo_base64 and personal data from tailoredCV
+        if (photoBase64) (reviewed as any).photo_base64 = photoBase64;
+        if ((tailoredCV as any).personal) {
+          const rp = (reviewed as any).personal || {};
+          const op = (tailoredCV as any).personal;
+          rp.name = op.name;
+          rp.email = op.email;
+          rp.phone = op.phone;
+          rp.linkedin = op.linkedin;
+          rp.website = op.website;
+          rp.date_of_birth = op.date_of_birth;
+          rp.location = op.location;
+          (reviewed as any).personal = rp;
+        }
+
+        // Post-review integrity check
+        const postReviewIntegrity = checkIntegrity(originalCV, reviewed as Record<string, unknown>);
+        if (postReviewIntegrity.warnings.length > 0) {
+          console.warn("[ai-tailor] Post-review integrity: " + postReviewIntegrity.warnings.length + " issues corrected");
+        }
+
+        result.tailored_cv = reviewed;
+        result.cv_review_applied = true;
+        console.log("[ai-tailor] cv-review applied successfully");
+      } else {
+        console.warn("[ai-tailor] cv-review returned empty result, using tailored CV as-is");
+        result.tailored_cv = tailoredCV;
+      }
+    } catch (reviewErr) {
+      console.error("[ai-tailor] cv-review failed, using tailored CV as-is:", reviewErr);
+      result.tailored_cv = tailoredCV;
+    }
+
     result.master_cv_id = masterCV.id;
     const originalCvClean = JSON.parse(JSON.stringify(originalCV));
     delete originalCvClean.photo_base64;

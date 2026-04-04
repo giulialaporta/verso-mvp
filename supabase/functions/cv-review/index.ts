@@ -65,6 +65,7 @@ Use the format most natural for the target language:
 - Italian: "Gen 2021", "Feb 2023"
 - English: "Jan 2021", "Feb 2023"
 - If only year is available: "2021"
+- Date separator: use ONLY the ASCII hyphen (-), NEVER en dash (–) or em dash (—).
 Fix inconsistencies: "01.2021" and "January 2021" → same format.
 
 ### 10. SUMMARY QUALITY
@@ -88,6 +89,17 @@ Every claim in the rewritten summary must trace back to the CV content. Do not a
 If a bullet in the input contains no metrics or results, do NOT add them.
 "Managed CRM project" → "Gestito il progetto CRM" (not "...con risultati eccellenti").
 Your job is to POLISH language, not to INVENT results.
+
+### 12. ATS-SAFE CHARACTERS
+Use ONLY standard ASCII characters. NEVER use:
+- Em dash (—) or en dash (–) → use hyphen (-)
+- Smart/curly quotes (" " ' ') → use straight quotes (" ')
+Replace any non-ASCII punctuation with its ASCII equivalent.
+
+### 13. NO TRUNCATION
+Do NOT remove, shorten, or merge bullet points or sentences that are already present.
+Correct ONLY the form (grammar, spelling, punctuation, language consistency).
+NEVER change the content or reduce the length of any text.
 
 ## WHAT YOU MUST NOT DO
 - Do NOT invent new experiences, skills, or certifications
@@ -267,10 +279,12 @@ ${original_cv ? JSON.stringify(original_cv) : "Not provided"}
 ## TAILORED CV TO REVIEW
 ${JSON.stringify(cvForReview)}
 
-Apply all 11 rules. EVERY text field must be in "${lang}". Fix ALL bullets to start with action verbs. Remove all artifacts and clichés.
-CRITICAL: if ANY content in the tailored CV is not traceable to the original CV, revert it to the original.`;
+Apply all 13 rules. EVERY text field must be in "${lang}". Fix ALL bullets to start with action verbs. Remove all artifacts and clichés.
+CRITICAL: if ANY content in the tailored CV is not traceable to the original CV, revert it to the original.
+CRITICAL: Do NOT shorten, merge, or remove any existing bullets — correct form only.
+CRITICAL: Use ONLY ASCII characters — no em dash, en dash, or smart quotes.`;
 
-    const userId = user.id;
+    const userId = userData.user.id;
 
     const aiResult = await callAi({
       task: "cv-review",

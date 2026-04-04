@@ -268,3 +268,120 @@ export function h(key: string, lang?: string): string {
   const l = (lang || "it").toLowerCase().slice(0, 2);
   return HEADERS[l]?.[key] || HEADERS.it[key] || key;
 }
+
+// ─── ATS-safe text normalization ────────────────────────────
+
+const MONTH_MAP_IT: Record<string, string> = {
+  "01":"Gen","02":"Feb","03":"Mar","04":"Apr","05":"Mag","06":"Giu",
+  "07":"Lug","08":"Ago","09":"Set","10":"Ott","11":"Nov","12":"Dic",
+};
+const MONTH_MAP_EN: Record<string, string> = {
+  "01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun",
+  "07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec",
+};
+
+const MONTH_WORDS: Record<string, string> = {
+  gennaio:"01",january:"01",gen:"01",jan:"01",
+  febbraio:"02",february:"02",feb:"02",
+  marzo:"03",march:"03",mar:"03",
+  aprile:"04",april:"04",apr:"04",
+  maggio:"05",may:"05",mag:"05",
+  giugno:"06",june:"06",giu:"06",jun:"06",
+  luglio:"07",july:"07",lug:"07",jul:"07",
+  agosto:"08",august:"08",ago:"08",aug:"08",
+  settembre:"09",september:"09",set:"09",sep:"09",
+  ottobre:"10",october:"10",ott:"10",oct:"10",
+  novembre:"11",november:"11",nov:"11",
+  dicembre:"12",december:"12",dic:"12",dec:"12",
+};
+
+/** Normalize a single date string to "Mmm YYYY" format */
+function normalizeDate(d: string | null | undefined, lang: string): string {
+  if (!d || typeof d !== "string") return "";
+  const s = d.trim();
+  if (!s) return "";
+
+  const map = lang === "en" ? MONTH_MAP_EN : MONTH_MAP_IT;
+
+  // ISO: 2021-03 or 2021-03-15
+  const iso = s.match(/^(\d{4})-(\d{2})/);
+  if (iso) {
+    const abbr = map[iso[2]];
+    return abbr ? abbr + " " + iso[1] : s;
+  }
+
+  // MM/YYYY or MM.YYYY
+  const slashDot = s.match(/^(\d{2})[\/.](\d{4})$/);
+  if (slashDot) {
+    const abbr = map[slashDot[1]];
+    return abbr ? abbr + " " + slashDot[2] : s;
+  }
+
+  // "Month YYYY" or "Mon YYYY"
+  const wordMonth = s.match(/^([a-zA-Zàèéìòù]+)\s+(\d{4})$/);
+  if (wordMonth) {
+    const num = MONTH_WORDS[wordMonth[1].toLowerCase()];
+    if (num) {
+      const abbr = map[num];
+      return abbr ? abbr + " " + wordMonth[2] : s;
+    }
+  }
+
+  // Bare year
+  if (/^\d{4}$/.test(s)) return s;
+
+  return sanitizeText(s);
+}
+
+/** Replace non-ASCII chars with ATS-safe equivalents */
+function sanitizeText(text: string): string {
+  return text
+    .replace(/\u2014/g, "-")   // em dash
+    .replace(/\u2013/g, "-")   // en dash
+    .replace(/[\u201C\u201D]/g, '"')  // smart double quotes
+    .replace(/[\u2018\u2019]/g, "'"); // smart single quotes
+}
+
+/** Deep-clone and normalize all text in a CV for ATS compatibility */
+export function normalizeCvText(cv: Record<string, any>, lang?: string): Record<string, any> {
+  const l = (lang || "it").toLowerCase().slice(0, 2) === "en" ? "en" : "it";
+  const out = JSON.parse(JSON.stringify(cv));
+
+  // Sanitize all string values recursively
+  function walkAndSanitize(obj: any): any {
+    if (typeof obj === "string") return sanitizeText(obj);
+    if (Array.isArray(obj)) return obj.map(walkAndSanitize);
+    if (obj && typeof obj === "object") {
+      for (const k of Object.keys(obj)) {
+        obj[k] = walkAndSanitize(obj[k]);
+      }
+    }
+    return obj;
+  }
+  walkAndSanitize(out);
+
+  // Normalize dates in experience
+  if (Array.isArray(out.experience)) {
+    for (const exp of out.experience) {
+      if (exp.start) exp.start = normalizeDate(exp.start, l);
+      if (exp.end) exp.end = normalizeDate(exp.end, l);
+    }
+  }
+
+  // Normalize dates in education
+  if (Array.isArray(out.education)) {
+    for (const ed of out.education) {
+      if (ed.start) ed.start = normalizeDate(ed.start, l);
+      if (ed.end) ed.end = normalizeDate(ed.end, l);
+    }
+  }
+
+  // Normalize dates in certifications
+  if (Array.isArray(out.certifications)) {
+    for (const cert of out.certifications) {
+      if (cert.year) cert.year = normalizeDate(cert.year, l);
+    }
+  }
+
+  return out;
+}

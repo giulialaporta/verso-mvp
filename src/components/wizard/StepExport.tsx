@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTrackEvent } from "@/hooks/useTrackEvent";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -9,23 +9,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   ArrowLeft, ArrowRight, SpinnerGap,
-  FileDoc, CheckCircle, CaretDown, CaretUp, Pencil, Printer
+  FileDoc, CheckCircle, Printer
 } from "@phosphor-icons/react";
 import { type TemplateId } from "@/components/cv-templates";
 import { generateDocx } from "@/components/cv-templates/docx-generator";
-import { h } from "@/components/cv-templates/template-utils";
+import { h, normalizeCvText } from "@/components/cv-templates/template-utils";
 import { computeConfidence } from "./wizard-utils";
 import type { AnalyzeResult, TailorResult, JobData } from "./wizard-types";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-
-type ReviewFix = {
-  section: string;
-  field: string;
-  problem: string;
-  correction: string;
-};
-
-type ReviewStatus = "idle" | "reviewing" | "done" | "error";
 
 // --- Word Preview helpers ---
 
@@ -336,52 +326,8 @@ export function StepExport({
   const [previewMode, setPreviewMode] = useState<"pdf" | "word">("pdf");
   const trackEvent = useTrackEvent();
 
-  // Formal review state
-  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("idle");
-  const [reviewFixes, setReviewFixes] = useState<ReviewFix[]>([]);
-  const [reviewedCv, setReviewedCv] = useState<Record<string, unknown> | null>(null);
-  const [fixesOpen, setFixesOpen] = useState(false);
-  const reviewCalledRef = useRef(false);
-  const MAX_REVIEW_RETRIES = 3;
-  const RETRY_DELAY_MS = 2000;
-
-  // Launch review in background on mount with retry logic
-  useEffect(() => {
-    if (reviewCalledRef.current) return;
-    reviewCalledRef.current = true;
-
-    async function runReview(attempt: number) {
-      setReviewStatus("reviewing");
-      try {
-        const { data, error } = await supabase.functions.invoke("cv-formal-review", {
-          body: { cv: tailoredCv, template_id: selectedTemplate, lang: cvLang || "it" },
-        });
-        if (error || !data) {
-          throw new Error(error?.message || "Review failed");
-        }
-        const fixes = (data.fixes as ReviewFix[]) || [];
-        setReviewFixes(fixes);
-        setReviewedCv(data.revised_cv || tailoredCv);
-        setReviewStatus("done");
-        if (fixes.length > 0) setFixesOpen(true);
-      } catch (e) {
-        console.error(`cv-formal-review attempt ${attempt} error:`, e);
-        if (attempt < MAX_REVIEW_RETRIES) {
-          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * attempt));
-          return runReview(attempt + 1);
-        }
-        // All retries exhausted — silently fall back to original CV
-        setReviewStatus("done");
-        setReviewFixes([]);
-        setReviewedCv(null);
-      }
-    }
-
-    runReview(1);
-  }, [tailoredCv, selectedTemplate, cvLang]);
-
-  // The CV to use for downloads: reviewed if available, otherwise original
-  const activeCv = reviewedCv || tailoredCv;
+  // Deterministic normalization — instant, no AI call
+  const activeCv = useMemo(() => normalizeCvText(tailoredCv as Record<string, any>, cvLang), [tailoredCv, cvLang]);
 
   const personalName = (activeCv?.personal as any)?.name || "CV";
   const matchScore = analyzeResult?.match_score ?? 0;
@@ -401,7 +347,7 @@ export function StepExport({
       await printCvAsPdf(activeCv, selectedTemplate, effectiveLang);
 
       // Track event (PDF saved via print dialog)
-      trackEvent("pdf_downloaded", { template: selectedTemplate, formal_review: reviewStatus === "done", method: "print" });
+      trackEvent("pdf_downloaded", { template: selectedTemplate, method: "print" });
 
       toast.success("Finestra di stampa aperta — salva come PDF.");
     } catch (e) {
@@ -436,7 +382,7 @@ export function StepExport({
       }
 
       toast.success("DOCX scaricato!");
-      trackEvent("docx_downloaded", { template: selectedTemplate, formal_review: reviewStatus === "done" });
+      trackEvent("docx_downloaded", { template: selectedTemplate });
     } catch (e) {
       console.error("DOCX generation error:", e);
       toast.error("Errore durante la generazione del DOCX.");
@@ -487,68 +433,7 @@ export function StepExport({
         ].join(" ")}>
           Confidence {stats.confidence}%
         </span>
-
-        {reviewStatus === "reviewing" && (
-          <span className="rounded-full bg-info/15 px-3 py-1 font-mono text-xs text-info flex items-center gap-1.5">
-            <SpinnerGap size={12} className="animate-spin" /> Revisione...
-          </span>
-        )}
-        {reviewStatus === "done" && reviewFixes.length === 0 && (
-          <span className="rounded-full bg-primary/15 px-3 py-1 font-mono text-xs text-primary flex items-center gap-1.5">
-            <CheckCircle size={12} weight="fill" /> Revisione OK
-          </span>
-        )}
-        {reviewStatus === "done" && reviewFixes.length > 0 && (
-          <span className="rounded-full bg-warning/15 px-3 py-1 font-mono text-xs text-warning flex items-center gap-1.5">
-            <Pencil size={12} /> {reviewFixes.length} correzioni
-          </span>
-        )}
-        {reviewStatus === "error" && (
-          <span className="rounded-full bg-destructive/15 px-3 py-1 font-mono text-xs text-destructive">
-            Revisione non disponibile
-          </span>
-        )}
       </div>
-
-      {/* Formal review fixes panel */}
-      {reviewStatus === "done" && reviewFixes.length > 0 && (
-        <Collapsible open={fixesOpen} onOpenChange={setFixesOpen}>
-          <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-2 w-full rounded-lg border border-border/50 bg-card px-4 py-3 text-sm font-medium text-foreground hover:border-primary/30 transition-colors">
-              <Pencil size={16} className="text-warning" />
-              <span>{reviewFixes.length} correzioni formali applicate</span>
-              <span className="ml-auto">
-                {fixesOpen ? <CaretUp size={14} /> : <CaretDown size={14} />}
-              </span>
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="mt-2 space-y-2">
-              {reviewFixes.map((fix, i) => (
-                <div key={i} className="rounded-lg border border-border/30 bg-card/50 px-4 py-3 text-sm">
-                  <div className="flex items-start gap-2">
-                    <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 font-mono text-[11px] text-warning uppercase">
-                      {fix.section}
-                    </span>
-                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
-                      {fix.field}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-muted-foreground">{fix.problem}</p>
-                  <p className="mt-1 text-foreground">{fix.correction}</p>
-                </div>
-              ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
-
-      {reviewStatus === "done" && reviewFixes.length === 0 && (
-        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-          <CheckCircle size={18} weight="fill" />
-          Nessuna correzione necessaria — il tuo CV è pronto.
-        </div>
-      )}
 
       {/* Download buttons */}
       <div className="space-y-3">
