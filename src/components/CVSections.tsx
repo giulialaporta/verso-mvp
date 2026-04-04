@@ -550,10 +550,11 @@ export function CVSections({
           </div>
           {editable && (
             <AddButton onClick={() => {
-              onUpdate?.({
-                ...data,
-                experience: [...(data.experience || []), { role: "", company: "" }],
-              });
+              const newExp = [...(data.experience || []), { role: "", company: "" }];
+              onUpdate?.({ ...data, experience: newExp });
+              isNewExperience.current = true;
+              // Open drawer on the newly added item
+              setTimeout(() => setEditingItem({ type: "experience", index: newExp.length - 1 }), 50);
             }} label="Esperienza" />
           )}
         </Section>
