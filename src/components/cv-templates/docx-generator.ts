@@ -3,9 +3,11 @@ import {
   Packer,
   Paragraph,
   TextRun,
-  HeadingLevel,
   AlignmentType,
   BorderStyle,
+  TabStopType,
+  TabStopPosition,
+  LevelFormat,
   convertMillimetersToTwip,
 } from "docx";
 import {
@@ -32,9 +34,15 @@ function sanitize(text: string | null | undefined): string {
 function normalizeDate(d: string | undefined | null): string {
   if (!d) return "";
   const s = String(d).trim();
+  // MM/YYYY already ok
   if (/^\d{2}\/\d{4}$/.test(s)) return s;
+  // ISO: 2020-06
   const isoMatch = s.match(/^(\d{4})-(\d{2})/);
   if (isoMatch) return `${isoMatch[2]}/${isoMatch[1]}`;
+  // Dot format: 01.2018
+  const dotMatch = s.match(/^(\d{2})\.(\d{4})$/);
+  if (dotMatch) return `${dotMatch[1]}/${dotMatch[2]}`;
+  // Month name: Gen 2020, January 2020
   const monthNames: Record<string, string> = {
     gen: "01", gennaio: "01", jan: "01", january: "01",
     feb: "02", febbraio: "02", february: "02",
@@ -54,11 +62,10 @@ function normalizeDate(d: string | undefined | null): string {
     const mm = monthNames[monthMatch[1].toLowerCase()];
     if (mm) return `${mm}/${monthMatch[2]}`;
   }
+  // Year only
   if (/^\d{4}$/.test(s)) return s;
   return sanitize(s);
 }
-
-type HorizontalAlign = "left" | "center";
 
 interface DocxStyle {
   accentHex: string;
@@ -67,7 +74,7 @@ interface DocxStyle {
   nameColorHex: string;
   headingFont: string;
   bodyFont: string;
-  nameSize: number; // half-points
+  nameSize: number;
   sectionSize: number;
   bodySize: number;
   bulletSize: number;
@@ -75,11 +82,6 @@ interface DocxStyle {
   sectionBorder: boolean;
   sectionUppercase: boolean;
   nameUppercase: boolean;
-  nameAlignment: HorizontalAlign;
-  contactAlignment: HorizontalAlign;
-  sectionAlignment: HorizontalAlign;
-  bulletChar: string;
-  headerRule: boolean;
 }
 
 const VERSO_STYLE: DocxStyle = {
@@ -97,27 +99,18 @@ const VERSO_STYLE: DocxStyle = {
   sectionBorder: true,
   sectionUppercase: true,
   nameUppercase: false,
-  nameAlignment: "left",
-  contactAlignment: "left",
-  sectionAlignment: "left",
-  bulletChar: "•",
-  headerRule: false,
 };
 
 function getStyle(_templateId?: TemplateId): DocxStyle {
   return VERSO_STYLE;
 }
 
-function toAlignment(align: HorizontalAlign) {
-  return align === "center" ? AlignmentType.CENTER : AlignmentType.LEFT;
-}
+// ─── Paragraph builders ─────────────────────────────────
 
 function sectionTitle(text: string, s: DocxStyle): Paragraph {
   const displayText = s.sectionUppercase ? text.toUpperCase() : text;
   return new Paragraph({
-    heading: HeadingLevel.HEADING_2,
-    alignment: toAlignment(s.sectionAlignment),
-    spacing: { before: 280, after: 120 },
+    spacing: { before: 320, after: 100 },
     border: s.sectionBorder
       ? { bottom: { style: BorderStyle.SINGLE, size: 2, color: s.accentHex } }
       : undefined,
@@ -133,20 +126,59 @@ function sectionTitle(text: string, s: DocxStyle): Paragraph {
   });
 }
 
-function bulletParagraph(text: string, s: DocxStyle): Paragraph {
-  const isTruncation = text === "…" || text === "...";
-  const displayText = isTruncation ? "…" : `${s.bulletChar} ${text}`;
+/** Role line with date right-aligned via tab stop */
+function roleWithDate(role: string, dateRange: string, s: DocxStyle): Paragraph {
+  const children: TextRun[] = [
+    new TextRun({ text: role, bold: true, size: s.sectionSize, font: s.headingFont }),
+  ];
+  if (dateRange) {
+    children.push(
+      new TextRun({ text: "\t", size: s.metaSize, font: s.bodyFont }),
+      new TextRun({ text: dateRange, size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true }),
+    );
+  }
   return new Paragraph({
-    spacing: { after: 40 },
-    children: [new TextRun({ text: displayText, size: s.bulletSize, font: s.bodyFont, ...(isTruncation ? { color: s.mutedHex } : {}) })],
+    spacing: { before: 240, after: 20 },
+    tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+    children,
   });
 }
 
-function metaText(text: string, s: DocxStyle): Paragraph {
+/** Company · Location line (muted, italic) */
+function companyLine(company: string, location: string | null, s: DocxStyle): Paragraph {
+  const text = location ? `${company}  ·  ${location}` : company;
   return new Paragraph({
     spacing: { after: 40 },
-    children: [new TextRun({ text, size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true })],
+    children: [
+      new TextRun({ text: sanitize(text), size: s.bodySize, font: s.bodyFont, color: s.mutedHex, italics: true }),
+    ],
   });
+}
+
+/** Degree line with date right-aligned */
+function degreeWithDate(degree: string, dateRange: string, s: DocxStyle): Paragraph {
+  const children: TextRun[] = [
+    new TextRun({ text: degree, bold: true, size: s.bodySize, font: s.bodyFont }),
+  ];
+  if (dateRange) {
+    children.push(
+      new TextRun({ text: "\t", size: s.metaSize, font: s.bodyFont }),
+      new TextRun({ text: dateRange, size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true }),
+    );
+  }
+  return new Paragraph({
+    spacing: { before: 120, after: 20 },
+    tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+    children,
+  });
+}
+
+function buildDateRange(start: string, end: string, current?: boolean): string {
+  if (!start && !end) return "";
+  const s = normalizeDate(start);
+  const e = current ? "Attuale" : normalizeDate(end);
+  if (s && e) return `${s} – ${e}`;
+  return s || e;
 }
 
 export async function generateDocx(
@@ -181,10 +213,11 @@ export async function generateDocx(
 
   const children: Paragraph[] = [];
 
+  // ─── Name ─────────────────────────────
   const nameText = sanitize(clean(personal.name) || "Nome Cognome");
   children.push(
     new Paragraph({
-      alignment: toAlignment(s.nameAlignment),
+      alignment: AlignmentType.LEFT,
       spacing: { after: 60 },
       children: [
         new TextRun({
@@ -198,11 +231,12 @@ export async function generateDocx(
     })
   );
 
+  // ─── Contact line ─────────────────────
   if (contactParts.length > 0 || links.length > 0) {
     children.push(
       new Paragraph({
-        alignment: toAlignment(s.contactAlignment),
-        spacing: { after: 200 },
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 160 },
         children: [
           new TextRun({
             text: [...contactParts, ...links].join("  ·  "),
@@ -215,58 +249,39 @@ export async function generateDocx(
     );
   }
 
-  if (s.headerRule) {
-    children.push(
-      new Paragraph({
-        spacing: { after: 120 },
-        border: {
-          bottom: { style: BorderStyle.SINGLE, size: 6, color: s.accentHex },
-        },
-      })
-    );
-  }
-
+  // ─── Profile / Summary ────────────────
   if (summary) {
     children.push(sectionTitle(h("profile", lang), s));
     const paragraphs = summary.split(/\n\n+/).filter(Boolean);
     for (const para of paragraphs) {
       children.push(
         new Paragraph({
-          spacing: { after: 120 },
+          spacing: { after: 100 },
           children: [new TextRun({ text: para.trim(), size: s.bodySize, font: s.bodyFont })],
         })
       );
     }
   }
 
+  // ─── Experience ───────────────────────
   if (experience.length > 0) {
     children.push(sectionTitle(h("experience", lang), s));
     for (let i = 0; i < experience.length; i++) {
       const exp = experience[i];
       const roleText = sanitize(clean(exp.role) || clean(exp.title) || "");
-      if (roleText) {
-        children.push(
-          new Paragraph({
-            spacing: { before: 200, after: 20 },
-            children: [new TextRun({ text: roleText, bold: true, size: s.sectionSize, font: s.headingFont })],
-          })
-        );
-      }
       const companyText = sanitize(clean(exp.company) || "");
-      if (companyText) {
-        children.push(
-          new Paragraph({
-            spacing: { after: 20 },
-            children: [new TextRun({ text: companyText, bold: true, size: s.bodySize, font: s.bodyFont, color: "333333" })],
-          })
-        );
+      const locationText = clean(exp.location) ? sanitize(exp.location) : null;
+      const dateRange = buildDateRange(exp.start || exp.period, exp.end, exp.current);
+
+      // Line 1: Role [TAB] Date range
+      if (roleText) {
+        children.push(roleWithDate(roleText, dateRange, s));
       }
-      const meta = [
-        normalizeDate(exp.start || exp.period),
-        exp.end ? ` – ${normalizeDate(exp.end)}` : exp.current ? " – Attuale" : "",
-        clean(exp.location) ? `  ·  ${sanitize(exp.location)}` : "",
-      ].join("");
-      if (meta.trim()) children.push(metaText(meta, s));
+      // Line 2: Company · Location
+      if (companyText) {
+        children.push(companyLine(companyText, locationText, s));
+      }
+      // Description paragraph
       if (clean(exp.description)) {
         children.push(
           new Paragraph({
@@ -275,20 +290,30 @@ export async function generateDocx(
           })
         );
       }
+      // Bullets (native Word numbering)
       const rawBullets = Array.isArray(exp.bullets) ? exp.bullets.filter((b: string) => clean(b)) : [];
       const bullets = truncateBullets(rawBullets, i, d);
       for (const b of bullets) {
-        children.push(bulletParagraph(sanitize(b), s));
+        children.push(
+          new Paragraph({
+            numbering: { reference: "cv-bullets", level: 0 },
+            spacing: { after: 40 },
+            children: [new TextRun({ text: sanitize(b), size: s.bulletSize, font: s.bodyFont })],
+          })
+        );
       }
     }
   }
 
+  // ─── Education ────────────────────────
   if (education.length > 0) {
     children.push(sectionTitle(h("education", lang), s));
     for (const ed of education) {
       const degree = clean(ed.degree);
       const field = clean(ed.field);
       const institution = clean(ed.institution);
+
+      // Build degree title
       const titleParts: string[] = [];
       if (degree && field) {
         titleParts.push(degree.toLowerCase().includes(field.toLowerCase()) ? degree : `${degree}: ${field}`);
@@ -297,27 +322,36 @@ export async function generateDocx(
       } else if (field) {
         titleParts.push(field);
       }
-      const eduTitle = sanitize(institution
-        ? (titleParts.length > 0 ? `${titleParts.join("")} - ${institution}` : institution)
-        : titleParts.join(""));
-      if (eduTitle) {
+      const degreeTitle = sanitize(titleParts.length > 0
+        ? (institution ? `${titleParts.join("")} - ${institution}` : titleParts.join(""))
+        : (institution || ""));
+
+      // Date range for education
+      const startDate = normalizeDate(clean(ed.start) || clean(ed.period));
+      const endDate = normalizeDate(clean(ed.end));
+      const eduDateRange = startDate ? (endDate ? `${startDate} – ${endDate}` : startDate) : endDate || "";
+
+      // Line 1: Degree [TAB] Date range
+      if (degreeTitle) {
+        children.push(degreeWithDate(degreeTitle, eduDateRange, s));
+      }
+
+      // Line 2: Grade + honors (if any)
+      const grade = sanitize(clean(ed.grade));
+      const honors = sanitize(clean(ed.honors));
+      const gradeLine = [grade, honors].filter(Boolean).join(" ");
+      if (gradeLine) {
         children.push(
           new Paragraph({
-            spacing: { before: 80, after: 20 },
-            children: [new TextRun({ text: eduTitle, bold: true, size: s.bodySize, font: s.bodyFont })],
+            spacing: { after: 40 },
+            children: [new TextRun({ text: gradeLine, size: s.metaSize, font: s.bodyFont, color: s.mutedHex, italics: true })],
           })
         );
       }
-      const metaParts: string[] = [];
-      const startDate = normalizeDate(clean(ed.start) || clean(ed.period));
-      const endDate = normalizeDate(clean(ed.end));
-      if (startDate) metaParts.push(startDate + (endDate ? ` - ${endDate}` : ""));
-      const grade = sanitize(clean(ed.grade));
-      if (grade) metaParts.push(grade);
-      if (metaParts.length > 0) children.push(metaText(metaParts.join("  ·  "), s));
     }
   }
 
+  // ─── Skills ───────────────────────────
   if (allSkills.length > 0) {
     children.push(sectionTitle(h("skills", lang), s));
     children.push(
@@ -328,6 +362,7 @@ export async function generateDocx(
     );
   }
 
+  // ─── Languages ────────────────────────
   if (languages.length > 0) {
     children.push(sectionTitle(h("languages", lang), s));
     for (const l of languages) {
@@ -340,6 +375,7 @@ export async function generateDocx(
     }
   }
 
+  // ─── Certifications ───────────────────
   if (certifications.length > 0) {
     children.push(sectionTitle(h("certifications", lang), s));
     for (const cert of certifications) {
@@ -360,6 +396,7 @@ export async function generateDocx(
     }
   }
 
+  // ─── Projects ─────────────────────────
   if (projects.length > 0) {
     children.push(sectionTitle(h("projects", lang), s));
     for (const proj of projects) {
@@ -388,12 +425,12 @@ export async function generateDocx(
     }
   }
 
+  // ─── Extra sections ───────────────────
   for (const sec of extraSections) {
     const secTitle = clean(sec.title);
     if (!secTitle) continue;
     children.push(sectionTitle(secTitle, s));
     const items = (sec.items || []).filter((item: string) => clean(item));
-    // Hobbies/interests: render inline comma-separated instead of bullets
     const isHobbySection = /hobby|hobbies|interest|interests|interessi/i.test(secTitle);
     if (isHobbySection && items.length > 0) {
       children.push(
@@ -404,19 +441,46 @@ export async function generateDocx(
       );
     } else {
       for (const item of items) {
-        children.push(bulletParagraph(item, s));
+        children.push(
+          new Paragraph({
+            numbering: { reference: "cv-bullets", level: 0 },
+            spacing: { after: 40 },
+            children: [new TextRun({ text: sanitize(item), size: s.bulletSize, font: s.bodyFont })],
+          })
+        );
       }
     }
   }
 
+  // ─── Build document ───────────────────
   const doc = new Document({
+    numbering: {
+      config: [
+        {
+          reference: "cv-bullets",
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.BULLET,
+              text: "\u2022",
+              alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: {
+                  indent: { left: 360, hanging: 180 },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
     sections: [
       {
         properties: {
           page: {
             margin: {
-              top: convertMillimetersToTwip(25),
-              bottom: convertMillimetersToTwip(25),
+              top: convertMillimetersToTwip(20),
+              bottom: convertMillimetersToTwip(20),
               left: convertMillimetersToTwip(20),
               right: convertMillimetersToTwip(20),
             },

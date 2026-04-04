@@ -195,17 +195,20 @@ export function truncateBullets(
   expIndex: number,
   config: DensityConfig
 ): string[] {
-  // Extreme: cap ALL entries
+  let max: number | null = null;
+
   if (config.maxBulletsAllEntries !== null) {
-    const max = expIndex < 2 ? config.maxBulletsAllEntries : (config.maxBulletsOldEntries ?? config.maxBulletsAllEntries);
-    if (bullets.length <= max) return bullets;
-    return [...bullets.slice(0, max), "…"];
+    max = expIndex < 2 ? config.maxBulletsAllEntries : (config.maxBulletsOldEntries ?? config.maxBulletsAllEntries);
+  } else if (config.maxBulletsOldEntries !== null && expIndex >= 2) {
+    max = config.maxBulletsOldEntries;
   }
-  // Ultra: cap only old entries
-  if (config.maxBulletsOldEntries === null || expIndex < 2) return bullets;
-  const max = config.maxBulletsOldEntries;
-  if (bullets.length <= max) return bullets;
-  return [...bullets.slice(0, max), "…"];
+
+  if (max === null || bullets.length <= max) return bullets;
+
+  // Append "…" to last visible bullet instead of creating orphan line
+  const truncated = bullets.slice(0, max);
+  truncated[truncated.length - 1] = truncated[truncated.length - 1] + " …";
+  return truncated;
 }
 
 /**
