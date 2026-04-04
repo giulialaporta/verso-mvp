@@ -14,6 +14,7 @@ export function useProGate() {
   const navigate = useNavigate();
 
   const checkCanCreate = useCallback(async (isPro: boolean): Promise<boolean> => {
+    if (TRIAL_MODE) return true;
     if (isPro || !user) return true;
 
     const { data, error } = await supabase

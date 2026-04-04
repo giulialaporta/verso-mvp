@@ -14,6 +14,19 @@ interface SubscriptionState {
 
 export function useSubscription() {
   const { user, session } = useAuth();
+
+  // Trial mode: all users get Pro access
+  if (TRIAL_MODE) {
+    return {
+      isPro: true,
+      subscriptionEnd: null,
+      cancelAtPeriodEnd: false,
+      loading: false,
+      refresh: async () => {},
+    };
+  }
+
+  const { user, session } = useAuth();
   const [state, setState] = useState<SubscriptionState>({
     isPro: false,
     subscriptionEnd: null,
