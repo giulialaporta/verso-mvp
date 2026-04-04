@@ -138,7 +138,7 @@ function roleWithDate(role: string, dateRange: string, s: DocxStyle): Paragraph 
     );
   }
   return new Paragraph({
-    spacing: { before: 160, after: 0 },
+    spacing: { before: 120, after: 0 },
     tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
     children,
   });
