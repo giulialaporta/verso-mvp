@@ -649,11 +649,8 @@ Deno.serve(async (req) => {
     // ==================== MODE: TAILOR ====================
     let contextInfo = "";
     if (analyze_context) {
-      contextInfo = "\n\nPRIOR ANALYSIS CONTEXT:\n"
-        + "- Match score: " + String(analyze_context.match_score)
-        + "\n- Skills missing: " + JSON.stringify(analyze_context.skills_missing)
-        + "\n- Target CV language (user's explicit choice): " + String(analyze_context.detected_language)
-        + "\n- IMPORTANT: Use \"" + String(analyze_context.detected_language) + "\" as the language for ALL CV content, even if the job posting is in a different language.";
+      contextInfo = "\n\nPRIOR ANALYSIS CONTEXT (structured JSON):\n" + JSON.stringify(analyze_context)
+        + "\n\nIMPORTANT: Use \"" + String(analyze_context.detected_language) + "\" as the language for ALL CV content, even if the job posting is in a different language.";
     }
 
     let userContent = "CANDIDATE CV:\n" + JSON.stringify(compactedCV, null, 2) + "\n\nJOB POSTING:\n" + JSON.stringify(job_data, null, 2);
