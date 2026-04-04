@@ -399,6 +399,30 @@ export default function Onboarding() {
                     </p>
                   </div>
 
+                  {cvOptimized && (
+                    <div className="flex gap-3 rounded-lg border-l-[3px] border-primary bg-surface p-3">
+                      <Check size={16} weight="bold" className="text-primary shrink-0 mt-0.5" />
+                      <p className="text-[13px] text-muted-foreground leading-relaxed">
+                        <span className="font-medium text-foreground">CV ottimizzato.</span>{" "}
+                        Abbiamo migliorato la formattazione del tuo CV. Rivedi e modifica liberamente prima di salvare.
+                      </p>
+                    </div>
+                  )}
+
+                  {optimizing && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="h-3 w-3 animate-spin rounded-full border border-primary border-t-transparent" />
+                      Ottimizzazione AI in corso...
+                    </div>
+                  )}
+
+                  {aiTips.length > 0 && (
+                    <CVOptimizationTips
+                      tips={aiTips}
+                      onDismiss={(i) => setAiTips((prev) => prev.filter((_, idx) => idx !== i))}
+                    />
+                  )}
+
                   <CVSections data={parsedData} editable onUpdate={setParsedData} />
 
                   <CVSuggestions data={parsedData} onUpdate={setParsedData} />
