@@ -26,6 +26,7 @@ import {
 } from "@phosphor-icons/react";
 import { CVSections } from "@/components/CVSections";
 import { CVSuggestions } from "@/components/CVSuggestions";
+import { CVOptimizationTips, type OptimizationTip } from "@/components/CVOptimizationTips";
 import type { ParsedCV } from "@/types/cv";
 
 type Step = "upload" | "parsing" | "preview" | "salary";
@@ -43,6 +44,9 @@ export default function Onboarding() {
   const [filePath, setFilePath] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [rawText, setRawText] = useState<string | null>(null);
+  const [optimizing, setOptimizing] = useState(false);
+  const [aiTips, setAiTips] = useState<OptimizationTip[]>([]);
+  const [cvOptimized, setCvOptimized] = useState(false);
 
   // Salary expectations
   const [currentRal, setCurrentRal] = useState<string>("");
@@ -104,6 +108,28 @@ export default function Onboarding() {
       setRawText(data.raw_text || null);
       trackEvent("cv_uploaded", { file_type: file.type || "pdf" });
       setStep("preview");
+
+      // Background optimization
+      const originalSnapshot = JSON.stringify(data.parsed_data);
+      setOptimizing(true);
+      supabase.functions
+        .invoke("cv-optimize", { body: { cv_data: data.parsed_data } })
+        .then(({ data: optData, error: optError }) => {
+          if (optError || !optData?.optimized_cv) {
+            console.warn("cv-optimize skipped:", optError?.message || "no data");
+            return;
+          }
+          const hasChanges = JSON.stringify(optData.optimized_cv) !== originalSnapshot;
+          if (hasChanges) {
+            setParsedData(optData.optimized_cv as unknown as ParsedCV);
+            setCvOptimized(true);
+          }
+          if (Array.isArray(optData.tips) && optData.tips.length > 0) {
+            setAiTips(optData.tips as OptimizationTip[]);
+          }
+        })
+        .catch((err) => console.warn("cv-optimize error:", err))
+        .finally(() => setOptimizing(false));
     } catch (e: any) {
       console.error("Parse error:", e);
       toast.error(e.message || "Errore durante l'analisi del CV. Riprova.");
@@ -372,6 +398,30 @@ export default function Onboarding() {
                       Controlla che i dati siano corretti. Puoi modificare qualsiasi campo toccandolo.
                     </p>
                   </div>
+
+                  {cvOptimized && (
+                    <div className="flex gap-3 rounded-lg border-l-[3px] border-primary bg-surface p-3">
+                      <Check size={16} weight="bold" className="text-primary shrink-0 mt-0.5" />
+                      <p className="text-[13px] text-muted-foreground leading-relaxed">
+                        <span className="font-medium text-foreground">CV ottimizzato.</span>{" "}
+                        Abbiamo migliorato la formattazione del tuo CV. Rivedi e modifica liberamente prima di salvare.
+                      </p>
+                    </div>
+                  )}
+
+                  {optimizing && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="h-3 w-3 animate-spin rounded-full border border-primary border-t-transparent" />
+                      Ottimizzazione AI in corso...
+                    </div>
+                  )}
+
+                  {aiTips.length > 0 && (
+                    <CVOptimizationTips
+                      tips={aiTips}
+                      onDismiss={(i) => setAiTips((prev) => prev.filter((_, idx) => idx !== i))}
+                    />
+                  )}
 
                   <CVSections data={parsedData} editable onUpdate={setParsedData} />
 
