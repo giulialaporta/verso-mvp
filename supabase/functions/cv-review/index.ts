@@ -338,7 +338,7 @@ CRITICAL: Use ONLY ASCII characters — no em dash, en dash, or smart quotes.`;
   } catch (e) {
     console.error("cv-review error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Review failed" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
