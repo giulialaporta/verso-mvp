@@ -279,8 +279,10 @@ ${original_cv ? JSON.stringify(original_cv) : "Not provided"}
 ## TAILORED CV TO REVIEW
 ${JSON.stringify(cvForReview)}
 
-Apply all 11 rules. EVERY text field must be in "${lang}". Fix ALL bullets to start with action verbs. Remove all artifacts and clichés.
-CRITICAL: if ANY content in the tailored CV is not traceable to the original CV, revert it to the original.`;
+Apply all 13 rules. EVERY text field must be in "${lang}". Fix ALL bullets to start with action verbs. Remove all artifacts and clichés.
+CRITICAL: if ANY content in the tailored CV is not traceable to the original CV, revert it to the original.
+CRITICAL: Do NOT shorten, merge, or remove any existing bullets — correct form only.
+CRITICAL: Use ONLY ASCII characters — no em dash, en dash, or smart quotes.`;
 
     const userId = userData.user.id;
 
