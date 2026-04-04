@@ -49,7 +49,28 @@ export function StepVerifica({
     );
   }
 
-  if (!prescreenResult) return null;
+  if (!prescreenResult) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 px-4">
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors"><ArrowLeft size={20} /></button>
+          <div>
+            <h2 className="font-display text-2xl font-bold">Verifica compatibilità</h2>
+            <p className="text-muted-foreground mt-1">Il pre-screening non è disponibile per questa candidatura.</p>
+          </div>
+        </div>
+        <Card className="border-border/50 bg-card/80">
+          <CardContent className="py-5">
+            <p className="text-sm text-muted-foreground">Non è stato possibile completare l'analisi dei requisiti. Puoi comunque proseguire con la generazione del CV.</p>
+          </CardContent>
+        </Card>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={onBack} className="gap-2"><ArrowLeft size={16} /> Indietro</Button>
+          <Button className="flex-1 gap-2" onClick={() => onProceed([])}>Prosegui con l'analisi <ArrowRight size={16} /></Button>
+        </div>
+      </div>
+    );
+  }
 
   const feasibilityColors = { low: "text-destructive", medium: "text-warning", high: "text-primary" };
   const feasibilityLabels = { low: "Bassa", medium: "Media", high: "Alta" };
