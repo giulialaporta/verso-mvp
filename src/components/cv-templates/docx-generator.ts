@@ -169,10 +169,10 @@ function degreeWithDate(degree: string, dateRange: string, s: DocxStyle): Paragr
   });
 }
 
-function buildDateRange(start: string, end: string, current?: boolean): string {
+function buildDateRange(start: string, end: string, current?: boolean, lang?: string): string {
   if (!start && !end) return "";
   const s = normalizeDate(start);
-  const e = current ? "Attuale" : normalizeDate(end);
+  const e = current ? h("present", lang) : normalizeDate(end);
   if (s && e) return `${s} – ${e}`;
   return s || e;
 }
