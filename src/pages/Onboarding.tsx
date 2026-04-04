@@ -108,6 +108,28 @@ export default function Onboarding() {
       setRawText(data.raw_text || null);
       trackEvent("cv_uploaded", { file_type: file.type || "pdf" });
       setStep("preview");
+
+      // Background optimization
+      const originalSnapshot = JSON.stringify(data.parsed_data);
+      setOptimizing(true);
+      supabase.functions
+        .invoke("cv-optimize", { body: { cv_data: data.parsed_data } })
+        .then(({ data: optData, error: optError }) => {
+          if (optError || !optData?.optimized_cv) {
+            console.warn("cv-optimize skipped:", optError?.message || "no data");
+            return;
+          }
+          const hasChanges = JSON.stringify(optData.optimized_cv) !== originalSnapshot;
+          if (hasChanges) {
+            setParsedData(optData.optimized_cv as unknown as ParsedCV);
+            setCvOptimized(true);
+          }
+          if (Array.isArray(optData.tips) && optData.tips.length > 0) {
+            setAiTips(optData.tips as OptimizationTip[]);
+          }
+        })
+        .catch((err) => console.warn("cv-optimize error:", err))
+        .finally(() => setOptimizing(false));
     } catch (e: any) {
       console.error("Parse error:", e);
       toast.error(e.message || "Errore durante l'analisi del CV. Riprova.");
