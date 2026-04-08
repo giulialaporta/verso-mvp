@@ -19,9 +19,9 @@ Naming coerente con `docs/spec/`: epic = `epic-XX-nome.md`, stories = `stories-p
 
 | File | Priorita' | Descrizione |
 |------|-----------|-------------|
-| `stories-p3-pulizia.md` | **P0 + P3** | 1 story sicurezza (CORS + auth) + 4 pulizia tecnica |
+| `stories-p3-pulizia.md` | **P3** | 3 stories pulizia tecnica (P0.1 ✅, P3.5 ✅, P3.8 ✅ — rimangono P3.2, P3.3, P3.7) |
 
-**Totale: 3 epic + 5 stories isolate**
+**Totale: 3 epic + 3 stories isolate**
 
 ## Utility
 

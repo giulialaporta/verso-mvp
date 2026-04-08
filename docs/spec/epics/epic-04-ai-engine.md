@@ -1,4 +1,4 @@
-# Epic 04 — AI Engine (9 Edge Functions AI + 5 Stripe) (Implementato)
+# Epic 04 — AI Engine (8 Edge Functions AI + 5 Stripe) (Implementato)
 
 ---
 
@@ -330,42 +330,9 @@ Agente HR di revisione qualita'. Riceve il CV gia' adattato da `ai-tailor` + il 
 
 ---
 
-## Edge Function 7: `cv-formal-review` (NUOVA)
+## ~~Edge Function 7: `cv-formal-review`~~ (RIMOSSA)
 
-**Endpoint:** `POST /functions/v1/cv-formal-review`
-
-**Input:**
-```json
-{
-  "cv": { "...CV tailored JSON..." },
-  "template_id": "classico"
-}
-```
-
-**Processo:**
-Revisore finale della forma del CV prima del download. Non valuta contenuti ne' riscrive testi — interviene solo sulla forma:
-
-1. **Coerenza formato date** — tutte le date con formato unico (es. "Gen 2020")
-2. **Separatore date** — stesso separatore (en dash, hyphen, em dash) ovunque
-3. **Maiuscole consistenti** — titoli di ruolo e nomi aziendali uniformi
-4. **Lingua unica** — nessun mix involontario italiano/inglese
-5. **Bullet point uniformi** — struttura coerente, verbo d'azione, lunghezza adeguata
-6. **Punteggiatura e ripetizioni** — consistenza, no ripetizioni ravvicinate
-7. **Fluidita' lettura** — ritocchi minimi per suono naturale
-
-**Output (via tool_use `formal_review_result`):**
-```json
-{
-  "fixes": [
-    { "section": "experience[0]", "field": "start", "problem": "...", "correction": "..." }
-  ],
-  "revised_cv": { "...CV corretto..." }
-}
-```
-
-**Integrazione:** chiamata automaticamente in `StepExport.tsx` al mount dello step. Il CV revisionato viene usato per il PDF/DOCX finale. Se la review fallisce, viene usato il CV originale.
-
-**Nota sicurezza:** usa `Access-Control-Allow-Origin: *` (non CORS dinamico) — da correggere.
+> Questa edge function è stata eliminata. La normalizzazione formale del CV prima dell'export è ora gestita client-side da `normalizeCvText()` in `src/components/cv-templates/template-utils.ts` (funzione deterministica — nessuna chiamata AI).
 
 ---
 
@@ -389,7 +356,7 @@ Revisore finale della forma del CV prima del download. Non valuta contenuti ne' 
 
 **Output:** `{ "headline": "Sr Growth Mktg @Spotify" }`
 
-**Nota sicurezza:** usa `Access-Control-Allow-Origin: *` e nessuna auth — da correggere.
+**Sicurezza:** usa `getCorsHeaders(req)` da `_shared/cors.ts`. Richiede autenticazione Bearer token (401 se assente/invalido).
 
 ---
 
@@ -508,7 +475,7 @@ Revisore finale della forma del CV prima del download. Non valuta contenuti ne' 
 | `ai-tailor` | Anthropic | Claude Sonnet 4 | Gemini 2.5 Flash |
 | `ai-tailor-analyze` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
 | `cv-review` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
-| `cv-formal-review` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
+| ~~`cv-formal-review`~~ | ~~Anthropic~~ | ~~Claude Haiku 4.5~~ | ~~rimossa~~ |
 | `cv-optimize` | Anthropic | Claude Haiku 4.5 | Gemini 2.5 Flash |
 
 **Behavior:**
@@ -564,7 +531,7 @@ CREATE TABLE ai_usage_logs (
 | Parametro | Valore |
 |-----------|--------|
 | Provider primario (parse-cv, ai-tailor) | Anthropic → Claude Sonnet 4 |
-| Provider primario (ai-prescreen, ai-tailor-analyze, cv-review, cv-formal-review, cv-optimize) | Anthropic → Claude Haiku 4.5 |
+| Provider primario (ai-prescreen, ai-tailor-analyze, cv-review, cv-optimize) | Anthropic → Claude Haiku 4.5 |
 | Provider primario (scrape-job) | Google AI → Gemini 2.5 Flash |
 | Fallback (tutte le funzioni Anthropic) | Google AI → Gemini 2.5 Flash |
 | Fallback (scrape-job) | Lovable Gateway → Gemini 2.0 Flash |
@@ -577,7 +544,7 @@ CREATE TABLE ai_usage_logs (
 | Area | Piano | Implementato |
 |------|-------|-------------|
 | Provider AI | Claude API (Anthropic) | Multi-provider: Anthropic Claude (primario) + Google AI Gemini (fallback) |
-| Numero funzioni | 3 | 14 (9 AI + 5 Stripe: create-checkout, check-subscription, stripe-webhook, cancel-subscription, customer-portal) |
+| Numero funzioni | 3 | 13 (8 AI + 5 Stripe: create-checkout, check-subscription, stripe-webhook, cancel-subscription, customer-portal) |
 | parse-cv | Estrazione testo + prompt Claude | Input multimodale diretto (PDF → Gemini) |
 | ai-tailor | Output = CV completo | Output = patch JSON (solo modifiche) |
 | scrape-job | Senza cache | Con cache SHA-256, 7 giorni |

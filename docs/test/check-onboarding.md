@@ -58,14 +58,15 @@ Checklist per verificare il flusso di onboarding a 4 step: Upload CV, Parsing AI
 
 ---
 
-## E. Consenso GDPR art. 9 (Step 3 → Continua)
+## E. Consenso GDPR art. 9 (Step 1 — inline)
 
-- [ ] **E1** — Al primo upload CV, click "Continua" sullo step 3: appare il modal `SensitiveDataConsent`
-- [ ] **E2** — Il modal informa l'utente sui dati sensibili (categorie particolari art. 9 GDPR)
-- [ ] **E3** — L'upload e' bloccato finche' il consenso non viene dato
-- [ ] **E4** — Consenso salvato in `consent_logs` con tipo `sensitive_data`
-- [ ] **E5** — Se l'utente ha gia' dato il consenso in precedenza: il modal non riappare
-- [ ] **E6** — "Annulla" chiude il modal senza bloccare l'utente permanentemente
+> Il modal `SensitiveDataConsent` è stato eliminato. Il consenso è ora una checkbox inline nello Step 1.
+
+- [ ] **E1** — Nello Step 1, sotto l'area drag & drop, è visibile una checkbox art. 9 GDPR
+- [ ] **E2** — La checkbox informa sui dati sensibili che il CV potrebbe contenere
+- [ ] **E3** — La CTA "Analizza il mio CV" è disabilitata finché la checkbox non è spuntata
+- [ ] **E4** — Consenso salvato in `consent_logs` con tipo `sensitive_data` al click CTA
+- [ ] **E5** — Se l'utente ha già dato il consenso in precedenza: la checkbox è pre-spuntata e la CTA è abilitata
 
 ---
 

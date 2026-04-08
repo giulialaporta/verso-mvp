@@ -47,6 +47,7 @@ Generato client-side da `docx-generator.ts` con libreria `docx` (npm).
 - Font Calibri, titoli sezione standard
 - Nessun em dash / en dash → trattino
 - Colori: NERO `#111827` + VERDE `#166534` soltanto
+- **Layout experience/education a 2 righe** (nessun tab stop): riga 1 = ruolo/titolo bold; riga 2 = azienda · data italic muted. Stesso schema per formazione: riga 1 = laurea, riga 2 = istituzione · periodo · voto.
 
 **Nome file:** `CV-{Nome}-{Azienda}-ATS.docx`
 
@@ -55,16 +56,16 @@ Generato client-side da `docx-generator.ts` con libreria `docx` (npm).
 ## 2. StepExport — Flusso e UI
 
 **Al mount dello step — sequenza bloccante:**
-1. `cv-formal-review` → aspetta completamento (o errore con fallback a `tailoredCv`)
-2. Solo dopo: `render-cv(format:"html")` con il CV revisionato (`reviewedCv`)
+1. `normalizeCvText()` client-side (deterministica, nessuna chiamata AI) → normalizza date, dash, maiuscole
+2. `render-cv(format:"html")` con il CV normalizzato
 3. Pulsanti PDF e DOCX disabilitati finché `pipelineStatus !== "ready"`
 
+> `cv-formal-review` (AI) è stata rimossa — sostituita da `normalizeCvText()` in `template-utils.ts`.
+
 **Banner di stato (pipelineStatus):**
-- `reviewing` → spinner "Revisione formale in corso..."
 - `rendering` → spinner "Generazione anteprima..."
-- `ready` (0 fix) → banner verde "Pronto ✓"
-- `ready` (N fix) → collapsible con lista correzioni (section, field, problema, correzione)
-- `error` (review fallita) → banner warning + fallback a CV grezzo + pipeline continua
+- `ready` → banner verde "Pronto ✓"
+- `error` → banner warning + fallback a CV grezzo + pipeline continua
 
 **Layout a 2 card:**
 - **CV Recruiter** — iframe preview A4 scalato con ResizeObserver + pulsante "Stampa / Salva PDF"

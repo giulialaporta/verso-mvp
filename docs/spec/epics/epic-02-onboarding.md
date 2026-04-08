@@ -71,10 +71,8 @@ Il PDF viene inviato alla Edge Function `parse-cv`.
 **Honesty note:** messaggio che Verso usa solo ciò che è scritto nel CV, non aggiunge nulla.
 
 **Al click "Continua":**
-- Se è il primo upload CV dell'utente: appare il modal **SensitiveDataConsent** (art. 9 GDPR)
-  - Il modal informa l'utente sui dati sensibili che il CV potrebbe contenere (categorie particolari di dati personali)
-  - L'upload è bloccato finché il consenso non viene dato
-  - Consenso salvato in `consent_logs`
+- Se è il primo upload CV dell'utente e il consenso art. 9 è già presente in `consent_logs` (checkbox inline nello step 1), procede direttamente. Il modal `SensitiveDataConsent` è stato **eliminato** — il consenso viene raccolto inline nello step 1 (checkbox sotto l'area upload).
+- Il check di consenso esistente avviene via query diretta a `consent_logs` (la funzione `hasSensitiveDataConsent()` è stata rimossa insieme al componente).
 - Salva in `master_cvs`:
   - `parsed_data` = JSON strutturato (con eventuali modifiche dell'utente)
   - `file_name` = nome del file PDF
@@ -137,6 +135,6 @@ Il PDF viene inviato alla Edge Function `parse-cv`.
 | Edit inline | Non previsto | Completo su tutti i campi |
 | Suggerimenti AI | Non previsti | Componente CVSuggestions |
 | Summary | Solo se presente | Sintetizzato automaticamente se mancante |
-| Consenso GDPR | Non previsto | Modal SensitiveDataConsent (art. 9) al primo upload |
+| Consenso GDPR | Non previsto | Checkbox inline art. 9 nello step 1 (modal SensitiveDataConsent rimosso) |
 | Aspettative RAL | Non previste | Step 4 con RAL attuale e desiderata |
 | Gestione CV | Sostituzione semplice | Soft delete, riattivazione, hard delete, edit senza ri-upload |

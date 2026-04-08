@@ -34,10 +34,12 @@
 
 ## C. Consenso dati sensibili (art. 9 GDPR)
 
-- [x] **C1** — Modal appare prima del primo upload CV (verificato da code review: SensitiveDataConsent)
-- [x] **C2** — Il modal informa sui dati sensibili che il CV potrebbe contenere
-- [x] **C3** — Checkbox non pre-spuntata nel modal
-- [x] **C4** — Upload bloccato finche' il consenso non e' dato
+> **Nota:** il modal `SensitiveDataConsent` è stato eliminato. Il consenso è ora raccolto tramite checkbox inline nello Step 1 (Upload). I check C1-C4 sono stati aggiornati di conseguenza.
+
+- [ ] **C1** — Checkbox art. 9 inline visibile nello Step 1 sotto l'area di upload
+- [ ] **C2** — La checkbox informa sui dati sensibili che il CV potrebbe contenere
+- [ ] **C3** — Checkbox non pre-spuntata al primo accesso
+- [ ] **C4** — CTA "Analizza il mio CV" disabilitata finché la checkbox non è spuntata
 - [x] **C5** — Consenso salvato in `consent_logs` con `consent_type: 'sensitive_data'`
 - [x] **C6** — Se l'utente ha gia' dato il consenso: il modal non riappare
 - [x] **C7** — "Annulla" chiude il modal senza bloccare l'utente permanentemente
