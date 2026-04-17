@@ -63,7 +63,7 @@ const TASK_ROUTING: Record<AiTask, ModelConfig> = {
     provider: "google",
     model: "gemini-2.5-flash",
     fallbackProvider: "lovable",
-    fallbackModel: "google/gemini-2.0-flash",
+    fallbackModel: "google/gemini-2.5-flash",
   },
   "ai-prescreen": {
     provider: "anthropic",
@@ -109,7 +109,6 @@ const COST_PER_M: Record<string, { input: number; output: number }> = {
   "claude-sonnet-4-20250514": { input: 3, output: 15 },
   "claude-haiku-4-5-20251001": { input: 1, output: 5 },
   "gemini-2.5-flash": { input: 0.075, output: 0.3 },
-  "google/gemini-2.0-flash": { input: 0.1, output: 0.4 },
 };
 
 // ==================== HELPERS ====================
